@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Mail, Heart } from 'lucide-react';
+import { Mail, Heart, Linkedin, Github } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -74,18 +74,15 @@ const Footer: React.FC = () => {
             <div className="flex items-center mb-2">
               <Mail className="w-4 h-4 mr-2" />
               <a href="mailto:contact@esiguide.com" className="text-blue-200 hover:text-white transition-colors">
-                contact@esiguide.com
+                abdoul.diouf2@groupe-esigelec.org
               </a>
             </div>
             <div className="flex space-x-4 mt-4">
               <a href="#" className="text-blue-200 hover:text-white transition-colors">
-                <Facebook className="w-5 h-5" />
+                <Linkedin className="w-5 h-5" />
               </a>
               <a href="#" className="text-blue-200 hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-blue-200 hover:text-white transition-colors">
-                <Instagram className="w-5 h-5" />
+                <Github className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -96,7 +93,7 @@ const Footer: React.FC = () => {
             &copy; {currentYear} ESIGELEC Prep Guide. Tous droits réservés.
           </p>
           <p className="text-sm text-blue-200 mt-2 md:mt-0 flex items-center">
-            Développé avec <Heart className="w-4 h-4 mx-1 text-red-400" /> par d'anciens étudiants CPS
+            Développé avec <Heart className="w-4 h-4 mx-1 text-red-400" /> par Abdoul Ahad Mbacké DIOUF
           </p>
         </div>
       </div>
