@@ -47,13 +47,13 @@ const Home: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="md:w-1/2 flex justify-center">
-              <img 
-                src="https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                alt="Campus universitaire" 
-                className="rounded-lg shadow-lg max-w-full md:max-w-md lg:max-w-lg h-auto"
-              />
-            </div>
+            <div className="md:w-1/2 flex justify-center md:pl-8 mt-6 md:mt-0">
+  <img
+    src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
+    alt="Campus universitaire"
+    className="rounded-lg shadow-lg w-full max-w-[320px] md:max-w-[380px] lg:max-w-[420px] h-auto object-cover"
+  />
+</div>
           </div>
         </div>
       </section>
