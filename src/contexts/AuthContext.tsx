@@ -1,19 +1,38 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  User as FirebaseUser,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  updateProfile,
+  sendEmailVerification
+} from 'firebase/auth';
+import { auth } from '../firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 
-type User = {
-  id: string;
+// Type pour l'utilisateur dans l'application
+export type AppUser = {
+  uid: string;
   email: string;
-  name: string;
+  displayName: string;
+  emailVerified: boolean;
   isAdmin: boolean;
+  createdAt?: Date;
+  photoURL?: string;
 };
 
 type AuthContextType = {
-  currentUser: User | null;
+  currentUser: AppUser | null;
   loading: boolean;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<FirebaseUser>;
+  login: (email: string, password: string) => Promise<AppUser | null>;
+  loginWithGoogle: () => Promise<AppUser | null>;
   logout: () => Promise<void>;
   isAdmin: () => boolean;
+  sendVerificationEmail: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,103 +45,166 @@ export const useAuth = () => {
   return context;
 };
 
+// Fonction pour convertir un utilisateur Firebase en utilisateur de l'application
+const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUser | null> => {
+  if (!firebaseUser) return null;
+
+  // Vérifier si l'utilisateur existe dans Firestore
+  const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+  const userData = userDoc.data();
+
+  return {
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || '',
+    displayName: firebaseUser.displayName || userData?.displayName || firebaseUser.email?.split('@')[0] || 'Utilisateur',
+    emailVerified: firebaseUser.emailVerified,
+    isAdmin: userData?.isAdmin || false,
+    photoURL: firebaseUser.photoURL || userData?.photoURL,
+    createdAt: userData?.createdAt?.toDate()
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const appUser = await mapFirebaseUser(firebaseUser);
+        setCurrentUser(appUser);
+      } else {
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Nettoyer l'abonnement lors du démontage du composant
+    return () => unsubscribe();
   }, []);
 
-  // Mock register function
-  const register = async (email: string, password: string, name: string) => {
+  // Enregistrer un nouvel utilisateur
+  const register = async (email: string, password: string, displayName: string) => {
     try {
-      // For demo purposes, we'll create a mock user
-      // In a real app, this would call an API or Firebase
-      const newUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-        isAdmin: email.includes('admin') // Simple way to make admin accounts for demo
+      // 1. Créer l'utilisateur avec Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const { user } = userCredential;
+
+      // 2. Mettre à jour le profil avec le nom d'affichage
+      await updateProfile(user, { displayName });
+
+      // 3. Envoyer l'email de vérification
+      await sendEmailVerification(user);
+
+      // 4. Créer un document utilisateur dans Firestore
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName,
+        emailVerified: user.emailVerified,
+        isAdmin: false, // Par défaut, l'utilisateur n'est pas admin
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
-      
-      // Store user in localStorage
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
-      setCurrentUser(newUser);
-      
-      // In a real app, you'd also store/hash the password securely
-      localStorage.setItem(`user_${email}`, password);
+
+      await setDoc(doc(db, 'users', user.uid), userData);
+
+      // 5. Mettre à jour l'état de l'utilisateur
+      const appUser = await mapFirebaseUser(user);
+      setCurrentUser(appUser);
+
+      return user;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Erreur lors de l\'inscription:', error);
       throw error;
     }
   };
 
-  // Mock login function
+  // Envoyer un email de vérification
+  const sendVerificationEmail = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      await sendEmailVerification(auth.currentUser);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'email de vérification:', error);
+      throw error;
+    }
+  };
+
+  // Connexion d'un utilisateur
   const login = async (email: string, password: string) => {
     try {
-      // For demo purposes only
-      // In a real app, this would validate against a secure backend
-      const storedPassword = localStorage.getItem(`user_${email}`);
-      
-      if (storedPassword === password) {
-        // Check if this is the default admin
-        let user: User;
-        
-        if (email === 'admin@example.com' && password === 'adminpassword') {
-          user = {
-            id: 'admin1',
-            email: 'admin@example.com',
-            name: 'Admin User',
-            isAdmin: true
-          };
-        } else {
-          // Try to find an existing user
-          const storedUser = localStorage.getItem('currentUser');
-          
-          if (storedUser && JSON.parse(storedUser).email === email) {
-            user = JSON.parse(storedUser);
-          } else {
-            // Create a basic user object
-            user = {
-              id: Date.now().toString(),
-              email,
-              name: email.split('@')[0], // Simple name from email
-              isAdmin: email.includes('admin')
-            };
-          }
-        }
-        
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        setCurrentUser(user);
-      } else {
-        throw new Error('Invalid email or password');
-      }
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const appUser = await mapFirebaseUser(userCredential.user);
+      setCurrentUser(appUser);
+      return appUser;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Erreur de connexion:', error);
       throw error;
     }
   };
 
-  // Mock logout function
+  // Déconnexion de l'utilisateur
   const logout = async () => {
     try {
-      localStorage.removeItem('currentUser');
+      await firebaseSignOut(auth);
       setCurrentUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Erreur lors de la déconnexion:', error);
       throw error;
     }
   };
 
-  // Check if user is admin
+  // Vérifier si l'utilisateur est administrateur
   const isAdmin = () => {
     return currentUser?.isAdmin || false;
+  };
+
+  // Connexion avec Google
+  const loginWithGoogle = async (): Promise<AppUser | null> => {
+    const provider = new GoogleAuthProvider();
+    let user = null;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      user = result.user;
+      console.log('[Google] Utilisateur connecté:', user);
+
+      // Vérifier si le document utilisateur existe déjà
+      const userDocRef = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      console.log('[Google] Document utilisateur existe:', userSnapshot.exists());
+
+      if (!userSnapshot.exists()) {
+        // Création du document utilisateur avec isAdmin: false par défaut
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          emailVerified: user.emailVerified,
+          isAdmin: false,
+          createdAt: serverTimestamp(),
+          photoURL: user.photoURL ?? undefined,
+        });
+        console.log('[Google] Document utilisateur créé dans Firestore');
+      }
+
+      // Retourne l'utilisateur sous forme AppUser
+      const appUser: AppUser = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        emailVerified: user.emailVerified,
+        isAdmin: userSnapshot.exists() ? userSnapshot.data().isAdmin : false,
+        createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+        photoURL: user.photoURL ?? undefined,
+      };
+      console.log('[Google] AppUser retourné:', appUser);
+      return appUser;
+    } catch (error) {
+      console.error('[Google] Erreur dans loginWithGoogle:', error, user);
+      throw error;
+    }
   };
 
   const value = {
@@ -130,8 +212,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     register,
     login,
+    loginWithGoogle,
     logout,
-    isAdmin
+    isAdmin,
+    sendVerificationEmail,
   };
 
   return (

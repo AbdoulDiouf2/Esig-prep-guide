@@ -99,10 +99,10 @@ const Header: React.FC = () => {
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {currentUser.name.charAt(0).toUpperCase()}
+                      {(currentUser.displayName || currentUser.email || 'Utilisateur').charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span>{currentUser.name}</span>
+                  <span>{currentUser.displayName || currentUser.email || 'Utilisateur'}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
@@ -176,11 +176,11 @@ const Header: React.FC = () => {
                   <div className="flex items-center mb-2">
                     <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
                       <span className="text-white font-medium text-sm">
-                        {currentUser.name.charAt(0).toUpperCase()}
+                        {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
                       </span>
                     </div>
                     <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
-                      {currentUser.name}
+                      {currentUser.displayName || currentUser.email || 'Utilisateur'}
                     </span>
                   </div>
                   <Link 

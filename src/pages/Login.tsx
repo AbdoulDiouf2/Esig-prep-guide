@@ -7,8 +7,9 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   // For demo purposes, pre-populate with admin credentials
   React.useEffect(() => {
@@ -26,13 +27,33 @@ const Login: React.FC = () => {
       setLoading(true);
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Identifiants invalides. Veuillez réessayer.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Connexion Google
+  const handleGoogleLogin = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      let message = "Erreur lors de la connexion avec Google.";
+      if (err && typeof err === 'object' && 'message' in err) {
+        message += `\n${(err as { message: string }).message}`;
+      }
+      setError(message);
+      console.error(err);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -62,7 +83,16 @@ const Login: React.FC = () => {
               </div>
             </div>
           )}
-          
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className={`w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 mb-6 ${googleLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            style={{ gap: 8 }}
+          >
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png" alt="Google" className="w-5 h-5 mr-2" />
+            {googleLoading ? 'Connexion Google...' : 'Se connecter avec Google'}
+          </button>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -133,30 +163,7 @@ const Login: React.FC = () => {
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Compte de démonstration
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3">
-              <div
-                onClick={() => {
-                  setEmail('admin@example.com');
-                  setPassword('adminpassword');
-                }}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-              >
-                Utiliser le compte administrateur
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>

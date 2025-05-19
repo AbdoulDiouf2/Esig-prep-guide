@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // Types
 export type GuidePhase = 'post-cps' | 'during-process' | 'pre-arrival';
@@ -64,199 +66,93 @@ export const useContent = () => {
   return context;
 };
 
-// Sample data
-const initialResources: ResourceDocument[] = [
-  {
-    id: '1',
-    title: 'Guide Campus France',
-    description: 'Guide complet pour la procédure Campus France',
-    phase: 'post-cps',
-    category: 'administratif',
-    fileUrl: 'https://example.com/campus-france.pdf',
-    fileType: 'pdf',
-    uploadDate: '2024-01-15',
-    updatedDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'Demande de Visa étudiant',
-    description: 'Documents et démarches pour le visa étudiant',
-    phase: 'during-process',
-    category: 'visa',
-    fileUrl: 'https://example.com/visa.pdf',
-    fileType: 'pdf',
-    uploadDate: '2024-01-20',
-    updatedDate: '2024-02-01'
-  },
-  {
-    id: '3',
-    title: 'Guide de la vie à Rouen',
-    description: 'Tout savoir pour bien s\'installer à Rouen',
-    phase: 'pre-arrival',
-    category: 'logement',
-    fileUrl: 'https://example.com/rouen.pdf',
-    fileType: 'pdf',
-    uploadDate: '2024-02-10',
-    updatedDate: '2024-02-10'
-  }
-];
-
-const initialGuideSections: GuideSection[] = [
-  {
-    id: '1',
-    title: 'Préparation du dossier Campus France',
-    phase: 'post-cps',
-    content: 'Après la fin de vos CPS, la première étape est la création de votre dossier Campus France. Voici les étapes à suivre...',
-    order: 1,
-    resources: ['1']
-  },
-  {
-    id: '2',
-    title: 'Demande de Visa',
-    phase: 'during-process',
-    content: 'Une fois votre acceptation à l\'ESIGELEC confirmée, vous devez démarrer la procédure de visa...',
-    order: 1,
-    resources: ['2']
-  },
-  {
-    id: '3',
-    title: 'Trouver un logement',
-    phase: 'pre-arrival',
-    content: 'Avant votre arrivée en France, la recherche d\'un logement est essentielle...',
-    order: 1,
-    resources: ['3']
-  }
-];
-
-const initialFAQItems: FAQItem[] = [
-  {
-    id: '1',
-    question: 'Quel est le délai pour obtenir son visa étudiant ?',
-    answer: 'Le délai moyen est de 2 à 3 semaines après l\'entretien Campus France.',
-    category: 'visa',
-    phase: 'during-process',
-    isApproved: true,
-    createdDate: '2024-01-15',
-    updatedDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    question: 'Comment fonctionne le système CROUS pour le logement ?',
-    answer: 'Le CROUS est un organisme qui propose des logements étudiants à prix modérés...',
-    category: 'logement',
-    phase: 'pre-arrival',
-    isApproved: true,
-    createdDate: '2024-01-20',
-    updatedDate: '2024-01-20'
-  }
-];
-
-export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [resources, setResources] = useState<ResourceDocument[]>([]);
   const [guideSections, setGuideSections] = useState<GuideSection[]>([]);
   const [faqItems, setFAQItems] = useState<FAQItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // Chargement initial Firestore
   useEffect(() => {
-    // Load from localStorage or initialize with sample data
-    const storedResources = localStorage.getItem('resources');
-    const storedGuideSections = localStorage.getItem('guideSections');
-    const storedFAQItems = localStorage.getItem('faqItems');
-
-    setResources(storedResources ? JSON.parse(storedResources) : initialResources);
-    setGuideSections(storedGuideSections ? JSON.parse(storedGuideSections) : initialGuideSections);
-    setFAQItems(storedFAQItems ? JSON.parse(storedFAQItems) : initialFAQItems);
+    const fetchAll = async () => {
+      setLoading(true);
+      // guideSections
+      const guideSnap = await getDocs(collection(db, 'guideSections'));
+      setGuideSections(guideSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as GuideSection));
+      // resources
+      const resSnap = await getDocs(collection(db, 'resources'));
+      setResources(resSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as ResourceDocument));
+      // faq
+      const faqSnap = await getDocs(collection(db, 'faq'));
+      setFAQItems(faqSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as FAQItem));
+      setLoading(false);
+    };
+    fetchAll();
   }, []);
 
-  useEffect(() => {
-    // Save to localStorage when changes occur
-    localStorage.setItem('resources', JSON.stringify(resources));
-    localStorage.setItem('guideSections', JSON.stringify(guideSections));
-    localStorage.setItem('faqItems', JSON.stringify(faqItems));
-  }, [resources, guideSections, faqItems]);
+  // CRUD Firestore
+  const reloadAll = async () => {
+    // Recharge toutes les collections (après un ajout/supp/sync)
+    const guideSnap = await getDocs(collection(db, 'guideSections'));
+    setGuideSections(guideSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as GuideSection));
+    const resSnap = await getDocs(collection(db, 'resources'));
+    setResources(resSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as ResourceDocument));
+    const faqSnap = await getDocs(collection(db, 'faq'));
+    setFAQItems(faqSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as FAQItem));
+  };
 
   // Resource methods
-  const addResource = (resource: Omit<ResourceDocument, 'id'>) => {
-    const newResource = {
-      ...resource,
-      id: Date.now().toString(),
-      uploadDate: new Date().toISOString().split('T')[0],
-      updatedDate: new Date().toISOString().split('T')[0]
-    };
-    setResources([...resources, newResource]);
+  const addResource = async (resource: Omit<ResourceDocument, 'id'>) => {
+    await addDoc(collection(db, 'resources'), resource);
+    await reloadAll();
   };
-
-  const updateResource = (id: string, resource: Partial<ResourceDocument>) => {
-    setResources(resources.map(r => 
-      r.id === id 
-        ? { ...r, ...resource, updatedDate: new Date().toISOString().split('T')[0] } 
-        : r
-    ));
+  const updateResource = async (id: string, resource: Partial<ResourceDocument>) => {
+    await updateDoc(doc(db, 'resources', id), resource);
+    await reloadAll();
   };
-
-  const deleteResource = (id: string) => {
-    setResources(resources.filter(r => r.id !== id));
+  const deleteResource = async (id: string) => {
+    await deleteDoc(doc(db, 'resources', id));
+    await reloadAll();
   };
 
   // Guide section methods
-  const addGuideSection = (section: Omit<GuideSection, 'id'>) => {
-    const newSection = {
-      ...section,
-      id: Date.now().toString()
-    };
-    setGuideSections([...guideSections, newSection]);
+  const addGuideSection = async (section: Omit<GuideSection, 'id'>) => {
+    await addDoc(collection(db, 'guideSections'), section);
+    await reloadAll();
   };
-
-  const updateGuideSection = (id: string, section: Partial<GuideSection>) => {
-    setGuideSections(guideSections.map(s => 
-      s.id === id 
-        ? { ...s, ...section } 
-        : s
-    ));
+  const updateGuideSection = async (id: string, section: Partial<GuideSection>) => {
+    await updateDoc(doc(db, 'guideSections', id), section);
+    await reloadAll();
   };
-
-  const deleteGuideSection = (id: string) => {
-    setGuideSections(guideSections.filter(s => s.id !== id));
+  const deleteGuideSection = async (id: string) => {
+    await deleteDoc(doc(db, 'guideSections', id));
+    await reloadAll();
   };
 
   // FAQ item methods
-  const addFAQItem = (item: Omit<FAQItem, 'id'>) => {
-    const newItem = {
-      ...item,
-      id: Date.now().toString(),
-      createdDate: new Date().toISOString().split('T')[0],
-      updatedDate: new Date().toISOString().split('T')[0]
-    };
-    setFAQItems([...faqItems, newItem]);
+  const addFAQItem = async (item: Omit<FAQItem, 'id'>) => {
+    await addDoc(collection(db, 'faq'), item);
+    await reloadAll();
   };
-
-  const updateFAQItem = (id: string, item: Partial<FAQItem>) => {
-    setFAQItems(faqItems.map(f => 
-      f.id === id 
-        ? { ...f, ...item, updatedDate: new Date().toISOString().split('T')[0] } 
-        : f
-    ));
+  const updateFAQItem = async (id: string, item: Partial<FAQItem>) => {
+    await updateDoc(doc(db, 'faq', id), item);
+    await reloadAll();
   };
-
-  const deleteFAQItem = (id: string) => {
-    setFAQItems(faqItems.filter(f => f.id !== id));
+  const deleteFAQItem = async (id: string) => {
+    await deleteDoc(doc(db, 'faq', id));
+    await reloadAll();
   };
 
   // Filter methods
   const getResourcesByPhase = (phase: GuidePhase) => {
     return resources.filter(resource => resource.phase === phase);
   };
-
   const getGuideSectionsByPhase = (phase: GuidePhase) => {
-    return guideSections
-      .filter(section => section.phase === phase)
-      .sort((a, b) => a.order - b.order);
+    return guideSections.filter(section => section.phase === phase).sort((a, b) => a.order - b.order);
   };
-
   const getFAQItemsByPhase = (phase: GuidePhase) => {
     return faqItems.filter(item => item.phase === phase);
   };
-
-  // Search method
   const searchResources = (query: string) => {
     const lowerQuery = query.toLowerCase();
     return resources.filter(
@@ -286,9 +182,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     searchResources
   };
 
+  if (loading) return <div className="p-8 text-center">Chargement du contenu...</div>;
+
   return (
     <ContentContext.Provider value={value}>
       {children}
     </ContentContext.Provider>
   );
-};
+}
+
+export { ContentProvider };

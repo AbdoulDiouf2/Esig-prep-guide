@@ -11,6 +11,16 @@ Une plateforme complète pour accompagner les étudiants des Classes Préparatoi
 - ❓ Foire aux questions interactive
 - 🔒 Espace membre avec authentification sécurisée
 - 👨‍💻 Interface d'administration pour la gestion du contenu
+- 🧑‍💼 **Gestion avancée des utilisateurs/admins** :
+  - Page de profil utilisateur moderne et responsive
+  - Visualisation, édition, promotion/déclassement admin, suppression d’utilisateurs
+  - Avatar stylé, informations claires, boutons d’action élégants
+  - Sécurité renforcée (un admin ne peut pas se supprimer lui-même, confirmation systématique avant action critique)
+  - Expérience fluide et agréable pour l’admin
+
+<!--
+![Capture d’écran Profil Admin](./docs/screenshot-profile.png)
+-->
 
 ## 🛠 Technologies utilisées
 

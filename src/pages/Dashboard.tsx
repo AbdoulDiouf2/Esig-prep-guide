@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { BookOpen, FileText, CheckCircle, Users, ArrowRight } from 'lucide-react';
+import { FileText, CheckCircle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -10,7 +10,6 @@ const Dashboard: React.FC = () => {
     guideSections,
     resources,
     getGuideSectionsByPhase,
-    getResourcesByPhase,
     faqItems
   } = useContent();
   
@@ -27,20 +26,24 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const phaseSections = getGuideSectionsByPhase(activePhase);
-  const phaseResources = getResourcesByPhase(activePhase);
+  const phaseSections = getGuideSectionsByPhase ? getGuideSectionsByPhase(activePhase) : [];
+  // const phaseResources = getResourcesByPhase ? getResourcesByPhase(activePhase) : [];
   
   // Calculate progress percentage
   const calculateProgressPercentage = (phase: GuidePhase) => {
-    const phaseSections = getGuideSectionsByPhase(phase);
-    if (phaseSections.length === 0) return 0;
-    
-    const completedPhaseSections = phaseSections.filter(section => 
+    const phaseSectionsSafe = getGuideSectionsByPhase ? getGuideSectionsByPhase(phase) : [];
+    if (!phaseSectionsSafe || phaseSectionsSafe.length === 0) return 0;
+    const completedPhaseSections = phaseSectionsSafe.filter(section => 
       completedSections.includes(section.id)
     );
-    
-    return Math.round((completedPhaseSections.length / phaseSections.length) * 100);
+    return Math.round((completedPhaseSections.length / phaseSectionsSafe.length) * 100);
   };
+
+
+  // Affichage de chargement si les données ne sont pas encore chargées
+  if (!resources || !faqItems || !guideSections) {
+    return <div className="p-8 text-center">Chargement du tableau de bord...</div>;
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -48,7 +51,7 @@ const Dashboard: React.FC = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">Tableau de bord</h1>
           <p className="text-blue-100">
-            Bienvenue, {currentUser?.name} ! Suivez votre progression et accédez à vos ressources.
+            Bienvenue, {currentUser?.displayName || currentUser?.email} ! Suivez votre progression et accédez à vos ressources.
           </p>
         </div>
       </div>
@@ -109,7 +112,7 @@ const Dashboard: React.FC = () => {
               </div>
               
               <div className="divide-y divide-gray-200">
-                {phaseSections.length > 0 ? (
+                {(phaseSections && phaseSections.length > 0) ? (
                   phaseSections.map((section) => (
                     <div key={section.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
                       <div className="flex flex-wrap md:flex-nowrap items-start">
@@ -132,7 +135,7 @@ const Dashboard: React.FC = () => {
                           <p className="text-gray-600 mb-4">{section.content}</p>
                           
                           {/* Associated resources */}
-                          {section.resources.length > 0 && (
+                          {Array.isArray(section.resources) && section.resources.length > 0 && (
                             <div className="mt-3">
                               <h4 className="text-sm font-semibold text-gray-700 mb-2">
                                 Ressources associées:
@@ -236,7 +239,7 @@ const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-3">
-                {resources.slice(0, 3).map((resource) => (
+                {(resources || []).slice(0, 3).map((resource) => (
                   <a
                     key={resource.id}
                     href={resource.fileUrl}
@@ -266,10 +269,10 @@ const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-3">
-                {faqItems.slice(0, 2).map((faq) => (
+                {(faqItems || []).slice(0, 2).map((faq) => (
                   <div key={faq.id} className="p-3 hover:bg-gray-50 rounded-md transition-colors duration-200">
                     <h3 className="text-sm font-medium text-gray-900 mb-1">{faq.question}</h3>
-                    <p className="text-xs text-gray-700">{faq.answer.length > 100 ? `${faq.answer.substring(0, 100)}...` : faq.answer}</p>
+                    <p className="text-xs text-gray-700">{faq.answer && faq.answer.length > 100 ? `${faq.answer.substring(0, 100)}...` : faq.answer}</p>
                   </div>
                 ))}
               </div>

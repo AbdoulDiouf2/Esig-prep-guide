@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useContent, GuidePhase, ResourceDocument } from '../../contexts/ContentContext';
+import { logAdminActivity } from './adminActivityLog';
+import { useContent, GuidePhase } from '../../contexts/ContentContext';
 import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion } from 'lucide-react';
+
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { 
     resources, 
     addResource, 
@@ -64,6 +68,13 @@ const AdminResourceManager: React.FC = () => {
         fileUrl,
         fileType
       });
+      logAdminActivity({
+        type: 'Modification',
+        target: 'Ressource',
+        targetId: editResourceId,
+        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        details: { title }
+      });
     } else {
       // Add new resource
       addResource({
@@ -76,6 +87,12 @@ const AdminResourceManager: React.FC = () => {
         uploadDate: new Date().toISOString().split('T')[0],
         updatedDate: new Date().toISOString().split('T')[0]
       });
+      logAdminActivity({
+        type: 'Ajout',
+        target: 'Ressource',
+        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        details: { title }
+      });
     }
     
     // Navigate back to resources list
@@ -86,6 +103,13 @@ const AdminResourceManager: React.FC = () => {
   const handleDelete = () => {
     if (editResourceId && window.confirm('Êtes-vous sûr de vouloir supprimer cette ressource ?')) {
       deleteResource(editResourceId);
+      logAdminActivity({
+        type: 'Suppression',
+        target: 'Ressource',
+        targetId: editResourceId,
+        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        details: { title }
+      });
       navigate('/admin');
     }
   };
@@ -296,7 +320,7 @@ const AdminResourceManager: React.FC = () => {
                 {/* Post-CPS resources */}
                 <div>
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Post-CPS</h3>
-                  {resourcesByPhase['post-cps'].length > 0 ? (
+                  {Array.isArray(resourcesByPhase['post-cps']) && resourcesByPhase['post-cps'].length > 0 ? (
                     <ul className="space-y-2">
                       {resourcesByPhase['post-cps'].map(resource => (
                         <li key={resource.id}>
@@ -325,7 +349,7 @@ const AdminResourceManager: React.FC = () => {
                 {/* During process resources */}
                 <div>
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Pendant les démarches</h3>
-                  {resourcesByPhase['during-process'].length > 0 ? (
+                  {Array.isArray(resourcesByPhase['during-process']) && resourcesByPhase['during-process'].length > 0 ? (
                     <ul className="space-y-2">
                       {resourcesByPhase['during-process'].map(resource => (
                         <li key={resource.id}>
@@ -354,7 +378,7 @@ const AdminResourceManager: React.FC = () => {
                 {/* Pre-arrival resources */}
                 <div>
                   <h3 className="text-md font-semibold text-gray-900 mb-2">Pré-arrivée</h3>
-                  {resourcesByPhase['pre-arrival'].length > 0 ? (
+                  {Array.isArray(resourcesByPhase['pre-arrival']) && resourcesByPhase['pre-arrival'].length > 0 ? (
                     <ul className="space-y-2">
                       {resourcesByPhase['pre-arrival'].map(resource => (
                         <li key={resource.id}>

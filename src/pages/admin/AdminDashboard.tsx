@@ -7,13 +7,34 @@ import {
   FileText, 
   MessageSquare, 
   Edit, 
-  BarChart2,
   Plus 
 } from 'lucide-react';
+import { useRecentAdminActivity } from './useRecentAdminActivity';
+
+import type { LogActivityParams } from './adminActivityLog';
+
+function formatAdminActivity(activity: LogActivityParams) {
+  const actionMap: Record<string, string> = {
+    'Ajout': 'a ajouté',
+    'Suppression': 'a supprimé',
+    'Modification': 'a modifié'
+  };
+  const targetMap: Record<string, string> = {
+    'Section': 'une section',
+    'Ressource': 'une ressource',
+    'FAQ': 'une question FAQ'
+  };
+  const user = activity.user || 'Admin';
+  const action = actionMap[activity.type] || activity.type.toLowerCase();
+  const target = targetMap[activity.target] || activity.target.toLowerCase();
+  return `${user} ${action} ${target}`;
+}
+
 
 const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { resources, guideSections, faqItems } = useContent();
+  const { recentActivity, loading: loadingActivity } = useRecentAdminActivity();
   
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -21,7 +42,7 @@ const AdminDashboard: React.FC = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">Tableau de bord administrateur</h1>
           <p className="text-blue-100">
-            Bienvenue, {currentUser?.name} ! Gérez le contenu et les ressources de la plateforme.
+            Bienvenue, {currentUser?.displayName || currentUser?.email} ! Gérez le contenu et les ressources de la plateforme.
           </p>
         </div>
       </div>
@@ -36,7 +57,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Ressources</p>
-                <p className="text-2xl font-semibold text-gray-900">{resources.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{Array.isArray(resources) ? resources.length : 0}</p>
               </div>
             </div>
           </div>
@@ -48,7 +69,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Sections de guide</p>
-                <p className="text-2xl font-semibold text-gray-900">{guideSections.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{Array.isArray(guideSections) ? guideSections.length : 0}</p>
               </div>
             </div>
           </div>
@@ -60,7 +81,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Questions FAQ</p>
-                <p className="text-2xl font-semibold text-gray-900">{faqItems.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{Array.isArray(faqItems) ? faqItems.length : 0}</p>
               </div>
             </div>
           </div>
@@ -68,6 +89,25 @@ const AdminDashboard: React.FC = () => {
         
         {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Liste des FAQ existantes */}
+          <div className="bg-white rounded-lg shadow p-6 mt-8">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Questions FAQ existantes</h2>
+            <ul className="divide-y divide-gray-200">
+              {Array.isArray(faqItems) && faqItems.length > 0 ? faqItems.map((faq) => (
+                <li key={faq.id} className="flex items-center justify-between py-2">
+                  <span className="text-gray-800">{faq.question}</span>
+                  <Link
+                    to={`/admin/content?edit=${faq.id}`}
+                    className="ml-4 inline-flex items-center px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs font-medium"
+                  >
+                    Modifier
+                  </Link>
+                </li>
+              )) : (
+                <li className="text-gray-400">Aucune question FAQ pour le moment.</li>
+              )}
+            </ul>
+          </div>
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Actions rapides</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -91,29 +131,31 @@ const AdminDashboard: React.FC = () => {
                 <span>Gérer les ressources</span>
               </Link>
               
-              <button
+              <Link
+                to="/admin/content?faq=moderate"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <span>Modérer la FAQ</span>
-              </button>
+              </Link>
               
-              <button
+              <Link
+                to="/admin/users"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
                   <Users className="h-5 w-5" />
                 </div>
                 <span>Gérer les utilisateurs</span>
-              </button>
+              </Link>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 w-full">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Ajouter du contenu</h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-4 w-full">
               <Link
                 to="/admin/content?new=section"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -134,14 +176,15 @@ const AdminDashboard: React.FC = () => {
                 <span>Ajouter une ressource</span>
               </Link>
               
-              <button
+              <Link
+                to="/admin/content?new=faq"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
                   <Plus className="h-5 w-5" />
                 </div>
                 <span>Ajouter une question FAQ</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -151,49 +194,31 @@ const AdminDashboard: React.FC = () => {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-900">Activité récente</h2>
           </div>
-          
           <div className="divide-y divide-gray-200">
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center">
-                <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
-                  <FileText className="h-5 w-5" />
+            {loadingActivity ? (
+              <div className="p-4 text-gray-400">Chargement...</div>
+            ) : recentActivity.length === 0 ? (
+              <div className="p-4 text-gray-400">Aucune activité récente.</div>
+            ) : (
+              recentActivity.map(activity => (
+                <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center">
+                    <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {formatAdminActivity(activity)}
+                      </div>
+                      <div className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</div>
+                      {typeof activity.details?.title === 'string' && (
+                        <div className="text-sm text-gray-600">Titre : {activity.details.title}</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Nouvelle ressource ajoutée: Guide Campus France
-                  </p>
-                  <p className="text-xs text-gray-500">Il y a 2 heures</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center">
-                <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
-                  <Edit className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Section modifiée: Demande de Visa
-                  </p>
-                  <p className="text-xs text-gray-500">Hier</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center">
-                <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
-                  <MessageSquare className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Nouvelle question FAQ: Quel est le délai pour obtenir son visa étudiant ?
-                  </p>
-                  <p className="text-xs text-gray-500">Il y a 2 jours</p>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
         
@@ -210,7 +235,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Sections</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {guideSections.filter(s => s.phase === 'post-cps').length}
+                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'post-cps').length : 0}
                     </span>
                   </div>
                 </div>
@@ -219,7 +244,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Ressources</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {resources.filter(r => r.phase === 'post-cps').length}
+                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'post-cps').length : 0}
                     </span>
                   </div>
                 </div>
@@ -228,7 +253,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Questions FAQ</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {faqItems.filter(f => f.phase === 'post-cps').length}
+                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'post-cps').length : 0}
                     </span>
                   </div>
                 </div>
@@ -243,7 +268,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Sections</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {guideSections.filter(s => s.phase === 'during-process').length}
+                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'during-process').length : 0}
                     </span>
                   </div>
                 </div>
@@ -252,7 +277,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Ressources</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {resources.filter(r => r.phase === 'during-process').length}
+                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'during-process').length : 0}
                     </span>
                   </div>
                 </div>
@@ -261,7 +286,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Questions FAQ</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {faqItems.filter(f => f.phase === 'during-process').length}
+                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'during-process').length : 0}
                     </span>
                   </div>
                 </div>
@@ -276,7 +301,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Sections</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {guideSections.filter(s => s.phase === 'pre-arrival').length}
+                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'pre-arrival').length : 0}
                     </span>
                   </div>
                 </div>
@@ -285,7 +310,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Ressources</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {resources.filter(r => r.phase === 'pre-arrival').length}
+                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'pre-arrival').length : 0}
                     </span>
                   </div>
                 </div>
@@ -294,7 +319,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Questions FAQ</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {faqItems.filter(f => f.phase === 'pre-arrival').length}
+                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'pre-arrival').length : 0}
                     </span>
                   </div>
                 </div>
