@@ -17,6 +17,9 @@ Une plateforme complète pour accompagner les étudiants des Classes Préparatoi
   - Avatar stylé, informations claires, boutons d’action élégants
   - Sécurité renforcée (un admin ne peut pas se supprimer lui-même, confirmation systématique avant action critique)
   - Expérience fluide et agréable pour l’admin
+- 🕓 **Historique d'activité admin** :
+  - Affichage de l'activité récente avec un scroll automatique si plus de 5 actions
+  - Suivi détaillé des modifications (ajout, suppression, édition de contenu)
 
 <!--
 ![Capture d’écran Profil Admin](./docs/screenshot-profile.png)
@@ -82,11 +85,17 @@ src/
 ├── components/      # Composants réutilisables
 ├── contexts/        # Contextes React (Auth, Content)
 ├── pages/           # Pages de l'application
-│   ├── admin/       # Interface d'administration
+│   ├── admin/       # Interface d'administration (gestion utilisateurs, activité, contenu)
 │   └── ...
 ├── App.tsx         # Composant racine
 └── main.tsx         # Point d'entrée
 ```
+
+## Historique des changements récents
+
+- Ajout d'un scroll automatique sur la section "Activité récente" du dashboard admin (plus de 5 éléments)
+- Amélioration de l'expérience admin (gestion avancée des rôles, sécurité accrue)
+- Le dossier `build/` est désormais ignoré par git (`.gitignore`) pour éviter les conflits et respecter les bonnes pratiques
 
 ## Contribution
 
@@ -109,4 +118,4 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ---
 
-Développé avec ❤️ par Abdoul Ahad Mbacké DIOUF
+Développé avec ❤️ par Abdoul Ahad Mbacké DIOUF - PROMO 2025 (ESIGELEC) - PROMO 2022 (CPS)

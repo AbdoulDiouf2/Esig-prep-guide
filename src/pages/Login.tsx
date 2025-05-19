@@ -87,10 +87,9 @@ const Login: React.FC = () => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={googleLoading}
-            className={`w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 mb-6 ${googleLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            style={{ gap: 8 }}
+            className={`w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 mb-6 ${googleLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png" alt="Google" className="w-5 h-5 mr-2" />
+            <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.3 3.4-4.6 5.9-8.3 5.9-5 0-9-4-9-9s4-9 9-9c2.2 0 4.2.8 5.8 2.1l6.6-6.6C36.3 8.1 30.5 6 24 6 12.9 6 4 14.9 4 26s8.9 20 20 20c11.1 0 20-8.9 20-20 0-1.3-.1-2.5-.4-3.7z"/><path fill="#34A853" d="M6.3 14.7l6.6 4.8C15.5 16.4 19.5 14 24 14c2.2 0 4.2.8 5.8 2.1l6.6-6.6C36.3 8.1 30.5 6 24 6c-7.5 0-13.9 4.1-17.7 10.7z"/><path fill="#FBBC05" d="M24 44c6.5 0 12.1-2.1 16.1-5.8l-7.4-6c-2.1 1.4-4.7 2.2-7.7 2.2-3.7 0-7-2.5-8.3-5.9H6.3C10.1 39.9 16.5 44 24 44z"/><path fill="#EA4335" d="M43.6 20.5h-1.9V20H24v8h11.3c-.5 1.4-1.3 2.7-2.4 3.7l7.4 6C41.7 40.2 44 33.7 44 26c0-1.3-.1-2.5-.4-3.7z"/></g></svg>
             {googleLoading ? 'Connexion Google...' : 'Se connecter avec Google'}
           </button>
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -144,9 +143,9 @@ const Login: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link to="/reset-password" className="font-medium text-blue-600 hover:text-blue-500">
                   Mot de passe oublié ?
-                </a>
+                </Link>
               </div>
             </div>
 

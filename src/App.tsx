@@ -21,6 +21,7 @@ import AdminUserProfile from './pages/admin/AdminUserProfile';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/test-firebase" element={<TestFirebase />} />
                 
                 {/* Protected Routes (require authentication) */}

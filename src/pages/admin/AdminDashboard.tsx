@@ -208,32 +208,34 @@ const AdminDashboard: React.FC = () => {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-900">Activité récente</h2>
           </div>
-          <div className="divide-y divide-gray-200">
-            {loadingActivity ? (
-              <div className="p-4 text-gray-400">Chargement...</div>
-            ) : recentActivity.length === 0 ? (
-              <div className="p-4 text-gray-400">Aucune activité récente.</div>
-            ) : (
-              recentActivity.map(activity => (
-                <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-800">
-                        {formatAdminActivity(activity)}
-                      </div>
-                      <div className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</div>
-                      {typeof activity.details?.title === 'string' && (
-                        <div className="text-sm text-gray-600">Titre : {activity.details.title}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
+          <div className={
+  `divide-y divide-gray-200 ${recentActivity.length > 5 ? 'max-h-80 overflow-y-auto' : ''}`
+}>
+  {loadingActivity ? (
+    <div className="p-4 text-gray-400">Chargement...</div>
+  ) : recentActivity.length === 0 ? (
+    <div className="p-4 text-gray-400">Aucune activité récente.</div>
+  ) : (
+    recentActivity.map(activity => (
+      <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
+        <div className="flex items-center">
+          <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-800">
+              {formatAdminActivity(activity)}
+            </div>
+            <div className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</div>
+            {typeof activity.details?.title === 'string' && (
+              <div className="text-sm text-gray-600">Titre : {activity.details.title}</div>
             )}
           </div>
+        </div>
+      </div>
+    ))
+  )}
+</div>
         </div>
         
         {/* Phase overview */}
