@@ -7,10 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
-*.local
+build
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -22,4 +32,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# Firebase cache
+.firebase/
+
+# Local development
+*.local
+
+# Sensitive files
+firebase-*.json
+!firebase.json
+!firestore.*
+firestore.indexes.json
+firestore.rules
+storage.rules
+
+# Debug logs
+firebase-debug.log
+firebase-debug.*.log
