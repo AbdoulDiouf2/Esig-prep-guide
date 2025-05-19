@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useContent, FAQItem, GuidePhase } from '../contexts/ContentContext';
+import { useContent, GuidePhase } from '../contexts/ContentContext';
 import { Search, Plus, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 const FAQ: React.FC = () => {
@@ -108,7 +108,7 @@ const FAQ: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowAddQuestion(!showAddQuestion)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
             >
               <Plus className="mr-2 h-4 w-4" />
               Poser une question
@@ -118,9 +118,14 @@ const FAQ: React.FC = () => {
         
         {/* Add question form */}
         {showAddQuestion && (
-          <div className="bg-white rounded-lg shadow mb-8 p-6">
+          <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-2xl p-8 max-w-xl mx-auto mb-8 animate-fade-in">
+  <h2 className="text-2xl font-bold text-blue-900 mb-2 flex items-center gap-2">
+    <MessageSquare className="w-6 h-6 text-blue-500" />
+    Poser une nouvelle question
+  </h2>
+  <p className="text-blue-700 text-sm mb-6">Votre question sera transmise à l’équipe, qui y répondra rapidement.</p>
             <h2 className="text-xl font-bold text-gray-900 mb-4">Poser une nouvelle question</h2>
-            <form onSubmit={handleSubmitQuestion}>
+            <form onSubmit={handleSubmitQuestion} className="space-y-7">
               <div className="space-y-4">
                 <div>
                   <label htmlFor="question" className="block text-sm font-medium text-gray-700">
@@ -129,7 +134,7 @@ const FAQ: React.FC = () => {
                   <textarea
                     id="question"
                     rows={3}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                     placeholder="Posez votre question ici..."
                     value={newQuestion}
                     onChange={(e) => setNewQuestion(e.target.value)}
@@ -144,7 +149,7 @@ const FAQ: React.FC = () => {
                     </label>
                     <select
                       id="phase"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={newPhase}
                       onChange={(e) => setNewPhase(e.target.value as GuidePhase)}
                       required
@@ -162,7 +167,7 @@ const FAQ: React.FC = () => {
                     <input
                       type="text"
                       id="category"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       placeholder="Ex: visa, logement, transport..."
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
@@ -180,7 +185,7 @@ const FAQ: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                   >
                     Soumettre la question
                   </button>

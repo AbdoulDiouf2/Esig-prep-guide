@@ -42,7 +42,7 @@ const Header: React.FC = () => {
       }`}
     >
       <div className="container mx-auto px-4 py-3">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center space-x-6">
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <div className="flex items-center space-x-2">
@@ -58,10 +58,10 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-10">
             {currentUser && (
               <>
-                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   Tableau de bord
@@ -93,7 +93,7 @@ const Header: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className={`flex items-center space-x-2 transition-colors duration-300 ${
+                  className={`flex items-center space-x-2 transition-colors duration-300 border border-blue-200 bg-white/60 rounded-lg px-2 py-1 shadow-sm ${
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}
                 >
@@ -174,15 +174,22 @@ const Header: React.FC = () => {
               {currentUser ? (
                 <>
                   <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
-                      <span className="text-white font-medium text-sm">
-                        {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
-                      </span>
-                    </div>
-                    <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
-                      {currentUser.displayName || currentUser.email || 'Utilisateur'}
-                    </span>
-                  </div>
+  <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
+    <span className="text-white font-medium text-sm">
+      {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
+    </span>
+  </div>
+  <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
+    {currentUser.displayName || currentUser.email || 'Utilisateur'}
+  </span>
+</div>
+<Link
+  to="/profile"
+  className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+>
+  <User className="w-4 h-4 mr-2" />
+  Profil
+</Link>
                   <Link 
                     to="/dashboard" 
                     className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}

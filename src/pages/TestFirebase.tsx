@@ -7,6 +7,7 @@ import {
   User as FirebaseUser,
   AuthError 
 } from 'firebase/auth';
+import DropboxUploader from '../components/dropbox';
 
 const TestFirebase: React.FC = () => {
   const [testData, setTestData] = useState<string>('');
@@ -174,6 +175,10 @@ setTestData(prev => prev + `\nErreur d'authentification: ${authError.message}`);
         <pre className="bg-white p-4 rounded overflow-auto">
           {testData || 'Aucun test effectué'}
         </pre>
+      </div>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Test Upload Dropbox</h2>
+        <DropboxUploader />
       </div>
     </div>
   );

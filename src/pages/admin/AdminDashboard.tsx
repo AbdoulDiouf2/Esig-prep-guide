@@ -90,7 +90,7 @@ const AdminDashboard: React.FC = () => {
         {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Liste des FAQ existantes */}
-          <div className="bg-white rounded-lg shadow p-6 mt-8">
+          <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Questions FAQ existantes</h2>
             <ul className="divide-y divide-gray-200">
   {Array.isArray(faqItems) && faqItems.length > 0 ? faqItems.map((faq) => (
@@ -112,7 +112,7 @@ const AdminDashboard: React.FC = () => {
     to={`/admin/content?edit=${faq.id}`}
     className="inline-flex items-center px-3 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200 text-xs font-medium"
   >
-    Répondre à la question
+    Répondre
   </Link>
 )}
       </div>
@@ -122,7 +122,7 @@ const AdminDashboard: React.FC = () => {
   )}
 </ul>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Actions rapides</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Link
@@ -167,9 +167,9 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6 w-full">
+          <div className="bg-white rounded-lg shadow p-6 w-full col-span-full">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Ajouter du contenu</h2>
-            <div className="grid grid-cols-3 gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
               <Link
                 to="/admin/content?new=section"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

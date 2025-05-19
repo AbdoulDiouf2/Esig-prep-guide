@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -116,16 +117,27 @@ const Login: React.FC = () => {
                 Mot de passe
               </label>
               <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+                <div className="relative">
+  <input
+    id="password"
+    name="password"
+    type={showPassword ? "text" : "password"}
+    autoComplete="current-password"
+    required
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pr-10"
+  />
+  <button
+    type="button"
+    tabIndex={-1}
+    onClick={() => setShowPassword((v) => !v)}
+    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-700 focus:outline-none"
+    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+  >
+    {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+  </button>
+</div>
               </div>
             </div>
 

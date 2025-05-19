@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion } from 'lucide-react';
+import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import DropboxUploader from '../../components/dropbox';  // Import du composant DropboxUploader
 
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -158,7 +159,7 @@ const AdminResourceManager: React.FC = () => {
           {/* Resource editor */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow p-6">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="space-y-7">
                 <div className="space-y-6">
                   <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700">
@@ -167,7 +168,7 @@ const AdminResourceManager: React.FC = () => {
                     <input
                       type="text"
                       id="title"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
@@ -181,7 +182,7 @@ const AdminResourceManager: React.FC = () => {
                     <textarea
                       id="description"
                       rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       required
@@ -195,7 +196,7 @@ const AdminResourceManager: React.FC = () => {
                       </label>
                       <select
                         id="phase"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                         value={phase}
                         onChange={(e) => setPhase(e.target.value as GuidePhase)}
                         required
@@ -214,7 +215,7 @@ const AdminResourceManager: React.FC = () => {
                         type="text"
                         id="category"
                         list="categories"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                         required
@@ -233,7 +234,7 @@ const AdminResourceManager: React.FC = () => {
                     </label>
                     <select
                       id="fileType"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={fileType}
                       onChange={(e) => setFileType(e.target.value as 'pdf' | 'doc' | 'image' | 'link')}
                       required
@@ -249,19 +250,38 @@ const AdminResourceManager: React.FC = () => {
                     <label htmlFor="fileUrl" className="block text-sm font-medium text-gray-700">
                       {fileType === 'link' ? 'URL du lien' : 'URL du fichier'}
                     </label>
-                    <input
-                      type="url"
-                      id="fileUrl"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      value={fileUrl}
-                      onChange={(e) => setFileUrl(e.target.value)}
-                      placeholder={fileType === 'link' ? 'https://example.com' : 'https://example.com/file.pdf'}
-                      required
-                    />
+                    
+                    {fileType !== 'link' && (
+                      <div className="mt-3 mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                        <div className="flex items-center mb-3">
+                          <UploadCloud className="w-5 h-5 text-blue-600 mr-2" />
+                          <h3 className="text-sm font-medium text-gray-700">Upload direct vers Dropbox</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Uploadez directement votre fichier vers Dropbox et le lien sera automatiquement ajouté ci-dessous.
+                        </p>
+                        <DropboxUploader 
+                          onSuccess={(url) => setFileUrl(url)}
+                          buttonText="Uploader le fichier vers Dropbox"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center">
+                      <input
+                        type="url"
+                        id="fileUrl"
+                        className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
+                        value={fileUrl}
+                        onChange={(e) => setFileUrl(e.target.value)}
+                        placeholder={fileType === 'link' ? 'https://example.com' : 'https://dropbox.com/s/...'}
+                        required
+                      />
+                    </div>
                     <p className="mt-1 text-xs text-gray-500">
                       {fileType === 'link' 
                         ? 'Entrez l\'URL complète du site web externe.' 
-                        : 'Entrez l\'URL complète où le fichier est hébergé (Google Drive, Dropbox, etc.).'}
+                        : 'URL générée automatiquement après upload ou entrez manuellement une URL Dropbox/Google Drive.'}
                     </p>
                   </div>
                   
@@ -271,7 +291,7 @@ const AdminResourceManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleDelete}
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Supprimer
@@ -283,14 +303,14 @@ const AdminResourceManager: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigate('/admin')}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
                       >
                         Annuler
                       </button>
                       
                       <button
                         type="submit"
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                       >
                         <Save className="mr-2 h-4 w-4" />
                         {isNewResource ? 'Ajouter' : 'Enregistrer'}

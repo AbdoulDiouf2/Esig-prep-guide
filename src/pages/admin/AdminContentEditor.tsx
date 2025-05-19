@@ -219,7 +219,7 @@ const AdminContentEditor: React.FC = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Section editor */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow p-6">
@@ -235,7 +235,7 @@ const AdminContentEditor: React.FC = () => {
                         <input
                           type="text"
                           id="faq-question"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                           value={question}
                           onChange={e => setQuestion(e.target.value)}
                           required
@@ -249,7 +249,7 @@ const AdminContentEditor: React.FC = () => {
                         <textarea
                           id="faq-answer"
                           rows={6}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                           value={answer}
                           onChange={e => setAnswer(e.target.value)}
                           required
@@ -263,7 +263,7 @@ const AdminContentEditor: React.FC = () => {
                         <input
                           type="text"
                           id="faq-category"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                           value={faqCategory}
                           onChange={e => setFaqCategory(e.target.value)}
                           required
@@ -276,7 +276,7 @@ const AdminContentEditor: React.FC = () => {
                         </label>
                         <select
                           id="faq-phase"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                           value={faqPhase}
                           onChange={e => setFaqPhase(e.target.value as GuidePhase)}
                           required
@@ -306,7 +306,7 @@ const AdminContentEditor: React.FC = () => {
                             <button
                               type="button"
                               onClick={handleDelete}
-                              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Supprimer
@@ -317,13 +317,13 @@ const AdminContentEditor: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => navigate('/admin')}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
                           >
                             Annuler
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             {isNewFaq ? 'Ajouter' : 'Enregistrer'}
@@ -344,7 +344,7 @@ const AdminContentEditor: React.FC = () => {
                     <input
                       type="text"
                       id="title"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
@@ -357,7 +357,7 @@ const AdminContentEditor: React.FC = () => {
                     </label>
                     <select
                       id="phase"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={phase}
                       onChange={(e) => {
                         const newPhase = e.target.value as GuidePhase;
@@ -384,7 +384,7 @@ const AdminContentEditor: React.FC = () => {
                       type="number"
                       id="order"
                       min="1"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={order}
                       onChange={(e) => setOrder(parseInt(e.target.value))}
                       required
@@ -398,7 +398,7 @@ const AdminContentEditor: React.FC = () => {
                     <textarea
                       id="content"
                       rows={8}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       required
@@ -446,7 +446,7 @@ const AdminContentEditor: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleDelete}
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Supprimer
@@ -458,14 +458,14 @@ const AdminContentEditor: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigate('/admin')}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
                       >
                         Annuler
                       </button>
                       
                       <button
                         type="submit"
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                       >
                         <Save className="mr-2 h-4 w-4" />
                         {isNewSection ? 'Ajouter' : 'Enregistrer'}
@@ -476,9 +476,10 @@ const AdminContentEditor: React.FC = () => {
               </form>
             )}
           </div>
-
+          </div>
+          
           {/* Sections overview */}
-          <div className="space-y-6">
+          <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Sections existantes</h2>
@@ -569,7 +570,6 @@ const AdminContentEditor: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
       </div>
     </div>
   </div>
