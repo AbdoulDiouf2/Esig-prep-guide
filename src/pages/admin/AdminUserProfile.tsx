@@ -4,17 +4,23 @@ import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import PasswordModal from '../../components/PasswordModal';
 
 interface UserDoc {
   uid: string;
   email: string;
   displayName: string;
   isAdmin: boolean;
+  isSuperAdmin?: boolean; // Ajouté pour la gestion du super admin
   emailVerified: boolean;
   photoURL?: string;
 }
 
 const AdminUserProfile: React.FC = () => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -45,17 +51,32 @@ const AdminUserProfile: React.FC = () => {
   }, [uid]);
 
   const handleToggleAdmin = async () => {
+    setModalOpen(true);
+    setModalError(null);
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
     if (!user) return;
+    setModalLoading(true);
+    setModalError(null);
+    if (password !== import.meta.env.VITE_TOGGLE_PASSWORD) {
+      setModalError('Mot de passe incorrect.');
+      setModalLoading(false);
+      return;
+    }
     setSaving(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), { isAdmin: !user.isAdmin });
       setUser({ ...user, isAdmin: !user.isAdmin });
+      setModalOpen(false);
     } catch {
-      alert('Erreur lors de la mise à jour du statut administrateur.');
+      setModalError('Erreur lors de la mise à jour du statut administrateur.');
     } finally {
       setSaving(false);
+      setModalLoading(false);
     }
   };
+
 
   const handleDelete = async () => {
     if (!user) return;
@@ -127,19 +148,20 @@ const AdminUserProfile: React.FC = () => {
             type="text"
             name="displayName"
             className="border-2 border-blue-100 rounded-lg px-4 py-2 mb-2 w-full text-center text-lg font-semibold focus:border-blue-400 transition"
-            value={user.displayName}
+            value={user?.displayName || ''}
             onChange={handleChange}
-            placeholder="Nom affiché"
-            disabled={saving}
+            disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
           />
+          {user?.isSuperAdmin && (
+            <div className="mb-2 text-yellow-800 font-bold text-xs inline-flex items-center px-2 py-0.5 rounded bg-yellow-100 border border-yellow-300">Admin principal</div>
+          )}
           {/* URL photo */}
           <input
             type="text"
             name="photoURL"
             className="border-2 border-blue-100 rounded-lg px-4 py-2 mb-4 w-full text-center text-base focus:border-blue-400 transition"
-            value={user.photoURL || ''}
+            value={user?.photoURL || ''}
             onChange={handleChange}
-            placeholder="URL de la photo"
             disabled={saving}
           />
           {/* Email */}
@@ -168,7 +190,7 @@ const AdminUserProfile: React.FC = () => {
               <button
                 onClick={handleToggleAdmin}
                 className={`flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                disabled={saving}
+                disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
               >
                 {user.isAdmin ? (
                   <>
@@ -185,21 +207,29 @@ const AdminUserProfile: React.FC = () => {
               <button
                 onClick={handleDelete}
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow bg-red-600 text-white hover:bg-red-700"
-                disabled={saving}
+                disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
               >
                 <Trash2 className="w-5 h-5 mr-2" /> Supprimer utilisateur
               </button>
             )}
             <button
+              className="mt-4 bg-blue-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-blue-700 transition disabled:opacity-50"
               onClick={handleSave}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow bg-blue-600 text-white hover:bg-blue-700"
-              disabled={saving}
+              disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
+              title={user?.isSuperAdmin && user?.uid !== currentUser?.uid ? "Impossible de modifier un admin principal" : undefined}
             >
-              Sauvegarder
+              Enregistrer les modifications
             </button>
           </div>
         </div>
       </div>
+      <PasswordModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setModalError(null); }}
+        onSubmit={handlePasswordSubmit}
+        loading={modalLoading}
+        error={modalError}
+      />
     </div>
   );
 };

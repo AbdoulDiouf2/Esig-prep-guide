@@ -20,6 +20,7 @@ import AdminUserManager from './pages/admin/AdminUserManager';
 import AdminUserProfile from './pages/admin/AdminUserProfile';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
+import UserProfile from './pages/UserProfile';
 
 function App() {
   return (
@@ -49,6 +50,11 @@ function App() {
                 <Route path="/faq" element={
                   <ProtectedRoute>
                     <FAQ />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <UserProfile />
                   </ProtectedRoute>
                 } />
                 

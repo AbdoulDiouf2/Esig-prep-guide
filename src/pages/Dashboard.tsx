@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">Tableau de bord</h1>
           <p className="text-blue-100">
-            Bienvenue, {currentUser?.displayName || currentUser?.email} ! Suivez votre progression et accédez à vos ressources.
+            Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} !</strong> Suivez votre progression et accédez à vos ressources.
           </p>
         </div>
       </div>

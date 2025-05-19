@@ -109,4 +109,4 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ---
 
-Développé avec ❤️ par l'équipe ESIGELEC Prep Guide
+Développé avec ❤️ par Abdoul Ahad Mbacké DIOUF

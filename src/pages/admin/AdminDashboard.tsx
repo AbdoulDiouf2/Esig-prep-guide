@@ -42,7 +42,7 @@ const AdminDashboard: React.FC = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">Tableau de bord administrateur</h1>
           <p className="text-blue-100">
-            Bienvenue, {currentUser?.displayName || currentUser?.email} ! Gérez le contenu et les ressources de la plateforme.
+            Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} ! </strong> Gérez le contenu et les ressources de la plateforme.
           </p>
         </div>
       </div>
@@ -93,20 +93,34 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow p-6 mt-8">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Questions FAQ existantes</h2>
             <ul className="divide-y divide-gray-200">
-              {Array.isArray(faqItems) && faqItems.length > 0 ? faqItems.map((faq) => (
-                <li key={faq.id} className="flex items-center justify-between py-2">
-                  <span className="text-gray-800">{faq.question}</span>
-                  <Link
-                    to={`/admin/content?edit=${faq.id}`}
-                    className="ml-4 inline-flex items-center px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs font-medium"
-                  >
-                    Modifier
-                  </Link>
-                </li>
-              )) : (
-                <li className="text-gray-400">Aucune question FAQ pour le moment.</li>
-              )}
-            </ul>
+  {Array.isArray(faqItems) && faqItems.length > 0 ? faqItems.map((faq) => (
+    <li key={faq.id} className="flex items-center justify-between py-2">
+      <span className="text-gray-800">{faq.question}</span>
+      <div className="flex items-center space-x-2">
+        <Link
+          to={`/admin/content?edit=${faq.id}`}
+          className="inline-flex items-center px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs font-medium"
+        >
+          Modifier
+        </Link>
+        {(
+  !faq.answer ||
+  faq.answer.trim() === '' ||
+  faq.answer.trim() === 'Cette question est en attente de réponse par notre équipe.'
+) && (
+  <Link
+    to={`/admin/content?edit=${faq.id}`}
+    className="inline-flex items-center px-3 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200 text-xs font-medium"
+  >
+    Répondre à la question
+  </Link>
+)}
+      </div>
+    </li>
+  )) : (
+    <li className="text-gray-400">Aucune question FAQ pour le moment.</li>
+  )}
+</ul>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Actions rapides</h2>

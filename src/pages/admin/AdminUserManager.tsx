@@ -4,55 +4,91 @@ import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft, Shield, UserMinus, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PasswordModal from '../../components/PasswordModal';
 
 interface UserDoc {
   uid: string;
   email: string;
   displayName: string;
   isAdmin: boolean;
+  isSuperAdmin?: boolean; // Ajouté pour la gestion du super admin
   emailVerified: boolean;
   photoURL?: string;
 }
 
 const AdminUserManager: React.FC = () => {
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [pendingUser, setPendingUser] = useState<{uid: string, isAdmin: boolean} | null>(null);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  // Fonction fetchUsers accessible partout dans le composant
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const userList: UserDoc[] = [];
+      querySnapshot.forEach((docSnap) => {
+        userList.push(docSnap.data() as UserDoc);
+      });
+      setUsers(userList);
+    } catch {
+      setError('Erreur lors du chargement des utilisateurs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const querySnapshot = await getDocs(collection(db, 'users'));
-        const userList: UserDoc[] = [];
-        querySnapshot.forEach((docSnap) => {
-          userList.push(docSnap.data() as UserDoc);
-        });
-        setUsers(userList);
-      } catch {
-        setError('Erreur lors du chargement des utilisateurs.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []);
 
   const handleToggleAdmin = async (uid: string, isAdmin: boolean) => {
+    setModalOpen(true);
+    setPendingUser({ uid, isAdmin });
+    setModalError(null);
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!pendingUser) return;
+    setModalLoading(true);
+    setModalError(null);
+    if (password !== import.meta.env.VITE_TOGGLE_PASSWORD) {
+      setModalError('Mot de passe incorrect.');
+      setModalLoading(false);
+      return;
+    }
+    // Vérification super admin
+    const targetUser = users.find(u => u.uid === pendingUser.uid);
+    if (targetUser?.isSuperAdmin && targetUser.uid !== currentUser?.uid) {
+      setModalError("Impossible de modifier le rôle d'un admin principal.");
+      setModalLoading(false);
+      return;
+    }
     try {
-      await updateDoc(doc(db, 'users', uid), { isAdmin: !isAdmin });
+      await updateDoc(doc(db, 'users', pendingUser.uid), { isAdmin: !pendingUser.isAdmin });
       setUsers((prev) =>
         prev.map((user) =>
-          user.uid === uid ? { ...user, isAdmin: !isAdmin } : user
+          user.uid === pendingUser.uid ? { ...user, isAdmin: !pendingUser.isAdmin } : user
         )
       );
+      setModalOpen(false);
+      setPendingUser(null);
     } catch {
-      alert('Erreur lors de la mise à jour du statut administrateur.');
+      setModalError('Erreur lors de la mise à jour du statut administrateur.');
+    } finally {
+      setModalLoading(false);
     }
   };
+
+  
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -69,6 +105,7 @@ const AdminUserManager: React.FC = () => {
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">
+
         {loading ? (
           <div>Chargement...</div>
         ) : error ? (
@@ -96,6 +133,9 @@ const AdminUserManager: React.FC = () => {
                         </span>
                       )}
                       {user.displayName || user.email}
+                      {user.isSuperAdmin && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
+                      )}
                       {user.uid === currentUser?.uid && (
                         <span className="ml-2 text-xs text-blue-600">(Moi)</span>
                       )}
@@ -109,9 +149,12 @@ const AdminUserManager: React.FC = () => {
                       ) : (
                         <span className="text-gray-500 text-xs">Standard</span>
                       )}
+                      {user.isSuperAdmin && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
+                      )}
                     </td>
                     <td className="px-4 py-2">
-                      {user.uid !== currentUser?.uid && (
+                      {user.uid !== currentUser?.uid && !user.isSuperAdmin && (
                         <button
                           onClick={() => handleToggleAdmin(user.uid, user.isAdmin)}
                           className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
@@ -127,6 +170,16 @@ const AdminUserManager: React.FC = () => {
                           )}
                         </button>
                       )}
+                      {user.uid !== currentUser?.uid && user.isSuperAdmin && (
+                        <button
+                          className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
+                          disabled={true}
+                          title="Impossible de modifier le rôle d'un admin principal"
+                        >
+                          Impossible de modifier
+                        </button>
+                      )}
+                      
                     </td>
                   </tr>
                 ))}
@@ -135,6 +188,13 @@ const AdminUserManager: React.FC = () => {
           </div>
         )}
       </div>
+      <PasswordModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setPendingUser(null); setModalError(null); }}
+        onSubmit={handlePasswordSubmit}
+        loading={modalLoading}
+        error={modalError}
+      />
     </div>
   );
 };
