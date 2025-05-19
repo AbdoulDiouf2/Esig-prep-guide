@@ -23,7 +23,7 @@ function App() {
   return (
     <AuthProvider>
       <ContentProvider>
-        <Router>
+        <Router basename="/Esig-prep-guide">
           <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
             <main className="flex-grow">
