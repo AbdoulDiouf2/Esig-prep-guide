@@ -21,6 +21,7 @@ import AdminUserManager from './pages/admin/AdminUserManager';
 import AdminUserProfile from './pages/admin/AdminUserProfile';
 import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
 import AdminTutorial from './pages/admin/AdminTutorial';
+import AdminDropboxManager from './pages/admin/AdminDropboxManager';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
@@ -115,6 +116,11 @@ function App() {
                 <Route path="/admin/tutorial" element={
                   <AdminRoute>
                     <AdminTutorial />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/dropbox" element={
+                  <AdminRoute>
+                    <AdminDropboxManager />
                   </AdminRoute>
                 } />
                 

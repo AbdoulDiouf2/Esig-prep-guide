@@ -2,12 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud, Plus, FolderOpen } from 'lucide-react';
+import { 
+  Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, 
+  FileQuestion, UploadCloud, Plus, FolderOpen, FileIcon, RefreshCw,
+  Download, ExternalLink, CheckCircle, CloudOff, X
+} from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
-import DropboxUploader from '../../components/dropbox';  // Import du composant DropboxUploader
-import DropboxFileBrowser from '../../components/DropboxFileBrowser'; // Import du nouveau composant
+import DropboxUploader from '../../components/dropbox';
+import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { Dropbox } from 'dropbox';
+
+// Types de fichiers supportés
+type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
+
+// Interface pour les fichiers Dropbox
+interface DropboxFile {
+  id: string;
+  name: string;
+  path_lower: string;
+  path_display?: string;
+  size?: number;
+  client_modified?: string;
+  is_downloadable?: boolean;
+  shared_link?: {
+    url: string;
+  }
+}
+
+// Interface pour les erreurs Dropbox
+interface DropboxError {
+  status: number;
+  error?: {
+    shared_link_already_exists?: boolean;
+    [key: string]: unknown;
+  };
+}
 
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -29,17 +60,172 @@ const AdminResourceManager: React.FC = () => {
   const [phase, setPhase] = useState<GuidePhase>('post-cps');
   const [category, setCategory] = useState('');
   const [fileUrl, setFileUrl] = useState('');
-  const [fileType, setFileType] = useState<'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link'>('pdf');
+  const [fileType, setFileType] = useState<FileType>('link');
   
-  // États pour les modales
+  // États pour les modales et UI
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showFileBrowserModal, setShowFileBrowserModal] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState('');
   
-  // État pour afficher le nom du fichier sélectionné
-  const [selectedFileName, setSelectedFileName] = useState('');  
+  // États pour la navigation Dropbox
+  const [dropboxFiles, setDropboxFiles] = useState<DropboxFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<DropboxFile | null>(null);
+  const [dropboxError, setDropboxError] = useState<string>('');
+  const [showDropboxExplorer, setShowDropboxExplorer] = useState<boolean>(false);
   
-  // Get unique categories for suggestions
-  const categories = [...new Set(resources.map(resource => resource.category))];
+  // Liste prédéfinie de catégories pour organiser les ressources
+  const predefinedCategories = [
+    'visa',
+    'logement',
+    'inscription',
+    'documents-administratifs',
+    'assurance',
+    'transport',
+    'finances',
+    'santé',
+    'cours-préparatoires',
+    'vie-étudiante',
+    'culture-française',
+    'emploi-stage',
+    'outils-informatiques',
+    'bourses',
+    'calendrier-académique',
+    'restauration',
+    'bibliothèque',
+    'sport',
+    'associations-étudiantes',
+    'procédures-campus-france'
+  ];
+  
+  // Combine les catégories prédéfinies avec celles déjà existantes
+  const categories = [...new Set([...predefinedCategories, ...resources.map(resource => resource.category).filter(Boolean)])];
+  
+  // Liste les fichiers disponibles dans Dropbox
+  const listDropboxFiles = async () => {
+    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
+    if (!DROPBOX_ACCESS_TOKEN) {
+      setDropboxError("Erreur : Token Dropbox non trouvé dans les variables d'environnement");
+      return;
+    }
+    
+    setLoadingFiles(true);
+    setDropboxError('');
+    
+    try {
+      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      
+      // Lister le contenu du dossier racine
+      const response = await dbx.filesListFolder({
+        path: '',
+        include_media_info: true,
+        include_deleted: false,
+        include_has_explicit_shared_members: false
+      });
+      
+      const files = response.result.entries.filter(entry => entry['.tag'] === 'file');
+      
+      // Convertir au format DropboxFile
+      const formattedFiles: DropboxFile[] = files.map(file => ({
+        id: file.id,
+        name: file.name,
+        path_lower: file.path_lower || '',
+        path_display: file.path_display || file.name,
+        size: 'size' in file ? file.size : undefined,
+        client_modified: 'client_modified' in file ? file.client_modified : undefined,
+        is_downloadable: true
+      }));
+      
+      setDropboxFiles(formattedFiles);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des fichiers:', error);
+      if (error instanceof Error) {
+        setDropboxError(`Erreur lors de la récupération des fichiers: ${error.message}`);
+      } else {
+        setDropboxError(`Erreur lors de la récupération des fichiers: ${String(error)}`);
+      }
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+  
+  // Créer un lien de partage pour un fichier
+  const createShareLink = async (file: DropboxFile) => {
+    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
+    if (!DROPBOX_ACCESS_TOKEN) return;
+    
+    try {
+      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      
+      let shareUrl = '';
+      
+      try {
+        // Essayer de créer un nouveau lien
+        const response = await dbx.sharingCreateSharedLinkWithSettings({
+          path: file.path_lower,
+        });
+        shareUrl = response.result.url;
+      } catch (err: unknown) {
+        // Convertir en DropboxError pour accéder aux propriétés spécifiques
+        const dropboxErr = err as DropboxError;
+        // Si erreur 409 (lien déjà existant), récupérer le lien existant
+        if (dropboxErr.status === 409 || (dropboxErr.error && dropboxErr.error.shared_link_already_exists)) {
+          console.log('Lien de partage déjà existant, récupération...');
+          const listLinksResponse = await dbx.sharingListSharedLinks({
+            path: file.path_lower,
+            direct_only: true
+          });
+          
+          if (listLinksResponse.result.links && listLinksResponse.result.links.length > 0) {
+            shareUrl = listLinksResponse.result.links[0].url;
+          } else {
+            throw new Error('Impossible de récupérer le lien existant');
+          }
+        } else {
+          // Si c'est une autre erreur, la relancer
+          throw err;
+        }
+      }
+      
+      // Convertir en lien 'raw' pour téléchargement direct
+      const rawUrl = shareUrl.replace("?dl=0", "?raw=1");
+      
+      // Mise à jour du fichier sélectionné avec le lien
+      setSelectedFile({
+        ...file,
+        shared_link: {
+          url: rawUrl
+        }
+      });
+      
+      // Mise à jour de l'URL du fichier dans le formulaire
+      setFileUrl(rawUrl);
+      setSelectedFileName(file.name);
+      setDropboxError(''); // Effacer les erreurs précédentes
+      
+      // Déterminer le type de fichier en fonction de l'extension
+      const extension = file.name.split('.').pop()?.toLowerCase() || '';
+      if (extension === 'pdf') setFileType('pdf');
+      else if (['doc', 'docx'].includes(extension)) setFileType('docx');
+      else if (['xls', 'xlsx'].includes(extension)) setFileType('xlsx');
+      else if (['ppt', 'pptx'].includes(extension)) setFileType('pptx');
+      else if (extension === 'txt') setFileType('txt');
+      else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) setFileType('image');
+      else if (['mp4', 'webm', 'avi', 'mov'].includes(extension)) setFileType('video');
+      else if (['mp3', 'wav', 'ogg'].includes(extension)) setFileType('audio');
+      else if (['zip', 'rar', 'tar', 'gz'].includes(extension)) setFileType('zip');
+      else setFileType('link');
+      
+      return rawUrl;
+    } catch (error) {
+      console.error('Erreur lors de la création du lien de partage:', error);
+      if (error instanceof Error) {
+        setDropboxError(`Erreur lors de la création du lien de partage: ${error.message}`);
+      } else {
+        setDropboxError(`Erreur lors de la création du lien de partage: ${String(error)}`);
+      }
+    }
+  };
   
   // Initialize form with existing data if editing
   useEffect(() => {
@@ -60,7 +246,33 @@ const AdminResourceManager: React.FC = () => {
       setPhase('post-cps');
       setCategory('');
       setFileUrl('');
-      setFileType('pdf');
+      setFileType('link');
+      
+      // Charger les fichiers Dropbox pour les nouveaux ajouts
+      listDropboxFiles();
+    }
+  }, [editResourceId, isNewResource, resources]);
+  
+  // Initialize form with existing data if editing
+  useEffect(() => {
+    if (editResourceId) {
+      const resource = resources.find(r => r.id === editResourceId);
+      if (resource) {
+        setTitle(resource.title);
+        setDescription(resource.description);
+        setPhase(resource.phase);
+        setCategory(resource.category);
+        setFileUrl(resource.fileUrl);
+        setFileType(resource.fileType);
+      }
+    } else if (isNewResource) {
+      // For a new resource, initialize with default values
+      setTitle('');
+      setDescription('');
+      setPhase('post-cps');
+      setCategory('');
+      setFileUrl('');
+      setFileType('link');
     }
   }, [editResourceId, isNewResource, resources]);
   
@@ -105,7 +317,7 @@ const AdminResourceManager: React.FC = () => {
       });
     }
     
-    // Navigate back to resources list
+    // Navigate back to admin dashboard
     navigate('/admin');
   };
   
@@ -125,6 +337,7 @@ const AdminResourceManager: React.FC = () => {
         user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
         details: { title }
       });
+      // Navigate back to admin dashboard
       navigate('/admin');
     }
   };
@@ -141,13 +354,15 @@ const AdminResourceManager: React.FC = () => {
     switch (fileType) {
       case 'pdf':
       case 'doc':
-        return <FileText className="w-5 h-5" />;
+      case 'docx':
+      case 'txt':
+        return <FileText className="w-5 h-5 text-blue-600" />;
       case 'image':
-        return <FileImage className="w-5 h-5" />;
+        return <FileImage className="w-5 h-5 text-green-600" />;
       case 'link':
-        return <LinkIcon className="w-5 h-5" />;
+        return <LinkIcon className="w-5 h-5 text-purple-600" />;
       default:
-        return <FileQuestion className="w-5 h-5" />;
+        return <FileQuestion className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -285,52 +500,228 @@ const AdminResourceManager: React.FC = () => {
                     </label>
                     
                     {fileType !== 'link' && (
-                      <div className="mt-3 mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
-                        <div className="flex items-center mb-3">
+                      <div className="rounded-md bg-blue-50 p-4 mb-4">
+                        <div className="flex items-center mb-2">
                           <UploadCloud className="w-5 h-5 text-blue-600 mr-2" />
                           <h3 className="text-sm font-medium text-gray-700">Upload direct vers Dropbox</h3>
                         </div>
-                        <p className="text-xs text-gray-500 mb-3">
+                        <div className="mt-2 text-sm text-blue-700 mb-3">
                           Uploadez directement votre fichier vers Dropbox et le lien sera automatiquement ajouté ci-dessous.
-                        </p>
+                        </div>
                         <DropboxUploader 
-                          onSuccess={(url) => setFileUrl(url)}
+                          onSuccess={(url) => {
+                            setFileUrl(url);
+                            setSelectedFileName(url.split('/').pop() || '');
+                          }}
                           buttonText="Uploader le fichier vers Dropbox"
                         />
                       </div>
                     )}
                     
-                    <div className="flex items-center">
-                      <div className="w-full flex">
-                        <input
-                          type="url"
-                          id="fileUrl"
-                          className="mt-2 block w-full rounded-l-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
-                          value={fileUrl}
-                          onChange={(e) => setFileUrl(e.target.value)}
-                          placeholder={fileType === 'link' ? 'https://example.com' : 'https://dropbox.com/s/...'}
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowFileBrowserModal(true)}
-                          className="mt-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-l-0 border-blue-200 rounded-r-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          title="Parcourir les fichiers existants"
-                        >
-                          <FolderOpen className="h-5 w-5 text-blue-600" />
-                        </button>
+                    {fileType === 'link' && (
+                      <div className="mb-4">
+                        <div className="flex flex-col space-y-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-medium text-gray-700 flex items-center">
+                              <FileIcon className="w-4 h-4 text-blue-600 mr-2" />
+                              Fichiers Dropbox
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowDropboxExplorer(!showDropboxExplorer);
+                                if (!showDropboxExplorer) listDropboxFiles();
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                              {showDropboxExplorer ? (
+                                <>
+                                  <X className="w-3 h-3 mr-1" />
+                                  Masquer
+                                </>
+                              ) : (
+                                <>
+                                  <FolderOpen className="w-3 h-3 mr-1" />
+                                  Explorer
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          
+                          {showDropboxExplorer && (
+                            <div className="mt-2 border rounded-md">
+                              <div className="flex items-center justify-between bg-gray-100 px-3 py-2 border-b">
+                                <h4 className="text-sm font-medium text-gray-700">Fichiers disponibles</h4>
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={listDropboxFiles}
+                                    className="inline-flex items-center p-1 text-xs text-blue-700 bg-blue-50 rounded hover:bg-blue-100"
+                                    disabled={loadingFiles}
+                                  >
+                                    {loadingFiles ? (
+                                      <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                    ) : (
+                                      <RefreshCw className="w-3 h-3" />
+                                    )}
+                                    <span className="ml-1">Actualiser</span>
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {dropboxError && (
+                                <div className="p-3 text-sm text-red-600 bg-red-50">
+                                  <div className="flex items-start">
+                                    <CloudOff className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
+                                    <span>{dropboxError}</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {loadingFiles ? (
+                                <div className="flex justify-center items-center py-8">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                </div>
+                              ) : dropboxFiles.length > 0 ? (
+                                <div className="max-h-60 overflow-y-auto">
+                                  <ul className="divide-y">
+                                    {dropboxFiles.map((file) => (
+                                      <li key={file.id}>
+                                        <div 
+                                          className={`flex items-center justify-between p-3 hover:bg-blue-50 cursor-pointer ${
+                                            selectedFile?.id === file.id ? 'bg-blue-50' : ''
+                                          }`}
+                                          onClick={() => setSelectedFile(file)}
+                                        >
+                                          <div className="flex items-center flex-grow pr-3 truncate">
+                                            <FileText className="w-4 h-4 text-blue-600 mr-2 flex-shrink-0" />
+                                            <div className="truncate">
+                                              <div className="text-sm font-medium text-gray-800 truncate">{file.name}</div>
+                                              <div className="text-xs text-gray-500">
+                                                {file.size ? `${Math.round((file.size as number) / 1024)} Ko` : ''}
+                                                {file.client_modified ? ` • ${new Date(file.client_modified).toLocaleDateString()}` : ''}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded flex items-center"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              createShareLink(file);
+                                            }}
+                                          >
+                                            <ExternalLink className="w-3 h-3 mr-1" />
+                                            Utiliser
+                                          </button>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ) : (
+                                <div className="py-8 text-center">
+                                  <p className="text-sm text-gray-500">
+                                    {dropboxFiles.length === 0 && !dropboxError ? "Cliquez sur Actualiser pour afficher vos fichiers." : "Aucun fichier trouvé."}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center space-x-3">
+                            <button
+                              type="button"
+                              onClick={() => setShowFileBrowserModal(true)}
+                              className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm transition-colors"
+                            >
+                              <FolderOpen className="w-4 h-4 text-blue-600" />
+                              Parcourir Dropbox
+                            </button>
+                          </div>
+                          
+                          {selectedFile && selectedFile.shared_link && (
+                            <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded-md">
+                              <div className="flex items-center text-sm text-green-800 mb-2">
+                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                Fichier sélectionné : {selectedFile.name}
+                              </div>
+                              <div className="flex items-center">
+                                <input 
+                                  type="text" 
+                                  readOnly 
+                                  value={selectedFile.shared_link.url} 
+                                  className="flex-1 text-xs py-1 px-2 bg-white border rounded-l-md focus:outline-none"
+                                />
+                                <button 
+                                  type="button"
+                                  className="bg-blue-600 text-white py-1 px-2 rounded-r-md text-xs"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(selectedFile.shared_link!.url);
+                                  }}
+                                >
+                                  <Download className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="relative">
+                          <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
+                            <LinkIcon className="w-5 h-5 text-gray-500" />
+                          </div>
+                          <input
+                            type="url"
+                            id="fileUrl"
+                            className="block w-full pl-10 p-2.5 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="URL du fichier (Dropbox/Google Drive/etc.)"
+                            value={fileUrl}
+                            onChange={(e) => setFileUrl(e.target.value)}
+                            required
+                          />
+                          {selectedFileName && (
+                            <div className="mt-1 text-xs text-blue-600">
+                              Fichier sélectionné: {selectedFileName}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {selectedFileName && (
-                      <p className="mt-1 text-xs text-blue-600 font-medium">
-                        Fichier sélectionné: {selectedFileName}
-                      </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {fileType === 'link' 
-                        ? 'Entrez l\'URL complète du site web externe.' 
-                        : 'URL générée automatiquement après upload ou entrez manuellement une URL Dropbox/Google Drive.'}
-                    </p>
+                    
+                    {fileType !== 'link' && (
+                      <div className="mt-2">
+                        <div className="flex items-center mb-2">
+                          <div className="flex-1 relative">
+                            <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
+                              <LinkIcon className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <input
+                              type="url"
+                              id="fileUrl"
+                              className="block w-full pl-10 p-2.5 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="URL du fichier (générée automatiquement)"
+                              value={fileUrl}
+                              onChange={(e) => setFileUrl(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowFileBrowserModal(true)}
+                            className="ml-2 p-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
+                            title="Parcourir les fichiers existants"
+                          >
+                            <FolderOpen className="w-5 h-5" />
+                          </button>
+                        </div>
+                        {selectedFileName && (
+                          <div className="mt-1 text-xs text-blue-600">
+                            Fichier sélectionné: {selectedFileName}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex justify-between">
