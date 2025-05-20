@@ -20,6 +20,13 @@ export default defineConfig({
   },
   server: {
     open: true,
+    proxy: {
+      '/api.emailjs.com': {
+        target: 'https://api.emailjs.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\.emailjs\.com/, '')
+      }
+    }
   },
   define: {
     'process.env': {}

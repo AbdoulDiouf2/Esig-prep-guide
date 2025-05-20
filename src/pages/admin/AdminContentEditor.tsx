@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, MoveVertical, Plus } from 'lucide-react';
+import { Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import useNotifications from '../../hooks/useNotifications';
 
 const AdminContentEditor: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { sendFaqAnswerNotification } = useNotifications();
   const { 
     guideSections, 
     addGuideSection, 
@@ -47,6 +49,10 @@ const AdminContentEditor: React.FC = () => {
   // États pour les modales de confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteType, setDeleteType] = useState<'section' | 'faq'>('section');
+  
+  // États pour la notification d'envoi d'email
+  const [showEmailNotification, setShowEmailNotification] = useState(false);
+  const [emailNotificationStatus, setEmailNotificationStatus] = useState<'success' | 'error' | null>(null);
 
   // Initialisation des états pour édition
   useEffect(() => {
@@ -112,6 +118,11 @@ const AdminContentEditor: React.FC = () => {
         // Mettre à jour l'état local pour refléter le statut qui sera sauvegardé
         setIsAnswered(hasValidAnswer);
         
+        // Récupérer l'ancienne FAQ pour voir si elle avait déjà une réponse
+        const oldFaq = faqItems.find(f => f.id === editFaqId);
+        const wasAlreadyAnswered = oldFaq?.isAnswered || false;
+        
+        // Mise à jour de la FAQ dans la base de données
         updateFAQItem(editFaqId, {
           question,
           answer,
@@ -120,6 +131,44 @@ const AdminContentEditor: React.FC = () => {
           isApproved,
           isAnswered: hasValidAnswer
         });
+        
+        // Si la question vient de recevoir une réponse et qu'elle n'était pas déjà répondue, envoyer une notification
+        if (hasValidAnswer && !wasAlreadyAnswered && editFaqId) {
+          // Afficher l'indicateur de chargement
+          setShowEmailNotification(true);
+          setEmailNotificationStatus(null); // Réinitialiser le statut
+          
+          // Envoi d'un email de notification à l'utilisateur
+          sendFaqAnswerNotification(editFaqId, question, answer)
+            .then(success => {
+              if (success) {
+                console.log('Email de notification envoyé avec succès');
+                setEmailNotificationStatus('success');
+                
+                // Masquer la notification après 5 secondes
+                setTimeout(() => {
+                  setShowEmailNotification(false);
+                }, 5000);
+              } else {
+                console.error('Échec de l\'envoi de l\'email de notification');
+                setEmailNotificationStatus('error');
+                
+                // Masquer la notification après 5 secondes
+                setTimeout(() => {
+                  setShowEmailNotification(false);
+                }, 5000);
+              }
+            })
+            .catch(error => {
+              console.error('Erreur lors de l\'envoi de l\'email de notification:', error);
+              setEmailNotificationStatus('error');
+              
+              // Masquer la notification après 5 secondes
+              setTimeout(() => {
+                setShowEmailNotification(false);
+              }, 5000);
+            });
+        }
         logAdminActivity({
           type: 'Modification',
           target: 'FAQ',
@@ -241,7 +290,31 @@ const AdminContentEditor: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen relative">
+      {/* Notification d'envoi d'email */}
+      {showEmailNotification && (
+        <div 
+          className={`fixed top-6 right-6 p-4 rounded-md shadow-md z-50 flex items-center transition-all duration-300 ease-in-out ${emailNotificationStatus === 'success' ? 'bg-green-100 border-l-4 border-green-500' : emailNotificationStatus === 'error' ? 'bg-red-100 border-l-4 border-red-500' : 'bg-blue-100 border-l-4 border-blue-500'}`}
+        >
+          {emailNotificationStatus === 'success' ? (
+            <Check className="w-5 h-5 text-green-600 mr-3" />
+          ) : emailNotificationStatus === 'error' ? (
+            <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
+          ) : (
+            <Mail className="w-5 h-5 text-blue-600 mr-3 animate-pulse" />
+          )}
+          <div>
+            {emailNotificationStatus === 'success' ? (
+              <p className="text-green-800 font-medium">Email de notification envoyé avec succès!</p>
+            ) : emailNotificationStatus === 'error' ? (
+              <p className="text-red-800 font-medium">Échec de l'envoi de l'email de notification.</p>
+            ) : (
+              <p className="text-blue-800 font-medium">Envoi de la notification par email...</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">
