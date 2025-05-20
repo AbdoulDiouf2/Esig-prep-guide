@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud, Plus } from 'lucide-react';
+import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud, Plus, FolderOpen } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import DropboxUploader from '../../components/dropbox';  // Import du composant DropboxUploader
+import DropboxFileBrowser from '../../components/DropboxFileBrowser'; // Import du nouveau composant
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const AdminResourceManager: React.FC = () => {
@@ -30,8 +31,12 @@ const AdminResourceManager: React.FC = () => {
   const [fileUrl, setFileUrl] = useState('');
   const [fileType, setFileType] = useState<'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link'>('pdf');
   
-  // État pour la modale de confirmation de suppression
+  // États pour les modales
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showFileBrowserModal, setShowFileBrowserModal] = useState(false);
+  
+  // État pour afficher le nom du fichier sélectionné
+  const [selectedFileName, setSelectedFileName] = useState('');  
   
   // Get unique categories for suggestions
   const categories = [...new Set(resources.map(resource => resource.category))];
@@ -296,16 +301,31 @@ const AdminResourceManager: React.FC = () => {
                     )}
                     
                     <div className="flex items-center">
-                      <input
-                        type="url"
-                        id="fileUrl"
-                        className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
-                        value={fileUrl}
-                        onChange={(e) => setFileUrl(e.target.value)}
-                        placeholder={fileType === 'link' ? 'https://example.com' : 'https://dropbox.com/s/...'}
-                        required
-                      />
+                      <div className="w-full flex">
+                        <input
+                          type="url"
+                          id="fileUrl"
+                          className="mt-2 block w-full rounded-l-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
+                          value={fileUrl}
+                          onChange={(e) => setFileUrl(e.target.value)}
+                          placeholder={fileType === 'link' ? 'https://example.com' : 'https://dropbox.com/s/...'}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowFileBrowserModal(true)}
+                          className="mt-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-l-0 border-blue-200 rounded-r-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          title="Parcourir les fichiers existants"
+                        >
+                          <FolderOpen className="h-5 w-5 text-blue-600" />
+                        </button>
+                      </div>
                     </div>
+                    {selectedFileName && (
+                      <p className="mt-1 text-xs text-blue-600 font-medium">
+                        Fichier sélectionné: {selectedFileName}
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-gray-500">
                       {fileType === 'link' 
                         ? 'Entrez l\'URL complète du site web externe.' 
@@ -467,6 +487,56 @@ const AdminResourceManager: React.FC = () => {
         confirmButtonText="Supprimer"
         type="danger"
       />
+      
+      {/* Modal de navigation des fichiers Dropbox */}
+      {showFileBrowserModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 px-4 py-6 overflow-y-auto">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Sélectionner un fichier Dropbox</h3>
+              <button
+                onClick={() => setShowFileBrowserModal(false)}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-grow overflow-y-auto">
+              <DropboxFileBrowser
+                onSelect={(url, fileName, fileType) => {
+                  setFileUrl(url);
+                  setSelectedFileName(fileName);
+                  
+                  // Convertir le type de fichier Dropbox en type compatible avec notre form
+                  if (fileType === 'pdf') setFileType('pdf');
+                  else if (fileType === 'docx') setFileType('docx');
+                  else if (fileType === 'xlsx') setFileType('xlsx');
+                  else if (fileType === 'pptx') setFileType('pptx');
+                  else if (fileType === 'txt') setFileType('txt');
+                  else if (fileType === 'image') setFileType('image');
+                  else if (fileType === 'video') setFileType('video');
+                  else if (fileType === 'audio') setFileType('audio');
+                  else if (fileType === 'zip') setFileType('zip');
+                  else setFileType('link');
+                  
+                  setShowFileBrowserModal(false);
+                }}
+                showTitle={false}
+              />
+            </div>
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowFileBrowserModal(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-md transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

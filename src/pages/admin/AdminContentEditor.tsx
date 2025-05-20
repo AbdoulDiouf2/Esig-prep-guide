@@ -631,6 +631,72 @@ const AdminContentEditor: React.FC = () => {
                     <p className="text-sm text-gray-500">Aucune section disponible</p>
                   )}
                 </div>
+                
+                {/* FAQ Items */}
+                <div className="mt-8 border-t pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold text-gray-900">Questions fréquentes</h2>
+                    <button
+                      onClick={() => navigate('/admin/content?new=faq')}
+                      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Ajouter
+                    </button>
+                  </div>
+                  
+                  {/* Group FAQ by category */}
+                  {(() => {
+                    // Group FAQ items by category
+                    const faqByCategory: Record<string, typeof faqItems> = {};
+                    
+                    faqItems.forEach(faq => {
+                      const category = faq.category || 'Non catégorisé';
+                      if (!faqByCategory[category]) {
+                        faqByCategory[category] = [];
+                      }
+                      faqByCategory[category].push(faq);
+                    });
+                    
+                    // Render each category
+                    return Object.entries(faqByCategory).map(([category, items]) => (
+                      <div key={category} className="mb-4">
+                        <h3 className="text-md font-semibold text-gray-900 mb-2">{category}</h3>
+                        {items.length > 0 ? (
+                          <ul className="space-y-2">
+                            {items.map(faq => (
+                              <li key={faq.id}>
+                                <button
+                                  onClick={() => navigate(`/admin/content?edit=${faq.id}`)}
+                                  className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
+                                    editFaqId === faq.id ? 'bg-blue-50 border border-blue-200' : ''
+                                  }`}
+                                >
+                                  <span className="flex-grow">{faq.question}</span>
+                                  {!faq.isAnswered && 
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mr-2">
+                                      En attente
+                                    </span>
+                                  }
+                                  {faq.isApproved ? 
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                      Approuvée
+                                    </span> :
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                                      Non approuvée
+                                    </span>
+                                  }
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500">Aucune question disponible</p>
+                        )}
+                      </div>
+                    ));
+                  })()} 
+                </div>
               </div>
             </div>
           </div>
