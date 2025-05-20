@@ -2,13 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useContent } from '../../contexts/ContentContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Users, 
-  FileText, 
-  MessageSquare, 
-  Edit, 
-  Plus, 
-  ClipboardList
+import {
+  Users,
+  MessageSquare,
+  FileText,
+  Edit,
+  ClipboardList,
+  HelpCircle,
+  Plus
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 
@@ -41,7 +42,16 @@ const AdminDashboard: React.FC = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
         <div className="container mx-auto px-4">
-          <h1 className="text-2xl font-bold mb-2">Tableau de bord administrateur</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold">Tableau de bord administrateur</h1>
+            <Link 
+              to="/admin/tutorial" 
+              className="flex items-center px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-sm rounded transition-colors"
+              title="Consulter le guide d'administration"
+            >
+              <HelpCircle className="h-4 w-4 mr-1" /> Tutoriel
+            </Link>
+          </div>
           <p className="text-blue-100">
             Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} ! </strong> Gérez le contenu et les ressources de la plateforme.
           </p>

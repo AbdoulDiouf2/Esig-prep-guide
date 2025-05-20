@@ -19,6 +19,7 @@ import AdminResourceManager from './pages/admin/AdminResourceManager';
 import AdminUserManager from './pages/admin/AdminUserManager';
 import AdminUserProfile from './pages/admin/AdminUserProfile';
 import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
+import AdminTutorial from './pages/admin/AdminTutorial';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
@@ -90,6 +91,11 @@ function App() {
                 <Route path="/admin/activity" element={
                   <AdminRoute>
                     <AdminActivityLogPage />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/tutorial" element={
+                  <AdminRoute>
+                    <AdminTutorial />
                   </AdminRoute>
                 } />
                 
