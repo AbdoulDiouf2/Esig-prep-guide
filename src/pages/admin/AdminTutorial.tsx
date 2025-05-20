@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, HelpCircle, FileText, Activity, PieChart, Settings, BookOpen } from 'lucide-react';
+import { ArrowLeft, Users, HelpCircle, FileText, Activity, PieChart, Settings, BookOpen, Cloud } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminTutorial: React.FC = () => {
@@ -58,13 +58,16 @@ const AdminTutorial: React.FC = () => {
               <a href="#resources" className="text-blue-600 hover:underline">4. Gestion des ressources</a>
             </li>
             <li>
-              <a href="#users" className="text-blue-600 hover:underline">5. Gestion des utilisateurs</a>
+              <a href="#dropbox" className="text-blue-600 hover:underline">5. Gestionnaire Dropbox</a>
             </li>
             <li>
-              <a href="#activity" className="text-blue-600 hover:underline">6. Journal d'activité</a>
+              <a href="#users" className="text-blue-600 hover:underline">6. Gestion des utilisateurs</a>
             </li>
             <li>
-              <a href="#tips" className="text-blue-600 hover:underline">7. Conseils et bonnes pratiques</a>
+              <a href="#activity" className="text-blue-600 hover:underline">7. Journal d'activité</a>
+            </li>
+            <li>
+              <a href="#tips" className="text-blue-600 hover:underline">8. Conseils et bonnes pratiques</a>
             </li>
           </ul>
         </div>
@@ -235,57 +238,109 @@ const AdminTutorial: React.FC = () => {
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
             <p className="text-gray-700 mb-4">
-              Le gestionnaire de ressources vous permet d'ajouter des documents, liens et autres contenus utiles que les utilisateurs pourront consulter. Ces ressources peuvent être associées à des sections spécifiques du guide.
+              La section Gestion des ressources vous permet d'ajouter, de modifier et de supprimer des ressources utiles pour les utilisateurs. 
+              Ces ressources peuvent être des documents PDF, des liens vers des sites externes, ou d'autres types de supports informatifs.
             </p>
             
-            <h4 className="font-semibold text-blue-700 mb-2">Types de ressources supportés:</h4>
+            <h4 className="font-semibold text-blue-700 mb-2">Fonctionnalités principales:</h4>
             <ul className="list-disc list-inside mb-4 text-gray-700">
-              <li>Documents (PDF, Word, Excel, PowerPoint)</li>
-              <li>Images</li>
-              <li>Liens vers des sites web externes</li>
-              <li>Fichiers audio et vidéo</li>
-              <li>Archives ZIP</li>
+              <li>Ajouter de nouvelles ressources (fichiers PDF, liens, etc.)</li>
+              <li>Catégoriser les ressources par thème et par phase</li>
+              <li>Modifier les informations des ressources existantes</li>
+              <li>Supprimer les ressources obsolètes</li>
+              <li>Prévisualiser les ressources avant publication</li>
+              <li>Explorer et sélectionner des fichiers Dropbox pour vos ressources</li>
             </ul>
             
-            <h4 className="font-semibold text-blue-700 mb-2">Ajout d'une ressource:</h4>
-            <ol className="list-decimal list-inside mb-4 text-gray-700">
-              <li>Cliquez sur "Ajouter une ressource"</li>
-              <li>Remplissez les champs du formulaire (titre, description, catégorie, phase)</li>
-              <li>Sélectionnez le type de ressource</li>
-              <li>Téléchargez le fichier via Dropbox ou indiquez l'URL pour un lien</li>
-              <li>Cliquez sur "Enregistrer" pour ajouter la ressource</li>
-            </ol>
-            
-            <h4 className="font-semibold text-blue-700 mb-2">Organisation des ressources:</h4>
-            <p className="text-gray-700 mb-4">
-              Les ressources sont organisées par phase du processus d'immigration (Post-CPS, Pendant les démarches, Pré-arrivée) et par catégorie. 
-              Cela facilite leur découverte par les utilisateurs.
-            </p>
-            
-            <div className="bg-gray-100 p-4 rounded-md mb-4">
-              <p className="text-gray-800 italic text-sm">
-                <strong>Important:</strong> Assurez-vous que tous les fichiers téléchargés sont exempts de virus et respectent les droits d'auteur. Privilégiez les documents officiels ou les ressources libres de droits.
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-            <h4 className="font-semibold text-blue-700 mb-2">Conseils pour la gestion des ressources:</h4>
-            <ul className="list-disc list-inside text-gray-700">
-              <li>Utilisez des titres descriptifs pour faciliter la recherche</li>
-              <li>Incluez la date de publication/mise à jour dans la description</li>
-              <li>Vérifiez régulièrement que les liens externes fonctionnent toujours</li>
+            <h4 className="font-semibold text-blue-700 mb-2">Bonnes pratiques:</h4>
+            <ul className="list-disc list-inside mb-4 text-gray-700">
+              <li>Utilisez des noms de fichiers clairs et descriptifs</li>
+              <li>Ajoutez toujours une description concise mais informative</li>
+              <li>Vérifiez que les liens externes fonctionnent correctement</li>
+              <li>Organisez les ressources par catégories logiques</li>
+              <li>Mettez régulièrement à jour les ressources pour garantir leur pertinence</li>
               <li>Mettez à jour ou supprimez les ressources obsolètes</li>
               <li>Utilisez des catégories cohérentes pour faciliter la navigation</li>
             </ul>
           </div>
         </div>
 
+        {/* Dropbox Manager Section */}
+        <div id="dropbox" className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Cloud className="w-6 h-6 text-blue-700 mr-2" />
+            <h3 className="text-lg font-bold text-blue-800">5. Gestionnaire Dropbox</h3>
+          </div>
+          
+          <div className="border-l-4 border-blue-200 pl-4 mb-6">
+            <p className="text-gray-700 mb-4">
+              Le Gestionnaire Dropbox vous permet d'interagir directement avec votre compte Dropbox pour gérer vos fichiers, 
+              tester la connectivité, créer des liens de partage et uploader de nouveaux documents.
+              Cette fonctionnalité facilite l'intégration de ressources stockées sur Dropbox dans votre guide.
+            </p>
+            
+            <h4 className="font-semibold text-blue-700 mb-2">Fonctionnalités principales:</h4>
+            <ul className="list-disc list-inside mb-4 text-gray-700">
+              <li>Tester la connectivité avec votre compte Dropbox</li>
+              <li>Lister tous les fichiers présents dans votre compte Dropbox</li>
+              <li>Rechercher des fichiers spécifiques dans votre bibliothèque</li>
+              <li>Uploader de nouveaux fichiers directement depuis l'interface</li>
+              <li>Générer des liens de partage pour vos fichiers</li>
+              <li>Supprimer des fichiers inutilisés depuis l'interface</li>
+              <li>Voir les métadonnées des fichiers (taille, date de modification)</li>
+            </ul>
+            
+            <h4 className="font-semibold text-blue-700 mb-2">Étapes pour utiliser le Gestionnaire Dropbox:</h4>
+            <ol className="list-decimal list-inside mb-4 text-gray-700">
+              <li>Accédez au Gestionnaire Dropbox depuis le tableau de bord</li>
+              <li>Vérifiez le statut de connexion à votre compte Dropbox</li>
+              <li>Si nécessaire, testez la connectivité en cliquant sur le bouton "Tester la connexion"</li>
+              <li>Parcourez la liste des fichiers disponibles ou utilisez la recherche pour trouver un fichier spécifique</li>
+              <li>Pour uploader un nouveau fichier, utilisez la section d'upload dédiée</li>
+              <li>Pour générer un lien de partage, cliquez sur l'icône de lien à côté du fichier souhaité</li>
+              <li>Pour supprimer un fichier, cliquez sur l'icône de corbeille et confirmez votre action</li>
+            </ol>
+            
+            <h4 className="font-semibold text-blue-700 mb-2">Intégration avec la Gestion des ressources:</h4>
+            <p className="text-gray-700 mb-4">
+              Une fois que vous avez généré un lien de partage pour un fichier Dropbox, vous pouvez l'utiliser dans la Gestion des ressources:
+            </p>
+            <ul className="list-disc list-inside mb-4 text-gray-700">
+              <li>Copiez le lien généré depuis le Gestionnaire Dropbox</li>
+              <li>Dans la Gestion des ressources, créez une nouvelle ressource de type "Lien externe"</li>
+              <li>Collez le lien Dropbox dans le champ URL de la ressource</li>
+              <li>Complétez les autres informations (titre, description, catégorie, etc.)</li>
+              <li>Enregistrez la ressource pour la rendre disponible aux utilisateurs</li>
+            </ul>
+            
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+              <h4 className="font-semibold text-blue-800 mb-2">Astuce:</h4>
+              <p className="text-blue-800">
+                Vous pouvez également parcourir et sélectionner directement vos fichiers Dropbox lors de la création d'une ressource
+                en utilisant la fonction "Explorer Dropbox" dans le gestionnaire de ressources.
+              </p>
+            </div>
+            
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+              <h4 className="font-semibold text-yellow-800 mb-2">Attention:</h4>
+              <p className="text-yellow-800">
+                La suppression d'un fichier Dropbox est définitive. Assurez-vous qu'aucune ressource n'utilise ce fichier avant de le supprimer.
+                Si un fichier est supprimé, les liens pointant vers ce fichier ne fonctionneront plus.
+              </p>
+            </div>
+            
+            <h4 className="font-semibold text-blue-700 mb-2">Navigation:</h4>
+            <p className="text-gray-700">
+              Accédez au Gestionnaire Dropbox en cliquant sur "Gestionnaire Dropbox" dans le tableau de bord administrateur ou en naviguant directement vers <span className="text-blue-600">/admin/dropbox</span>.              
+            </p>
+          </div>
+        </div>
+        
         {/* User Management Section */}
         <div id="users" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Users className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">5. Gestion des utilisateurs</h3>
+            <h3 className="text-lg font-bold text-blue-800">6. Gestion des utilisateurs</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -342,7 +397,7 @@ const AdminTutorial: React.FC = () => {
         <div id="activity" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Activity className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">6. Journal d'activité</h3>
+            <h3 className="text-lg font-bold text-blue-800">7. Journal d'activité</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">

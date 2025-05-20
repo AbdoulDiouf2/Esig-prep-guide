@@ -19,8 +19,10 @@ Une plateforme complète pour accompagner les étudiants des Classes Préparatoi
   - 🔐 Authentification via Firebase
 - 👨‍💻 **Interface d'administration complète**
   - 📤 Upload de fichiers directement vers Dropbox
+  - ☁️ Gestionnaire Dropbox (test de connectivité, listing, partage de fichiers)
   - 🔄 Gestion simplifiée des ressources (PDF, Documents, Images)
   - 📊 Statistiques d'utilisation et tableau de bord analytique
+  - 🔝 Bouton "Retour en haut" sur toutes les pages pour une meilleure navigation
 - 🧑‍💼 **Gestion avancée des utilisateurs/admins** :
   - 🖼️ Page de profil utilisateur moderne et responsive
   - 👁️ Visualisation, édition, promotion/déclassement admin, suppression d'utilisateurs
@@ -127,6 +129,9 @@ src/
 
 ## Historique des changements récents
 
+- ✨ **Nouvelle fonctionnalité** : Gestionnaire Dropbox complet avec test de connectivité, listing, upload et partage de fichiers
+- ✨ **Nouvelle fonctionnalité** : Bouton "Retour en haut" ajouté sur toutes les pages pour faciliter la navigation
+- ✨ **Nouvelle fonctionnalité** : Tutoriel administrateur mis à jour avec section détaillée sur le Gestionnaire Dropbox
 - ✨ **Nouvelle fonctionnalité** : Ajout complet des pages légales (CGU, Politique de confidentialité, etc.)
 - ✨ **Nouvelle fonctionnalité** : Système de gestion des consentements conforme au RGPD
 - ✨ **Nouvelle fonctionnalité** : Registre RGPD accessible uniquement aux administrateurs
@@ -169,4 +174,4 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Développé avec ❤️ par Abdoul Ahad Mbacké DIOUF - PROMO 2025 (ESIGELEC) - PROMO 2022 (CPS)
 
-Dernière mise à jour : Mai 2025
+Dernière mise à jour : 20 Mai 2025

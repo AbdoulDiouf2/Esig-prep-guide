@@ -6,6 +6,7 @@ import Footer from './components/layout/Footer';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Home from './pages/Home';
@@ -130,6 +131,7 @@ function App() {
             </main>
             <Footer />
             <ConsentBanner />
+            <ScrollToTop />
           </div>
         </Router>
       </ContentProvider>
