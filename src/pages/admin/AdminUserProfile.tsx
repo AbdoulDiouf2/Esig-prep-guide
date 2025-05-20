@@ -5,6 +5,7 @@ import { db } from '../../firebase';
 import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import PasswordModal from '../../components/PasswordModal';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface UserDoc {
   uid: string;
@@ -20,6 +21,9 @@ const AdminUserProfile: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  
+  // État pour la modale de confirmation de suppression
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
@@ -78,13 +82,17 @@ const AdminUserProfile: React.FC = () => {
   };
 
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
     if (!user) return;
     if (user.uid === currentUser?.uid) {
       alert('Vous ne pouvez pas supprimer votre propre compte administrateur.');
       return;
     }
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.')) return;
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user) return;
     setSaving(true);
     try {
       await deleteDoc(doc(db, 'users', user.uid));
@@ -205,7 +213,7 @@ const AdminUserProfile: React.FC = () => {
             )}
             {user.uid !== currentUser?.uid && (
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow bg-red-600 text-white hover:bg-red-700"
                 disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
               >
@@ -229,6 +237,17 @@ const AdminUserProfile: React.FC = () => {
         onSubmit={handlePasswordSubmit}
         loading={modalLoading}
         error={modalError}
+      />
+      
+      {/* Modale de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user?.displayName || user?.email} ? Cette action est irréversible.`}
+        confirmButtonText="Supprimer définitivement"
+        type="danger"
       />
     </div>
   );

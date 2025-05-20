@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud } from 'lucide-react';
+import { Trash2, Save, ArrowLeft, Link as LinkIcon, FileText, FileImage, FileQuestion, UploadCloud, Plus } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import DropboxUploader from '../../components/dropbox';  // Import du composant DropboxUploader
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +29,9 @@ const AdminResourceManager: React.FC = () => {
   const [category, setCategory] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [fileType, setFileType] = useState<'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link'>('pdf');
+  
+  // État pour la modale de confirmation de suppression
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Get unique categories for suggestions
   const categories = [...new Set(resources.map(resource => resource.category))];
@@ -100,9 +104,14 @@ const AdminResourceManager: React.FC = () => {
     navigate('/admin');
   };
   
-  // Handle delete
-  const handleDelete = () => {
-    if (editResourceId && window.confirm('Êtes-vous sûr de vouloir supprimer cette ressource ?')) {
+  // Demande de confirmation avant suppression
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  // Procéder à la suppression après confirmation
+  const handleConfirmDelete = () => {
+    if (editResourceId) {
       deleteResource(editResourceId);
       logAdminActivity({
         type: 'Suppression',
@@ -309,7 +318,7 @@ const AdminResourceManager: React.FC = () => {
                       {editResourceId && (
                         <button
                           type="button"
-                          onClick={handleDelete}
+                          onClick={handleDeleteClick}
                           className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -350,7 +359,7 @@ const AdminResourceManager: React.FC = () => {
                   onClick={() => navigate('/admin/resources?new=resource')}
                   className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                 >
-                  <LinkIcon className="w-4 h-4 mr-1" />
+                  <Plus className="w-4 h-4 mr-1" />
                   Ajouter
                 </button>
               </div>
@@ -447,6 +456,17 @@ const AdminResourceManager: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer la ressource "${title}" ? Cette action est irréversible.`}
+        confirmButtonText="Supprimer"
+        type="danger"
+      />
     </div>
   );
 };

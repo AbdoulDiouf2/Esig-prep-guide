@@ -5,6 +5,7 @@ import { useContent, GuidePhase } from '../../contexts/ContentContext';
 import { Trash2, Save, ArrowLeft, MoveVertical, Plus } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const AdminContentEditor: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -42,6 +43,10 @@ const AdminContentEditor: React.FC = () => {
   const [faqPhase, setFaqPhase] = useState<GuidePhase>('post-cps');
   const [isApproved, setIsApproved] = useState(true);
   const [isAnswered, setIsAnswered] = useState(false);
+
+  // États pour les modales de confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteType, setDeleteType] = useState<'section' | 'faq'>('section');
 
   // Initialisation des états pour édition
   useEffect(() => {
@@ -182,33 +187,40 @@ const AdminContentEditor: React.FC = () => {
     navigate('/admin');
   };
 
-  
-  // Handle delete
-  const handleDelete = () => {
-    if ((editSectionId && window.confirm('Êtes-vous sûr de vouloir supprimer cette section ?'))) {
+  // Demande de confirmation avant suppression
+  const handleDeleteClick = (type: 'section' | 'faq') => {
+    setDeleteType(type);
+    setShowDeleteModal(true);
+  };
+
+  // Procéder à la suppression après confirmation
+  const handleConfirmDelete = () => {
+    if (deleteType === 'section' && editSectionId) {
       deleteGuideSection(editSectionId);
       logAdminActivity({
         type: 'Suppression',
         target: 'Section',
         targetId: editSectionId,
-        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        user: currentUser?.uid,
         details: { title }
       });
-      navigate('/admin');
-    } else if (editFaqId && window.confirm('Êtes-vous sûr de vouloir supprimer cette FAQ ?')) {
+      // Redirection vers le tableau de bord
+      navigate('/admin/content');
+    } else if (deleteType === 'faq' && editFaqId) {
       deleteFAQItem(editFaqId);
       logAdminActivity({
         type: 'Suppression',
         target: 'FAQ',
         targetId: editFaqId,
-        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        user: currentUser?.uid,
         details: { question }
       });
-      navigate('/admin');
+      // Redirection vers le tableau de bord
+      navigate('/admin/content');
     }
+    setShowDeleteModal(false);
   };
 
-  
   // Handle resource selection toggle
   const toggleResource = (resourceId: string) => {
     if (selectedResources.includes(resourceId)) {
@@ -359,11 +371,10 @@ const AdminContentEditor: React.FC = () => {
                           {editFaqId && (
                             <button
                               type="button"
-                              onClick={handleDelete}
-                              className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
+                              onClick={() => handleDeleteClick('faq')}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Supprimer
+                              <Trash2 className="mr-2 -ml-0.5 h-4 w-4" /> Supprimer
                             </button>
                           )}
                         </div>
@@ -499,11 +510,10 @@ const AdminContentEditor: React.FC = () => {
                       {editSectionId && (
                         <button
                           type="button"
-                          onClick={handleDelete}
-                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-400 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-all gap-2"
+                          onClick={() => handleDeleteClick('section')}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
+                          <Trash2 className="mr-2 -ml-0.5 h-4 w-4" /> Supprimer
                         </button>
                       )}
                     </div>
@@ -624,9 +634,24 @@ const AdminContentEditor: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
       </div>
+
+      {/* Modales de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Confirmer la suppression de ${deleteType === 'section' ? 'la section' : 'la question FAQ'}`}
+        message={deleteType === 'section'
+          ? `Êtes-vous sûr de vouloir supprimer la section "${title}" ? Cette action est irréversible.`
+          : `Êtes-vous sûr de vouloir supprimer la question "${question}" ? Cette action est irréversible.`
+        }
+        confirmButtonText="Supprimer"
+        type="danger"
+      />
     </div>
-  </div>
-);
+  );
 }
+
 export default AdminContentEditor;
