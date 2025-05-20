@@ -1,37 +1,58 @@
-import React, { useState } from 'react';
-import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { Search, Plus, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useContent, GuidePhase, FAQItem } from '../contexts/ContentContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Search, Plus, ChevronDown, ChevronUp, MessageSquare, CheckCircle } from 'lucide-react';
 
 const FAQ: React.FC = () => {
   const { faqItems, addFAQItem } = useContent();
+  const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPhase, setSelectedPhase] = useState<GuidePhase | 'all'>('all');
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
-  
-  // New question form state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showMyQuestions, setShowMyQuestions] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
   const [newPhase, setNewPhase] = useState<GuidePhase>('post-cps');
   const [newCategory, setNewCategory] = useState('');
+
+  // Filtrer et séparer les questions en différentes catégories
+  const [answeredQuestions, unansweredQuestions, publicQuestions] = faqItems.reduce(
+    (acc, item) => {
+      // Identifier les questions de l'utilisateur courant
+      const isUserQuestion = currentUser && (item.userId === currentUser.uid || item.userEmail === currentUser.email);
+      
+      // Séparer les questions répondues et non répondues de l'utilisateur
+      if (isUserQuestion) {
+        // On utilise maintenant le champ dédié isAnswered pour déterminer si une question a reçu une réponse
+        if (item.isAnswered) {
+          acc[0].push(item); // Questions répondues
+        } else {
+          acc[1].push(item); // Questions non répondues/en attente
+        }
+      }
+      
+      // Filtrer les questions publiques (uniquement questions répondues et approuvées)
+      if (item.isApproved && item.isAnswered) {
+          
+        // Filtrer par phase si nécessaire
+        if (selectedPhase === 'all' || item.phase === selectedPhase) {
+          // Filtrer par recherche si nécessaire
+          if (!searchQuery || 
+              item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.category.toLowerCase().includes(searchQuery.toLowerCase())) {
+            acc[2].push(item); // Questions publiques filtrées
+          }
+        }
+      }
+      
+      return acc;
+    },
+    [[], [], []] as [FAQItem[], FAQItem[], FAQItem[]]
+  );
   
-  // Filter FAQ items
-  const filteredFAQItems = faqItems.filter(item => {
-    // Filter by phase
-    if (selectedPhase !== 'all' && item.phase !== selectedPhase) {
-      return false;
-    }
-    
-    // Filter by search query
-    if (searchQuery) {
-      return (
-        item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return true;
-  });
+  // Les questions publiques sont filtrées directement dans l'array publicQuestions
   
   // Handle toggle question
   const toggleQuestion = (id: string) => {
@@ -54,15 +75,31 @@ const FAQ: React.FC = () => {
       category: newCategory || 'général',
       phase: newPhase,
       isApproved: false,
+      isAnswered: false, // Nouvelle question, pas encore répondue
       createdDate: new Date().toISOString().split('T')[0],
-      updatedDate: new Date().toISOString().split('T')[0]
+      updatedDate: new Date().toISOString().split('T')[0],
+      userId: currentUser?.uid, // Stocker l'ID de l'utilisateur s'il est connecté
+      userEmail: currentUser?.email // Stocker l'email de l'utilisateur s'il est connecté
     });
     
-    // Reset form
+    // Reset form fields but keep the form visible to show confirmation
     setNewQuestion('');
     setNewCategory('');
-    setShowAddQuestion(false);
+    setShowConfirmation(true);
+    
+    // Hide form after confirmation is shown (3 seconds)
+    setTimeout(() => {
+      setShowConfirmation(false);
+      setShowAddQuestion(false);
+    }, 5000);
   };
+  
+  // Reset confirmation message when form is closed manually
+  useEffect(() => {
+    if (!showAddQuestion) {
+      setShowConfirmation(false);
+    }
+  }, [showAddQuestion]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -98,6 +135,7 @@ const FAQ: React.FC = () => {
               value={selectedPhase}
               onChange={(e) => setSelectedPhase(e.target.value as GuidePhase | 'all')}
               className="block rounded-md border border-gray-300 shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              disabled={showMyQuestions} // Désactiver le filtre par phase quand on affiche "Mes questions"
             >
               <option value="all">Toutes les phases</option>
               <option value="post-cps">Post-CPS</option>
@@ -105,13 +143,22 @@ const FAQ: React.FC = () => {
               <option value="pre-arrival">Pré-arrivée</option>
             </select>
             
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => setShowMyQuestions(!showMyQuestions)}
+                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showMyQuestions ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-800'}`}
+              >
+                {showMyQuestions ? 'Toutes les questions' : 'Mes questions'}
+              </button>
+            )}
+            
             <button
               type="button"
-              onClick={() => setShowAddQuestion(!showAddQuestion)}
-              className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+              onClick={() => setShowAddQuestion(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Poser une question
+              <Plus className="-ml-1 mr-2 h-5 w-5" /> Question
             </button>
           </div>
         </div>
@@ -175,6 +222,17 @@ const FAQ: React.FC = () => {
                   </div>
                 </div>
                 
+                {showConfirmation ? (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    <span className="text-green-700 font-medium">Votre question a bien été envoyée !</span>
+                  </div>
+                  <p className="mt-2 text-sm text-green-600">
+                    Vous recevrez la réponse de l'administrateur par email et elle apparaîtra également sur la plateforme en tant que question anonyme.
+                  </p>
+                </div>
+              ) : (
                 <div className="flex justify-end">
                   <button
                     type="button"
@@ -190,20 +248,23 @@ const FAQ: React.FC = () => {
                     Soumettre la question
                   </button>
                 </div>
+              )}
               </div>
             </form>
           </div>
         )}
         
         {/* FAQ items */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-900">Questions et réponses</h2>
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            {filteredFAQItems.length > 0 ? (
-              filteredFAQItems.map((item) => (
+        {!showMyQuestions ? (
+          // Mode standard : toutes les questions approuvées
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Questions et réponses</h2>
+            </div>
+            
+            <div className="divide-y divide-gray-200">
+              {publicQuestions.length > 0 ? (
+                publicQuestions.map((item) => (
                 <div key={item.id} className="p-6">
                   <button
                     onClick={() => toggleQuestion(item.id)}
@@ -216,7 +277,14 @@ const FAQ: React.FC = () => {
                         </div>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-lg font-medium text-gray-900">{item.question}</h3>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {item.question}
+                          {showMyQuestions && !item.isApproved && (
+                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              En attente
+                            </span>
+                          )}
+                        </h3>
                         <div className="flex items-center mt-1">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
                             {item.phase === 'post-cps' ? 'Post-CPS' :
@@ -248,15 +316,160 @@ const FAQ: React.FC = () => {
                   )}
                 </div>
               ))
-            ) : (
-              <div className="p-6 text-center">
-                <p className="text-gray-500">
-                  Aucune question ne correspond à votre recherche.
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-gray-500">
+                    Aucune question ne correspond à votre recherche.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          // Mode "Mes questions" : affichage en deux colonnes
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* Colonne 1: Questions répondues */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="p-6 border-b">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Questions répondues
+                  <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {answeredQuestions.length}
+                  </span>
+                </h2>
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {answeredQuestions.length > 0 ? (
+                  answeredQuestions.map((item) => (
+                    <div key={item.id} className="p-6">
+                      <button
+                        onClick={() => toggleQuestion(item.id)}
+                        className="flex justify-between items-start w-full text-left"
+                      >
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <MessageSquare className="h-4 w-4 text-green-700" />
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-lg font-medium text-gray-900">{item.question}</h3>
+                            <div className="flex items-center mt-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                {item.phase === 'post-cps' ? 'Post-CPS' :
+                                 item.phase === 'during-process' ? 'Pendant les démarches' :
+                                 'Pré-arrivée'}
+                              </span>
+                              {item.category && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {item.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {openQuestionId === item.id ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                        )}
+                      </button>
+                      
+                      {openQuestionId === item.id && (
+                        <div className="mt-4 ml-11">
+                          <p className="text-gray-700">{item.answer}</p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Mise à jour le {item.updatedDate}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">
+                      Vous n'avez pas encore de questions répondues.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Colonne 2: Questions en attente */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="p-6 border-b">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Questions en attente
+                  <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {unansweredQuestions.length}
+                  </span>
+                </h2>
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {unansweredQuestions.length > 0 ? (
+                  unansweredQuestions.map((item) => (
+                    <div key={item.id} className="p-6">
+                      <button
+                        onClick={() => toggleQuestion(item.id)}
+                        className="flex justify-between items-start w-full text-left"
+                      >
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                              <MessageSquare className="h-4 w-4 text-yellow-700" />
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              {item.question}
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                En attente
+                              </span>
+                            </h3>
+                            <div className="flex items-center mt-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                {item.phase === 'post-cps' ? 'Post-CPS' :
+                                 item.phase === 'during-process' ? 'Pendant les démarches' :
+                                 'Pré-arrivée'}
+                              </span>
+                              {item.category && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {item.category}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500 ml-2">
+                                Posée le {item.createdDate}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {openQuestionId === item.id ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                        )}
+                      </button>
+                      
+                      {openQuestionId === item.id && (
+                        <div className="mt-4 ml-11">
+                          <p className="text-gray-700 italic">{item.answer}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">
+                      Vous n'avez pas de questions en attente de réponse.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

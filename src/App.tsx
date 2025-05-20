@@ -18,6 +18,7 @@ import AdminContentEditor from './pages/admin/AdminContentEditor';
 import AdminResourceManager from './pages/admin/AdminResourceManager';
 import AdminUserManager from './pages/admin/AdminUserManager';
 import AdminUserProfile from './pages/admin/AdminUserProfile';
+import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
@@ -84,6 +85,11 @@ function App() {
                 <Route path="/admin/users/:uid" element={
                   <AdminRoute>
                     <AdminUserProfile />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/activity" element={
+                  <AdminRoute>
+                    <AdminActivityLogPage />
                   </AdminRoute>
                 } />
                 

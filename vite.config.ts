@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/',
+  base: '/Esig-prep-guide',
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],

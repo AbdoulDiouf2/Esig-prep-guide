@@ -41,6 +41,7 @@ const AdminContentEditor: React.FC = () => {
   const [faqCategory, setFaqCategory] = useState('');
   const [faqPhase, setFaqPhase] = useState<GuidePhase>('post-cps');
   const [isApproved, setIsApproved] = useState(true);
+  const [isAnswered, setIsAnswered] = useState(false);
 
   // Initialisation des états pour édition
   useEffect(() => {
@@ -69,6 +70,7 @@ const AdminContentEditor: React.FC = () => {
         setFaqCategory(faq.category || '');
         setFaqPhase(faq.phase);
         setIsApproved(!!faq.isApproved);
+        setIsAnswered(!!faq.isAnswered);
       }
     } else if (isNewFaq) {
       setQuestion('');
@@ -76,21 +78,42 @@ const AdminContentEditor: React.FC = () => {
       setFaqCategory('');
       setFaqPhase('post-cps');
       setIsApproved(true);
+      setIsAnswered(false);
     }
   }, [editSectionId, isNewSection, guideSections, editFaqId, isNewFaq, faqItems]);
   
+  // Fonction pour vider le champ de réponse lorsqu'on clique sur Répondre
+  const handlePrepareResponse = () => {
+    setAnswer('');
+    setIsAnswered(false); // Réinitialiser le statut de réponse
+  };
+
+  // Met à jour l'état isAnswered en fonction du contenu de la réponse
+  const updateAnsweredStatus = (responseText: string) => {
+    const hasValidAnswer = responseText.trim() !== '' && 
+                           responseText !== "Cette question est en attente de réponse par notre équipe.";
+    setIsAnswered(hasValidAnswer);
+  };
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isNewFaq || editFaqId) {
       // FAQ mode
       if (editFaqId) {
+        // Mettre à jour l'état isAnswered en fonction du contenu de la réponse
+        const hasValidAnswer = answer.trim() !== '' && 
+                              answer !== "Cette question est en attente de réponse par notre équipe.";
+        // Mettre à jour l'état local pour refléter le statut qui sera sauvegardé
+        setIsAnswered(hasValidAnswer);
+        
         updateFAQItem(editFaqId, {
           question,
           answer,
           category: faqCategory,
           phase: faqPhase,
-          isApproved
+          isApproved,
+          isAnswered: hasValidAnswer
         });
         logAdminActivity({
           type: 'Modification',
@@ -100,12 +123,19 @@ const AdminContentEditor: React.FC = () => {
           details: { question }
         });
       } else {
+        // Pour une nouvelle question, déterminer si elle est déjà répondue
+        const hasValidAnswer = answer.trim() !== '' && 
+                              answer !== "Cette question est en attente de réponse par notre équipe.";
+        // Mettre à jour l'état local pour refléter le statut qui sera sauvegardé
+        setIsAnswered(hasValidAnswer);
+        
         addFAQItem({
           question,
           answer,
           category: faqCategory,
           phase: faqPhase,
           isApproved,
+          isAnswered: hasValidAnswer,
           createdDate: new Date().toISOString(),
           updatedDate: new Date().toISOString()
         });
@@ -243,17 +273,39 @@ const AdminContentEditor: React.FC = () => {
                       </div>
 
                       <div>
-                        <label htmlFor="faq-answer" className="block text-sm font-medium text-gray-700">
-                          Réponse
-                        </label>
+                        <div className="flex justify-between items-center">
+                          <label htmlFor="faq-answer" className="block text-sm font-medium text-gray-700">
+                            Réponse
+                          </label>
+                          {editFaqId && (
+                            <button
+                              type="button"
+                              onClick={handlePrepareResponse}
+                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                            >
+                              Vider et répondre
+                            </button>
+                          )}
+                        </div>
                         <textarea
                           id="faq-answer"
                           rows={6}
                           className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                           value={answer}
-                          onChange={e => setAnswer(e.target.value)}
+                          onChange={e => {
+                            setAnswer(e.target.value);
+                            updateAnsweredStatus(e.target.value);
+                          }}
                           required
                         />
+                        <div className="mt-2 flex items-center text-sm">
+                          <div className={`w-3 h-3 rounded-full ${isAnswered ? 'bg-green-500' : 'bg-yellow-500'} mr-2`}></div>
+                          <span className="text-gray-600">
+                            {isAnswered 
+                              ? "Cette question est marquée comme répondue" 
+                              : "Cette question est en attente de réponse"}
+                          </span>
+                        </div>
                       </div>
 
                       <div>
@@ -287,17 +339,19 @@ const AdminContentEditor: React.FC = () => {
                         </select>
                       </div>
 
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="faq-approved"
-                          className="h-4 w-4 text-blue-600 rounded"
-                          checked={isApproved}
-                          onChange={e => setIsApproved(e.target.checked)}
-                        />
-                        <label htmlFor="faq-approved" className="ml-2 block text-sm text-gray-700">
-                          Approuvée
-                        </label>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="faq-approved"
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            checked={isApproved}
+                            onChange={e => setIsApproved(e.target.checked)}
+                          />
+                          <label htmlFor="faq-approved" className="ml-2 block text-sm text-gray-700">
+                            Approuvée (visible publiquement)
+                          </label>
+                        </div>
                       </div>
 
                       <div className="flex justify-between">

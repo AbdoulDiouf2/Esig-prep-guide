@@ -33,8 +33,11 @@ export interface FAQItem {
   category: string;
   phase: GuidePhase;
   isApproved: boolean;
+  isAnswered: boolean; // Indique si la question a été répondue par un admin
   createdDate: string;
   updatedDate: string;
+  userId?: string; // ID de l'utilisateur qui a posé la question
+  userEmail?: string; // Email de l'utilisateur qui a posé la question
 }
 
 type ContentContextType = {

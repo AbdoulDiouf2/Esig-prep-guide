@@ -7,7 +7,8 @@ import {
   FileText, 
   MessageSquare, 
   Edit, 
-  Plus 
+  Plus, 
+  ClipboardList
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 
@@ -48,6 +49,26 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
+        {/* Quick action buttons */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <Link to="/admin/content" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <Edit className="-ml-1 mr-2 h-5 w-5" />
+            Éditer le contenu
+          </Link>
+          <Link to="/admin/resources" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <FileText className="-ml-1 mr-2 h-5 w-5" />
+            Gérer les ressources
+          </Link>
+          <Link to="/admin/users" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <Users className="-ml-1 mr-2 h-5 w-5" />
+            Gérer les utilisateurs
+          </Link>
+          <Link to="/admin/activity" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <ClipboardList className="-ml-1 mr-2 h-5 w-5" />
+            Journal d'activité détaillé
+          </Link>
+        </div>
+        
         {/* Stats overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -86,42 +107,105 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        
         
         {/* Quick actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Liste des FAQ existantes */}
-          <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Questions FAQ existantes</h2>
-            <ul className="divide-y divide-gray-200">
-  {Array.isArray(faqItems) && faqItems.length > 0 ? faqItems.map((faq) => (
-    <li key={faq.id} className="flex items-center justify-between py-2">
-      <span className="text-gray-800">{faq.question}</span>
-      <div className="flex items-center space-x-2">
-        <Link
-          to={`/admin/content?edit=${faq.id}`}
-          className="inline-flex items-center px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs font-medium"
-        >
-          Modifier
-        </Link>
-        {(
-  !faq.answer ||
-  faq.answer.trim() === '' ||
-  faq.answer.trim() === 'Cette question est en attente de réponse par notre équipe.'
-) && (
-  <Link
-    to={`/admin/content?edit=${faq.id}`}
-    className="inline-flex items-center px-3 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200 text-xs font-medium"
-  >
-    Répondre
-  </Link>
-)}
-      </div>
-    </li>
-  )) : (
-    <li className="text-gray-400">Aucune question FAQ pour le moment.</li>
-  )}
-</ul>
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
+          {/* Liste des FAQ en deux sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Section 1: Questions répondues */}
+            <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                  <span className="h-3 w-3 rounded-full bg-green-500 mr-2"></span>
+                  Questions répondues
+                </h2>
+                {Array.isArray(faqItems) && faqItems.filter(faq => faq.isAnswered).length > 5 && (
+                  <span className="text-xs text-gray-500">Défilez pour voir plus</span>
+                )}
+              </div>
+              <ul className={`divide-y divide-gray-200 flex-grow ${Array.isArray(faqItems) && faqItems.filter(faq => faq.isAnswered).length > 5 ? 'max-h-80 overflow-y-auto pr-2' : ''}`}>
+                {Array.isArray(faqItems) && faqItems.filter(faq => faq.isAnswered).length > 0 ? 
+                  faqItems.filter(faq => faq.isAnswered).map((faq) => (
+                    <li key={faq.id} className="flex items-center justify-between py-2">
+                      <div className="flex-grow pr-2">
+                        <div className="flex items-center">
+                          <span className="text-gray-800 line-clamp-1">{faq.question}</span>
+                          {faq.isApproved ? (
+                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                              Public
+                            </span>
+                          ) : (
+                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                              Non publié
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">{faq.phase === 'post-cps' ? 'Post-CPS' : faq.phase === 'during-process' ? 'Démarches' : 'Pré-arrivée'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <Link
+                          to={`/admin/content?edit=${faq.id}`}
+                          className="inline-flex items-center px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs font-medium"
+                        >
+                          Modifier
+                        </Link>
+                      </div>
+                    </li>
+                  )) : (
+                    <li className="text-gray-400 p-4">Aucune question répondue pour le moment.</li>
+                  )
+                }
+              </ul>
+            </div>
+            
+            {/* Section 2: Questions en attente */}
+            <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                  <span className="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                  Questions en attente
+                  {Array.isArray(faqItems) && (
+                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full">
+                      {faqItems.filter(faq => !faq.isAnswered).length}
+                    </span>
+                  )}
+                </h2>
+                {Array.isArray(faqItems) && faqItems.filter(faq => !faq.isAnswered).length > 5 && (
+                  <span className="text-xs text-gray-500">Défilez pour voir plus</span>
+                )}
+              </div>
+              <ul className={`divide-y divide-gray-200 flex-grow ${Array.isArray(faqItems) && faqItems.filter(faq => !faq.isAnswered).length > 5 ? 'max-h-80 overflow-y-auto pr-2' : ''}`}>
+                {Array.isArray(faqItems) && faqItems.filter(faq => !faq.isAnswered).length > 0 ? 
+                  faqItems.filter(faq => !faq.isAnswered).map((faq) => (
+                    <li key={faq.id} className="flex items-center justify-between py-2">
+                      <div className="flex-grow pr-2">
+                        <span className="text-gray-800 line-clamp-1">{faq.question}</span>
+                        <div className="flex items-center mt-1">
+                          <span className="text-xs text-gray-500">{faq.phase === 'post-cps' ? 'Post-CPS' : faq.phase === 'during-process' ? 'Démarches' : 'Pré-arrivée'}</span>
+                          {faq.userEmail && (
+                            <span className="text-xs text-gray-500 ml-2">· {faq.userEmail}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <Link
+                          to={`/admin/content?edit=${faq.id}`}
+                          className="inline-flex items-center px-3 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200 text-xs font-medium"
+                        >
+                          Répondre
+                        </Link>
+                      </div>
+                    </li>
+                  )) : (
+                    <li className="text-gray-400 p-4">Aucune question en attente de réponse.</li>
+                  )
+                }
+              </ul>
+            </div>
           </div>
+
           <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Actions rapides</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -166,7 +250,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
             </div>
           </div>
-          
+                    
           <div className="bg-white rounded-lg shadow p-6 w-full col-span-full">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Ajouter du contenu</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
@@ -347,5 +431,4 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 };
-
 export default AdminDashboard;
