@@ -139,7 +139,7 @@ const AdminDropboxManager: React.FC = () => {
     } finally {
       setLoadingFiles(false);
     }
-  }, []);
+  }, [setDropboxFiles, setDropboxError, setLoadingFiles]);
   
   // Créer un lien de partage pour un fichier
   const createShareLink = useCallback(async (file: DropboxFile) => {
