@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Heart, Linkedin, Github } from 'lucide-react';
+import LegalFooter from '../legal/LegalFooter';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -78,10 +79,10 @@ const Footer: React.FC = () => {
               </a>
             </div>
             <div className="flex space-x-4 mt-4">
-              <a href="#" className="text-blue-200 hover:text-white transition-colors">
+              <a href="https://www.linkedin.com/in/abdoul-ahad-mback%C3%A9-diouf-5b04b4213/" className="text-blue-200 hover:text-white transition-colors">
                 <Linkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="text-blue-200 hover:text-white transition-colors">
+              <a href="https://github.com/AbdoulDiouf2" className="text-blue-200 hover:text-white transition-colors">
                 <Github className="w-5 h-5" />
               </a>
             </div>
@@ -97,6 +98,7 @@ const Footer: React.FC = () => {
           </p>
         </div>
       </div>
+      <LegalFooter />
     </footer>
   );
 };

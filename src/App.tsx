@@ -1,10 +1,11 @@
-import React from 'react';import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ContentProvider } from './contexts/ContentContext';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import ConsentBanner from './components/legal/ConsentBanner';
 
 // Pages
 import Home from './pages/Home';
@@ -25,6 +26,13 @@ import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
 import ResetPassword from './pages/ResetPassword';
 
+// Pages légales
+import CGU from './pages/legal/CGU';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import LegalNotice from './pages/legal/LegalNotice';
+import ModerationCharter from './pages/legal/ModerationCharter';
+import RGPDRegistry from './pages/legal/RGPDRegistry';
+
 function App() {
   return (
     <AuthProvider>
@@ -39,6 +47,17 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/test-firebase" element={<TestFirebase />} />
+                
+                {/* Pages légales */}
+                <Route path="/legal/cgu" element={<CGU />} />
+                <Route path="/legal/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/legal/legal-notice" element={<LegalNotice />} />
+                <Route path="/legal/moderation-charter" element={<ModerationCharter />} />
+                <Route path="/legal/rgpd-registry" element={
+                  <AdminRoute>
+                    <RGPDRegistry />
+                  </AdminRoute>
+                } />
                 
                 {/* Protected Routes (require authentication) */}
                 <Route path="/dashboard" element={
@@ -104,6 +123,7 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            <ConsentBanner />
           </div>
         </Router>
       </ContentProvider>
