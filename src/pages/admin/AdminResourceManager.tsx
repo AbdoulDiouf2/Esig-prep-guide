@@ -27,7 +27,7 @@ const AdminResourceManager: React.FC = () => {
   const [phase, setPhase] = useState<GuidePhase>('post-cps');
   const [category, setCategory] = useState('');
   const [fileUrl, setFileUrl] = useState('');
-  const [fileType, setFileType] = useState<'pdf' | 'doc' | 'image' | 'link'>('pdf');
+  const [fileType, setFileType] = useState<'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link'>('pdf');
   
   // Get unique categories for suggestions
   const categories = [...new Set(resources.map(resource => resource.category))];
@@ -236,13 +236,32 @@ const AdminResourceManager: React.FC = () => {
                       id="fileType"
                       className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={fileType}
-                      onChange={(e) => setFileType(e.target.value as 'pdf' | 'doc' | 'image' | 'link')}
+                      onChange={(e) => setFileType(e.target.value as 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link')}
                       required
                     >
-                      <option value="pdf">PDF</option>
-                      <option value="doc">Document</option>
-                      <option value="image">Image</option>
-                      <option value="link">Lien externe</option>
+                      <optgroup label="Documents">
+                        <option value="pdf">PDF</option>
+                        <option value="doc">Word (.doc)</option>
+                        <option value="docx">Word (.docx)</option>
+                        <option value="txt">Texte (.txt)</option>
+                      </optgroup>
+                      <optgroup label="Tableurs">
+                        <option value="xls">Excel (.xls)</option>
+                        <option value="xlsx">Excel (.xlsx)</option>
+                      </optgroup>
+                      <optgroup label="Présentations">
+                        <option value="ppt">PowerPoint (.ppt)</option>
+                        <option value="pptx">PowerPoint (.pptx)</option>
+                      </optgroup>
+                      <optgroup label="Médias">
+                        <option value="image">Image (.jpg, .png, etc.)</option>
+                        <option value="video">Vidéo (.mp4, etc.)</option>
+                        <option value="audio">Audio (.mp3, etc.)</option>
+                      </optgroup>
+                      <optgroup label="Autres">
+                        <option value="zip">Archive (.zip, .rar)</option>
+                        <option value="link">Lien externe</option>
+                      </optgroup>
                     </select>
                   </div>
                   

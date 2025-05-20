@@ -7,10 +7,14 @@ Une plateforme complète pour accompagner les étudiants des Classes Préparatoi
 ## 🚀 Fonctionnalités
 
 - 📚 Bibliothèque de ressources documentaires (guides, formulaires, conseils)
+  - 🔍 Prévisualisation des documents directement dans l'interface
+  - 📥 Téléchargement facile des ressources
 - 📅 Tableau de bord personnalisé suivant les étapes du processus
 - ❓ Foire aux questions interactive
 - 🔒 Espace membre avec authentification sécurisée
 - 👨‍💻 Interface d'administration pour la gestion du contenu
+  - 📤 Upload de fichiers directement vers Dropbox
+  - 🔄 Gestion simplifiée des ressources (PDF, Documents, Images)
 - 🧑‍💼 **Gestion avancée des utilisateurs/admins** :
   - Page de profil utilisateur moderne et responsive
   - Visualisation, édition, promotion/déclassement admin, suppression d’utilisateurs
@@ -31,6 +35,7 @@ Une plateforme complète pour accompagner les étudiants des Classes Préparatoi
 - **Styling**: Tailwind CSS
 - **Routing**: React Router v6
 - **Backend**: Firebase (Authentification + Firestore)
+- **Stockage de fichiers**: Dropbox API (upload et partage de fichiers)
 - **Déploiement**: GitHub Pages
 - **Gestion d'état**: Context API
 
@@ -61,6 +66,7 @@ VITE_FIREBASE_STORAGE_BUCKET=votre-projet.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=votre_sender_id
 VITE_FIREBASE_APP_ID=votre_app_id
 VITE_FIREBASE_MEASUREMENT_ID=votre_measurement_id
+VITE_DROPBOX_ACCESS_TOKEN=votre_token_dropbox  # Pour l'intégration Dropbox
 ```
 
 ### Étape 4 : Démarrer l'application en mode développement
@@ -93,6 +99,9 @@ src/
 
 ## Historique des changements récents
 
+- ✨ **Nouvelle fonctionnalité** : Intégration de Dropbox pour l'upload et le partage de fichiers
+- ✨ **Nouvelle fonctionnalité** : Prévisualisation intégrée des documents (PDF, images, etc.) 
+- ✨ **Amélioration** : Système d'icônes intelligentes pour les différents types de ressources
 - Ajout d'un scroll automatique sur la section "Activité récente" du dashboard admin (plus de 5 éléments)
 - Amélioration de l'expérience admin (gestion avancée des rôles, sécurité accrue)
 - Le dossier `build/` est désormais ignoré par git (`.gitignore`) pour éviter les conflits et respecter les bonnes pratiques

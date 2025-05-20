@@ -3,7 +3,7 @@ import { useContent, GuidePhase, ResourceDocument } from '../contexts/ContentCon
 import { Search, FileText, Image, File, Archive, Video, Download, Filter, ChevronDown, X, ExternalLink } from 'lucide-react';
 
 const ResourceLibrary: React.FC = () => {
-  const { resources, searchResources } = useContent();
+  const { resources } = useContent();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPhase, setSelectedPhase] = useState<GuidePhase | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
@@ -37,6 +37,11 @@ const ResourceLibrary: React.FC = () => {
     
     // Si ce n'est pas une URL Dropbox, retourner l'URL originale
     return fileUrl;
+  };
+
+  // Fonction pour obtenir une URL Google Docs Viewer pour les PDFs
+  const getGoogleViewerUrl = (fileUrl: string) => {
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
   };
 
   // Handle search
@@ -278,6 +283,21 @@ const ResourceLibrary: React.FC = () => {
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                       {resource.category}
                     </span>
+                    
+                    {/* Badge pour le type de fichier */}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      resource.fileType === 'pdf' ? 'bg-red-100 text-red-800' :
+                      resource.fileType === 'doc' || resource.fileType === 'docx' || resource.fileType === 'txt' ? 'bg-blue-100 text-blue-800' :
+                      resource.fileType === 'xls' || resource.fileType === 'xlsx' ? 'bg-green-100 text-green-800' :
+                      resource.fileType === 'ppt' || resource.fileType === 'pptx' ? 'bg-orange-100 text-orange-800' :
+                      resource.fileType === 'image' ? 'bg-purple-100 text-purple-800' :
+                      resource.fileType === 'video' ? 'bg-pink-100 text-pink-800' :
+                      resource.fileType === 'audio' ? 'bg-indigo-100 text-indigo-800' :
+                      resource.fileType === 'zip' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {resource.fileType.toUpperCase()}
+                    </span>
                   </div>
                   
                   <div className="flex justify-between items-center text-sm text-gray-500">
@@ -348,7 +368,48 @@ const ResourceLibrary: React.FC = () => {
             </div>
             <div className="p-4 flex-grow overflow-hidden">
               {/* Affichage différent selon le type de fichier */}
-              {previewResource.fileType === 'image' ? (
+              {previewResource.fileType === 'pdf' ? (
+                <div className="flex flex-col items-center h-full">
+                  {/* Option 1: utiliser object pour les PDFs */}
+                  <div className="h-full w-full">
+                    <object
+                      data={getPreviewUrl(previewResource.fileUrl)}
+                      type="application/pdf"
+                      className="w-full h-full rounded-md"
+                    >
+                      {/* Option 2: Utiliser Google Docs Viewer comme fallback */}
+                      <iframe
+                        src={getGoogleViewerUrl(previewResource.fileUrl)}
+                        className="w-full h-full border-0 rounded-md"
+                        title={`${previewResource.title} (Google Viewer)`}
+                        allowFullScreen
+                      ></iframe>
+                    </object>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    Si le document ne s'affiche pas correctement, essayez de le 
+                    <a 
+                      href={previewResource.fileUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 mx-1 font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      télécharger
+                    </a>
+                    ou l'
+                    <a 
+                      href={`https://docs.google.com/viewer?url=${encodeURIComponent(previewResource.fileUrl)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 mx-1 font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      ouvrir avec Google Docs
+                    </a>
+                  </div>
+                </div>
+              ) : previewResource.fileType === 'image' ? (
                 <div className="flex items-center justify-center h-full">
                   <img 
                     src={getPreviewUrl(previewResource.fileUrl)} 

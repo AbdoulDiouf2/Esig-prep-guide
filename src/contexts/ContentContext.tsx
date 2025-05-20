@@ -12,7 +12,7 @@ export interface ResourceDocument {
   phase: GuidePhase;
   category: string;
   fileUrl: string;
-  fileType: 'pdf' | 'doc' | 'image' | 'link';
+  fileType: 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
   uploadDate: string;
   updatedDate: string;
 }
