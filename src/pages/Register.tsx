@@ -187,9 +187,9 @@ const Register: React.FC = () => {
               />
               <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
                 J'accepte les{' '}
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link to="/legal/CGU" className="font-medium text-blue-600 hover:text-blue-500">
                   conditions d'utilisation
-                </a>
+                </Link>
               </label>
             </div>
 

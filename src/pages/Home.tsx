@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Book, Workflow, Map, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import InfiniteLogoScroll from '../components/InfiniteLogoScroll';
 
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
@@ -14,7 +15,7 @@ const Home: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-8 md:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-                Votre guide complet pour passer de CPS à l'ESIGELEC
+                Votre guide pour passer de CPS à l'ESIGELEC
               </h1>
               <p className="text-lg md:text-xl text-blue-100 mb-8">
                 Trouvez toutes les ressources et l'accompagnement nécessaires pour réussir votre transition des Classes Préparatoires Scientifiques de Dakar vers l'ESIGELEC à Rouen.
@@ -245,19 +246,19 @@ const Home: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-red-800 to-red-700 text-white">
+      <section className="py-16 bg-gradient-to-r from-green-800 to-green-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">
             Prêt à commencer votre parcours vers l'ESIGELEC ?
           </h2>
-          <p className="text-xl text-red-100 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
             Rejoignez notre communauté d'étudiants CPS et bénéficiez de toutes les ressources dont vous avez besoin pour réussir votre transition.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             {currentUser ? (
               <Link 
                 to="/dashboard" 
-                className="bg-white text-red-900 hover:bg-red-50 px-8 py-3 rounded-md font-medium transition-colors duration-200"
+                className="bg-white text-green-900 hover:bg-green-50 px-8 py-3 rounded-md font-medium transition-colors duration-200"
               >
                 Accéder à mon tableau de bord
               </Link>
@@ -265,7 +266,7 @@ const Home: React.FC = () => {
               <>
                 <Link 
                   to="/register" 
-                  className="bg-white text-red-900 hover:bg-red-50 px-8 py-3 rounded-md font-medium transition-colors duration-200"
+                  className="bg-white text-green-900 hover:bg-green-50 px-8 py-3 rounded-md font-medium transition-colors duration-200"
                 >
                   S'inscrire gratuitement
                 </Link>
@@ -280,6 +281,9 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Logo Slider Section */}
+      <InfiniteLogoScroll />
     </div>
   );
 };
