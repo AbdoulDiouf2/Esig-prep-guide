@@ -4,31 +4,65 @@
     <meta charset="utf-8" />
     <title>ESIG Prep Guide - Redirection</title>
     <script>
-      // Script de redirection simplifié pour éviter les boucles
+      // Script de redirection intelligente pour préserver la route demandée par l'utilisateur
       (function() {
-        var pathSegmentsToKeep = 1; // Nombre de segments d'URL à conserver après le domaine
-        var redirectUrl = '/Esig-prep-guide/';
-
-        // Empêcher les redirections en boucle
+        // On s'assure d'abord que nous ne sommes pas dans une boucle de redirection
         var currentPath = location.pathname;
-        if (currentPath.includes('/Esig-prep-guide/Esig-prep-guide/')) {
-          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
+        
+        // Détecter si nous sommes dans une boucle
+        var dupCount = 0;
+        var parts = currentPath.split('/');
+        var segmentsToCount = parts.filter(function(segment) { 
+          return segment === 'Esig-prep-guide'; 
+        }).length;
+        
+        if (segmentsToCount > 1) {
+          // Nous sommes dans une boucle, simplifier le chemin
+          var simplifiedPath = '/Esig-prep-guide/';
+          
+          // Trouver la partie après les duplications
+          var routeParts = currentPath.split('/Esig-prep-guide/');
+          if (routeParts.length > 1) {
+            // Prendre uniquement la dernière partie du chemin, après les duplications
+            var lastPart = routeParts[routeParts.length - 1];
+            if (lastPart && lastPart !== '') {
+              simplifiedPath += lastPart;
+            }
+          }
+          
+          location.replace('https://abdouldiouf2.github.io' + simplifiedPath);
           return;
         }
-
-        // Si nous sommes sur la route racine, juste rediriger vers la racine de l'app
+        
+        // Si c'est la page 404 elle-même
         if (currentPath === '/Esig-prep-guide/404.html') {
           location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
           return;
         }
-
-        // Pour tout autre chemin, rediriger vers la racine de l'app
-        location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
+        
+        // Pour le cas normal sans duplication
+        // Extraire la route après /Esig-prep-guide/
+        var regex = /\/Esig-prep-guide\/(.*)$/;
+        var match = regex.exec(currentPath);
+        
+        if (match && match[1]) {
+          // Nous avons une route à préserver
+          // Vérifions si c'est une route valide ou si nous devons rediriger vers NotFound
+          var route = match[1];
+          
+          // Nous pourrions faire une liste des routes valides, mais pour simplifier,
+          // nous allons laisser React Router gérer ça en préservant la route
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/' + route);
+        } else {
+          // Aucune route spécifique, rediriger vers n'importe quelle URL non reconnue
+          // React Router capturera cela avec sa route wildcard '*' qui pointe vers <NotFound />
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/not-found-page');
+        }
       })();
     </script>
   </head>
   <body>
-    <h1>Redirection vers la page d'accueil...</h1>
-    <p>Si la redirection ne fonctionne pas, <a href="https://abdouldiouf2.github.io/Esig-prep-guide/">cliquez ici</a>.</p>
+    <h1>Redirection en cours...</h1>
+    <p>Si la redirection ne fonctionne pas, <a href="https://abdouldiouf2.github.io/Esig-prep-guide/">cliquez ici pour retourner à l'accueil</a>.</p>
   </body>
 </html>
