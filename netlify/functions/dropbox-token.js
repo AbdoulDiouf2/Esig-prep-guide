@@ -1,7 +1,9 @@
 // netlify/functions/dropbox-token.js
-import fetch from 'node-fetch';
 
-export const handler = async function(event, context) {
+exports.handler = async function(event, context) {
+  // Import dynamique (fonctionne dans CommonJS)
+  const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
   // Ne JAMAIS exposer ces valeurs dans le front-end !
   const DROPBOX_CLIENT_ID = process.env.VITE_DBX_APP_KEY;
   const DROPBOX_REFRESH_TOKEN = process.env.VITE_DBX_REFRESH_TOKEN;
