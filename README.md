@@ -1,83 +1,111 @@
-# ESIGELEC Preparation Guide
+# ESIG-prep-guide 📚
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-Une plateforme complète pour accompagner les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen.
+## 📋 Sommaire
 
-## 🚀 Fonctionnalités
+- [Aperçu](#-aperçu)
+- [Fonctionnalités clés](#-fonctionnalités-clés)
+- [Technologies](#-technologies)
+- [Installation](#-installation)
+- [Structure du projet](#-structure-du-projet)
+- [Déploiement](#-déploiement)
+- [Licence](#-licence)
+- [Contact](#-contact)
 
-- 📚 **Bibliothèque de ressources documentaires** (guides, formulaires, conseils)
-  - 🔍 Prévisualisation des documents directement dans l'interface
-  - 📥 Téléchargement facile des ressources
-  - 🗂️ Organisation catégorisée pour une navigation intuitive
-- 📅 **Tableau de bord personnalisé** suivant les étapes du processus
-- ❓ **Foire aux questions interactive**
-  - ✏️ Possibilité pour les utilisateurs de soumettre leurs propres questions
-  - 🔔 Notification de confirmation après soumission d'une question
-- 🔒 **Espace membre avec authentification sécurisée**
-  - 👤 Profils utilisateurs personnalisables
-  - 🔐 Authentification via Firebase
-- 👨‍💻 **Interface d'administration complète**
-  - 📤 Upload de fichiers directement vers Dropbox
-  - ☁️ Gestionnaire Dropbox (test de connectivité, listing, partage de fichiers)
-  - 🔄 Gestion simplifiée des ressources (PDF, Documents, Images)
-  - 📊 Statistiques d'utilisation et tableau de bord analytique
-  - 🔝 Bouton "Retour en haut" sur toutes les pages pour une meilleure navigation
-- 🧑‍💼 **Gestion avancée des utilisateurs/admins** :
-  - 🖼️ Page de profil utilisateur moderne et responsive
-  - 👁️ Visualisation, édition, promotion/déclassement admin, suppression d'utilisateurs
-  - 🧩 Avatar stylé, informations claires, boutons d'action élégants
-  - 🛡️ Sécurité renforcée (un admin ne peut pas se supprimer lui-même, confirmation systématique avant action critique)
-- 🕓 **Historique d'activité admin** :
-  - 📜 Affichage de l'activité récente avec un scroll automatique si plus de 5 actions
-  - 🔍 Suivi détaillé des modifications (ajout, suppression, édition de contenu)
-- 📜 **Documentation légale complète** :
-  - 📃 Conditions Générales d'Utilisation (CGU)
-  - 🔒 Politique de Confidentialité
-  - ⚖️ Mentions Légales
-  - 🛡️ Charte de Modération
-  - 📋 Registre de Traitement RGPD (accès administrateur uniquement)
-- 🍪 **Système de gestion des consentements**
-  - 🔔 Bannière de consentement aux cookies conforme au RGPD
-  - ⚙️ Personnalisation des préférences de confidentialité
-  - 📝 Suivi et stockage sécurisé des consentements utilisateurs
+## 🔍 Aperçu
 
-<!--
-![Capture d’écran Profil Admin](./docs/screenshot-profile.png)
--->
+**ESIG-prep-guide** est une plateforme complète conçue pour accompagner les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen. Structurée selon les trois phases principales du parcours étudiant (post-CPS, démarches administratives, pré-arrivée), la plateforme offre des ressources organisées, des guides pratiques et un système interactif de FAQ.
 
-## 🛠 Technologies utilisées
+### Objectifs du projet
 
-- **Frontend**: React 18 avec TypeScript
-- **Styling**: Tailwind CSS avec composants sur mesure
-- **Routing**: React Router v6
-- **Backend**: Firebase (Authentification + Firestore Database)
-- **Stockage de fichiers**: Dropbox API (upload et partage de fichiers)
-- **Déploiement**: GitHub Pages
-- **Gestion d'état**: Context API (AuthContext, ContentContext)
-- **UI Components**: Lucide React pour les icônes
-- **Performance**: Code splitting et lazy loading
-- **Accessibilité**: Composants conformes aux standards WCAG
+- Faciliter l'accès à l'information pour les étudiants admis à l'ESIGELEC
+- Centraliser les ressources et documents nécessaires à chaque étape du processus
+- Créer une communauté d'entraide entre les différentes promotions
+- Réduire les incertitudes liées à l'expatriation et à l'intégration dans un nouvel environnement académique
 
-## Installation
+## ✨ Fonctionnalités clés
 
-### Étape 1 : Cloner le dépôt
+### 📚 Gestion des ressources
+- **Bibliothèque documentaire** organisée par phases et catégories
+- **Prévisualisation** des documents directement dans l'interface
+- **Téléchargement** facile des ressources
+- **Intégration Dropbox** pour le stockage et la gestion des fichiers
 
+### 🧭 Navigation par phase
+- **Phase Post-CPS**: Ressources pour les étudiants venant de recevoir leur admission
+- **Phase During-Process**: Guides pour les démarches administratives (visa, logement, etc.)
+- **Phase Pre-Arrival**: Informations pour préparer l'arrivée en France et à l'ESIGELEC
+
+### ❓ Système de FAQ interactif
+- FAQ organisées par catégories et phases du processus
+- Possibilité pour les utilisateurs de **soumettre leurs propres questions**
+- **Message de confirmation** après soumission d'une question
+- Stockage de l'**identifiant (uid)** et de l'**email** de l'utilisateur lors de la soumission
+
+### 👤 Gestion des utilisateurs
+- **Authentification** via email/mot de passe, Google ou GitHub
+- **Profils utilisateurs** personnalisables
+- **Système de rôles** (utilisateurs standard et administrateurs)
+- **Vérification d'email** pour sécuriser les comptes
+
+### 🛠️ Interface d'administration
+- **Tableau de bord administrateur** avec statistiques et activités récentes
+- **Gestion du contenu** (FAQ, ressources, sections de guide)
+- **Gestionnaire Dropbox** intégré pour les fichiers
+- **Gestion des utilisateurs** avec promotion/rétrogradation des rôles
+
+### 📜 Conformité légale
+- Documentation légale complète (CGU, Politique de confidentialité, etc.)
+- Système de consentement conforme au RGPD
+- Registre RGPD accessible aux administrateurs
+
+## 🔧 Technologies
+
+### Frontend
+- **React 18** avec TypeScript pour l'interface utilisateur
+- **Tailwind CSS** pour le styling responsive
+- **React Router v6** pour la navigation
+- **Context API** pour la gestion d'état (AuthContext, ContentContext)
+- **Lucide React** pour les icônes
+
+### Backend & Services
+- **Firebase**
+  - Authentication pour la gestion des utilisateurs
+  - Firestore pour le stockage des données
+- **Dropbox API** pour la gestion des fichiers
+- **GitHub Pages** pour le déploiement
+
+## 💻 Installation
+
+### Prérequis
+- Node.js (v16.0 ou supérieur)
+- npm ou yarn
+- Un compte Firebase
+- Un compte Dropbox (pour l'intégration complète)
+
+### Étapes d'installation
+
+1. **Cloner le dépôt**
 ```bash
 git clone https://github.com/AbdoulDiouf2/Esig-prep-guide.git
 cd Esig-prep-guide
 ```
 
-### Étape 2 : Installer les dépendances
-
+2. **Installer les dépendances**
 ```bash
 npm install
+# ou
+yarn install
 ```
 
-### Étape 3 : Créer un fichier `.env` à la racine
+3. **Configurer les variables d'environnement**
 
-Créez un fichier `.env` à la racine du projet avec les variables d'environnement Firebase :
-
+Créez un fichier `.env` à la racine du projet avec les variables suivantes:
 ```env
 VITE_FIREBASE_API_KEY=votre_cle_api
 VITE_FIREBASE_AUTH_DOMAIN=votre_projet.firebaseapp.com
@@ -86,92 +114,80 @@ VITE_FIREBASE_STORAGE_BUCKET=votre-projet.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=votre_sender_id
 VITE_FIREBASE_APP_ID=votre_app_id
 VITE_FIREBASE_MEASUREMENT_ID=votre_measurement_id
-VITE_DROPBOX_ACCESS_TOKEN=votre_token_dropbox  # Pour l'intégration Dropbox
+VITE_DROPBOX_ACCESS_TOKEN=votre_token_dropbox
 ```
 
-### Étape 4 : Démarrer l'application en mode développement
-
+4. **Lancer l'application en mode développement**
 ```bash
 npm run dev
+# ou
+yarn dev
 ```
 
-## Déploiement
+L'application sera accessible à l'adresse [http://localhost:5173](http://localhost:5173).
 
-Pour déployer sur GitHub Pages :
+## 📁 Structure du projet
 
-```bash
-npm run build
-npm run deploy
 ```
-
-## Structure du projet
-
-```text
 src/
-├── components/       # Composants réutilisables
-│   ├── admin/        # Composants spécifiques à l'administration
-│   ├── auth/         # Composants liés à l'authentification
-│   ├── layout/       # Composants de mise en page (Header, Footer, etc.)
-│   ├── legal/        # Composants liés aux aspects juridiques
-│   └── ui/           # Composants d'interface utilisateur génériques
-├── contexts/         # Contextes React (Auth, Content)
-├── hooks/            # Hooks personnalisés
-├── pages/            # Pages de l'application
-│   ├── admin/        # Interface d'administration
-│   ├── auth/         # Pages d'authentification
-│   ├── legal/        # Pages juridiques
-│   └── ...          
-├── types/            # Types TypeScript
-├── utils/            # Fonctions utilitaires
-├── App.tsx           # Composant racine avec routage
-└── main.tsx          # Point d'entrée
+├── components/            # Composants réutilisables
+│   ├── auth/              # Composants d'authentification
+│   ├── layout/            # Composants structurels (Header, Footer)
+│   ├── legal/             # Composants liés aux aspects juridiques
+│   └── notifications/     # Composants de notification
+├── contexts/              # Contextes React
+│   ├── AuthContext.tsx    # Gestion de l'authentification
+│   └── ContentContext.tsx # Gestion du contenu (ressources, guide, FAQ)
+├── hooks/                 # Hooks personnalisés
+├── pages/                 # Pages principales
+│   ├── admin/             # Interface d'administration
+│   └── legal/             # Pages juridiques
+├── services/              # Services externes (Firebase, Dropbox)
+├── utils/                 # Fonctions utilitaires
+├── firebase.ts            # Configuration Firebase
+└── App.tsx                # Point d'entrée avec routage
 ```
 
-## Historique des changements récents
+## 🚀 Déploiement
 
-- ✨ **Nouvelle fonctionnalité** : Gestionnaire Dropbox complet avec test de connectivité, listing, upload et partage de fichiers
-- ✨ **Nouvelle fonctionnalité** : Bouton "Retour en haut" ajouté sur toutes les pages pour faciliter la navigation
-- ✨ **Nouvelle fonctionnalité** : Tutoriel administrateur mis à jour avec section détaillée sur le Gestionnaire Dropbox
-- ✨ **Nouvelle fonctionnalité** : Ajout complet des pages légales (CGU, Politique de confidentialité, etc.)
-- ✨ **Nouvelle fonctionnalité** : Système de gestion des consentements conforme au RGPD
-- ✨ **Nouvelle fonctionnalité** : Registre RGPD accessible uniquement aux administrateurs
-- ✨ **Amélioration** : Refonte visuelle et structurelle des documents légaux
-- ✨ **Amélioration** : Footer légal avec liens vers toutes les pages juridiques
-- ✨ **Amélioration** : Expérience utilisateur optimisée pour la soumission de questions FAQ
-- ✨ **Amélioration** : Authentification sécurisée avec stockage des informations utilisateur
-- ✨ **Amélioration** : Système d'icônes intelligentes pour les différents types de contenu
-- 🐛 **Correction** : Résolution des problèmes de lint et optimisation du code
+### Déploiement sur GitHub Pages
 
-## Contribution
+1. **Configurer le basename dans App.tsx**
+   Assurez-vous que le routeur est configuré avec le bon basename:
+   ```jsx
+   <Router basename="/Esig-prep-guide">
+   ```
 
-Les contributions sont les bienvenues ! Voici comment procéder :
+2. **Construire l'application**
+   ```bash
+   npm run build
+   # ou
+   yarn build
+   ```
 
-1. Forkez le projet
-2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
+3. **Déployer**
+   ```bash
+   npm run deploy
+   # ou
+   yarn deploy
+   ```
 
-## 📄 Licence
+### Déploiement sur d'autres plateformes
+
+Le projet peut également être déployé sur d'autres plateformes comme Netlify, Vercel ou Firebase Hosting avec des configurations minimales.
+
+## 📝 Licence
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## 🙏 Remerciements
+## 📬 Contact
 
-- Aux étudiants des CPS de Dakar pour leur retour précieux
-- À la communauté open source pour les outils incroyables
-- Aux enseignants de l'ESIGELEC pour leur soutien et conseils
-- À tous les contributeurs qui ont aidé à améliorer cette plateforme
+Abdoul Ahad Mbacké DIOUF - ESIGELEC (Promo 2025) - CPS (Promo 2022)
 
-## 🔒 Conformité et sécurité
-
-- Application conforme au RGPD (Règlement Général sur la Protection des Données)
-- Mécanisme de consentement transparent pour les utilisateurs
-- Documentation légale complète et accessible
-- Sécurisation des données utilisateurs et des interactions
+Projet: [https://github.com/AbdoulDiouf2/Esig-prep-guide](https://github.com/AbdoulDiouf2/Esig-prep-guide)
 
 ---
 
-Développé avec ❤️ par Abdoul Ahad Mbacké DIOUF - PROMO 2025 (ESIGELEC) - PROMO 2022 (CPS)
+Développé avec ❤️ pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
 
-Dernière mise à jour : 20 Mai 2025
+Dernière mise à jour: Mai 2025

@@ -27,6 +27,8 @@ import AdminDropboxManager from './pages/admin/AdminDropboxManager';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
+import UserTutorial from './pages/UserTutorial';
+import Help from './pages/Help';
 import ResetPassword from './pages/ResetPassword';
 
 // Pages légales
@@ -81,6 +83,16 @@ function App() {
                 <Route path="/profile" element={
                   <ProtectedRoute>
                     <UserProfile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/tutorial" element={
+                  <ProtectedRoute>
+                    <UserTutorial />
+                  </ProtectedRoute>
+                } />
+                <Route path="/help" element={
+                  <ProtectedRoute>
+                    <Help />
                   </ProtectedRoute>
                 } />
                 

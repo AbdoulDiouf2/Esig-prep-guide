@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, BookOpen, HelpCircle } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { currentUser, logout, isAdmin } = useAuth();
@@ -75,6 +75,19 @@ const Header: React.FC = () => {
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   FAQ
+                </Link>
+                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  Tutoriel
+                </Link>
+                <Link to="/help" className={`transition-colors duration-300 hover:text-blue-400 ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <span className="flex items-center">
+                    <HelpCircle className="w-4 h-4 mr-1" />
+                    Aide
+                  </span>
                 </Link>
                 {isAdmin() && (
                   <Link to="/admin" className={`transition-colors duration-300 hover:text-blue-400 ${
@@ -207,6 +220,20 @@ const Header: React.FC = () => {
                     className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
                     FAQ
+                  </Link>
+                  <Link 
+                    to="/tutorial" 
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Tutoriel
+                  </Link>
+                  <Link 
+                    to="/help" 
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Aide
                   </Link>
                   {isAdmin() && (
                     <Link 

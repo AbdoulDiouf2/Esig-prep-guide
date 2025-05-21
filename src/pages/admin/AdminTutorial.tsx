@@ -183,33 +183,24 @@ const AdminTutorial: React.FC = () => {
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
             <p className="text-gray-700 mb-4">
-              La gestion des FAQ vous permet de répondre aux questions fréquemment posées par les utilisateurs. Les questions peuvent être soumises par les utilisateurs ou créées directement par les administrateurs.
+              La section FAQ est essentielle pour aider les utilisateurs à trouver rapidement des réponses à leurs questions.
+              En tant qu'administrateur, vous pouvez gérer les questions existantes, ajouter de nouvelles questions et réponses,
+              et approuver les questions soumises par les utilisateurs.
             </p>
-            
-            <h4 className="font-semibold text-blue-700 mb-2">Fonctionnalités principales:</h4>
-            <ul className="list-disc list-inside mb-4 text-gray-700">
-              <li>Création et édition de questions/réponses</li>
-              <li>Approbation des questions soumises par les utilisateurs</li>
-              <li>Catégorisation des questions par thème</li>
-              <li>Organisation des FAQ par phase du processus d'immigration</li>
-            </ul>
-            
-            <h4 className="font-semibold text-blue-700 mb-2">Traitement des questions utilisateurs:</h4>
-            <ol className="list-decimal list-inside mb-4 text-gray-700">
-              <li>Les questions soumises apparaissent dans la liste avec un statut "En attente de réponse"</li>
-              <li>Pour répondre, sélectionnez la question dans la liste</li>
-              <li>Rédigez votre réponse dans le champ prévu</li>
-              <li>Assignez une catégorie appropriée</li>
-              <li>Cochez "Approuvé" si la question doit être visible publiquement</li>
-              <li>Cliquez sur "Enregistrer" pour publier votre réponse</li>
+
+            <h4 className="font-semibold text-blue-700 mb-2">Processus de gestion des FAQ:</h4>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700 mb-4">
+              <li>Consultation des questions en attente (non répondues)</li>
+              <li>Rédaction de réponses précises et informatives</li>
+              <li>Approbation des questions pour publication</li>
+              <li>Catégorisation par phase et par thématique</li>
+              <li>Mise à jour des réponses existantes si nécessaire</li>
             </ol>
-            
-            <h4 className="font-semibold text-blue-700 mb-2">Création manuelle de FAQ:</h4>
+
             <p className="text-gray-700 mb-4">
-              Vous pouvez également créer des questions manuellement en cliquant sur "Ajouter une FAQ" et en remplissant tous les champs du formulaire.
-              Cela est utile pour anticiper les questions courantes que les utilisateurs pourraient avoir.
+              <strong>Important:</strong> Lorsqu'un utilisateur soumet une question, le système enregistre automatiquement son identifiant (uid) et son email. 
+              Ces informations vous permettent d'identifier la source de la question et de contacter l'utilisateur si nécessaire pour des précisions.            
             </p>
-            
             <div className="bg-gray-100 p-4 rounded-md mb-4">
               <p className="text-gray-800 italic text-sm">
                 <strong>Astuce:</strong> Répondez aux questions des utilisateurs dans un délai raisonnable pour maintenir leur engagement. Les questions sans réponse peuvent décourager la participation.
@@ -240,7 +231,35 @@ const AdminTutorial: React.FC = () => {
             <p className="text-gray-700 mb-4">
               La section Gestion des ressources vous permet d'ajouter, de modifier et de supprimer des ressources utiles pour les utilisateurs. 
               Ces ressources peuvent être des documents PDF, des liens vers des sites externes, ou d'autres types de supports informatifs.
+              Une organisation efficace par phase est essentielle pour l'expérience utilisateur.
             </p>
+            
+            <h4 className="font-semibold text-blue-700 mb-2">Organisation par phase:</h4>
+            <div className="space-y-3 mb-4">
+              <div className="bg-blue-50 p-3 rounded-md">
+                <h5 className="font-medium text-blue-700 mb-1">Phase Post-CPS</h5>
+                <p className="text-gray-700 text-sm">
+                  Ressources concernant les étapes à suivre après avoir reçu une réponse positive du CPS (Concours Passerelle Spécial).
+                  Exemples: procédures d'inscription, documents à fournir, préparation académique.
+                </p>
+              </div>
+              
+              <div className="bg-indigo-50 p-3 rounded-md">
+                <h5 className="font-medium text-indigo-700 mb-1">Phase During-Process</h5>
+                <p className="text-gray-700 text-sm">
+                  Ressources liées aux démarches administratives en cours (visa, logement, assurances).
+                  Exemples: guides pour les démarches consulaires, check-lists pour les documents de visa, options de logement.
+                </p>
+              </div>
+              
+              <div className="bg-purple-50 p-3 rounded-md">
+                <h5 className="font-medium text-purple-700 mb-1">Phase Pre-Arrival</h5>
+                <p className="text-gray-700 text-sm">
+                  Ressources pour préparer l'arrivée en France et à l'ESIG.
+                  Exemples: guides d'orientation du campus, informations sur les transports locaux, conseils pour l'installation.
+                </p>
+              </div>
+            </div>
             
             <h4 className="font-semibold text-blue-700 mb-2">Fonctionnalités principales:</h4>
             <ul className="list-disc list-inside mb-4 text-gray-700">
@@ -252,15 +271,30 @@ const AdminTutorial: React.FC = () => {
               <li>Explorer et sélectionner des fichiers Dropbox pour vos ressources</li>
             </ul>
             
+            <h4 className="font-semibold text-blue-700 mb-2">Structure des données de ressources:</h4>
+            <div className="bg-gray-50 p-3 rounded-md mb-4">
+              <p className="text-gray-700 text-sm font-mono">
+                id: string<br />
+                title: string<br />
+                description: string<br />
+                phase: GuidePhase ('post-cps' | 'during-process' | 'pre-arrival')<br />
+                category: string<br />
+                fileUrl: string<br />
+                fileType: 'pdf' | 'doc' | ... | 'link'<br />
+                uploadDate: string<br />
+                updatedDate: string
+              </p>
+            </div>
+            
             <h4 className="font-semibold text-blue-700 mb-2">Bonnes pratiques:</h4>
             <ul className="list-disc list-inside mb-4 text-gray-700">
               <li>Utilisez des noms de fichiers clairs et descriptifs</li>
               <li>Ajoutez toujours une description concise mais informative</li>
               <li>Vérifiez que les liens externes fonctionnent correctement</li>
-              <li>Organisez les ressources par catégories logiques</li>
+              <li>Organisez les ressources par catégories logiques et cohérentes</li>
               <li>Mettez régulièrement à jour les ressources pour garantir leur pertinence</li>
-              <li>Mettez à jour ou supprimez les ressources obsolètes</li>
-              <li>Utilisez des catégories cohérentes pour faciliter la navigation</li>
+              <li>Supprimez les ressources obsolètes pour éviter la confusion</li>
+              <li>Liez les ressources aux sections de guide appropriées</li>
             </ul>
           </div>
         </div>
@@ -278,17 +312,41 @@ const AdminTutorial: React.FC = () => {
               tester la connectivité, créer des liens de partage et uploader de nouveaux documents.
               Cette fonctionnalité facilite l'intégration de ressources stockées sur Dropbox dans votre guide.
             </p>
+
+            <h4 className="font-semibold text-blue-700 mb-2">Procédure de configuration:</h4>
+            <ol className="list-decimal list-inside space-y-1 mb-4 text-gray-700">
+              <li>Accédez à la page Gestionnaire Dropbox dans le panneau d'administration</li>
+              <li>Connectez votre compte Dropbox en utilisant le bouton "Connecter à Dropbox"</li>
+              <li>Autorisez l'application à accéder à votre Dropbox lorsque demandé</li>
+              <li>Une fois connecté, l'interface affichera vos fichiers et dossiers</li>
+              <li>Le système conserve votre jeton d'accès de manière sécurisée pour les futures connexions</li>
+            </ol>
             
             <h4 className="font-semibold text-blue-700 mb-2">Fonctionnalités principales:</h4>
             <ul className="list-disc list-inside mb-4 text-gray-700">
               <li>Tester la connectivité avec votre compte Dropbox</li>
               <li>Lister tous les fichiers présents dans votre compte Dropbox</li>
-              <li>Rechercher des fichiers spécifiques dans votre bibliothèque</li>
+              <li>Naviguer dans la structure de dossiers</li>
+              <li>Rechercher des fichiers spécifiques par nom ou type</li>
               <li>Uploader de nouveaux fichiers directement depuis l'interface</li>
-              <li>Générer des liens de partage pour vos fichiers</li>
+              <li>Générer des liens de partage publics pour vos fichiers</li>
+              <li>Copier les liens facilement pour les intégrer dans les ressources</li>
               <li>Supprimer des fichiers inutilisés depuis l'interface</li>
-              <li>Voir les métadonnées des fichiers (taille, date de modification)</li>
+              <li>Voir les métadonnées des fichiers (taille, date de modification, etc.)</li>
             </ul>
+            
+            <div className="bg-blue-50 p-4 rounded-md mb-4">
+              <h4 className="font-semibold text-blue-700 mb-2">Utilisation avec le gestionnaire de ressources:</h4>
+              <p className="text-gray-700 mb-3">
+                Le Gestionnaire Dropbox est particulièrement utile pour créer et gérer les ressources du guide:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                <li>Uploader un fichier dans Dropbox via l'interface</li>
+                <li>Générer un lien de partage pour ce fichier</li>
+                <li>Copier ce lien lors de la création d'une nouvelle ressource dans le gestionnaire de ressources</li>
+                <li>Associer la ressource à la phase appropriée et aux sections du guide</li>
+              </ol>
+            </div>
             
             <h4 className="font-semibold text-blue-700 mb-2">Étapes pour utiliser le Gestionnaire Dropbox:</h4>
             <ol className="list-decimal list-inside mb-4 text-gray-700">
