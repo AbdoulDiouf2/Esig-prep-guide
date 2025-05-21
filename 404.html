@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ESIG Prep Guide - Redirection</title>
+    <script>
+      // Basé sur l'URL de votre homepage dans package.json
+      var segmentCount = 1;
+      var baseUrl = '/Esig-prep-guide/';
+      
+      // Redirection vers la page d'accueil avec préservation de l'historique
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        baseUrl + 
+        l.pathname.split('/').slice(segmentCount).join('/') + 
+        (l.search ? l.search : '')
+      );
+    </script>
+  </head>
+  <body>
+    <h1>Redirection vers la page d'accueil...</h1>
+    <p>Si la redirection ne fonctionne pas, <a href="https://abouldiouf2.github.io/Esig-prep-guide/">cliquez ici</a>.</p>
+  </body>
+</html>
