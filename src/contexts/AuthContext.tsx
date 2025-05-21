@@ -20,6 +20,7 @@ export type AppUser = {
   displayName: string;
   emailVerified: boolean;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
   createdAt?: Date;
   photoURL?: string;
 };
@@ -33,6 +34,7 @@ type AuthContextType = {
   loginWithGithub: () => Promise<AppUser | null>;
   logout: () => Promise<void>;
   isAdmin: () => boolean;
+  isSuperAdmin: () => Promise<boolean>;
   sendVerificationEmail: () => Promise<void>;
 };
 
@@ -60,6 +62,7 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     displayName: firebaseUser.displayName || userData?.displayName || firebaseUser.email?.split('@')[0] || 'Utilisateur',
     emailVerified: firebaseUser.emailVerified,
     isAdmin: userData?.isAdmin || false,
+    isSuperAdmin: userData?.isSuperAdmin || false,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
     createdAt: userData?.createdAt?.toDate()
   };
@@ -193,6 +196,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return currentUser?.isAdmin || false;
   };
 
+  // Vérifier si l'utilisateur est superadmin
+  const isSuperAdmin = async () => {
+    if (!currentUser) return false;
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      if (userSnapshot.exists()) {
+        return userSnapshot.data().isSuperAdmin || false;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erreur lors de la vérification du statut superadmin:', error);
+      return false;
+    }
+  };
+
   // Connexion avec Google
   const loginWithGoogle = async (): Promise<AppUser | null> => {
     const provider = new GoogleAuthProvider();
@@ -294,6 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginWithGithub,
     logout,
     isAdmin,
+    isSuperAdmin,
     sendVerificationEmail,
   };
 

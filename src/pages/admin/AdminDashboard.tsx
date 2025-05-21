@@ -24,7 +24,8 @@ import {
   ClipboardList,
   HelpCircle,
   Plus,
-  Cloud
+  Cloud,
+  Star
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 
@@ -88,13 +89,22 @@ const AdminDashboard: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold">Tableau de bord administrateur</h1>
-            <Link 
-              to="/admin/tutorial" 
-              className="flex items-center px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-sm rounded transition-colors"
-              title="Consulter le guide d'administration"
-            >
-              <HelpCircle className="h-4 w-4 mr-1" /> Tutoriel
-            </Link>
+            <div className="flex space-x-2">
+              <Link 
+                to="/admin/future-features" 
+                className="flex items-center px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm rounded transition-colors"
+                title="Voir les fonctionnalités futures"
+              >
+                <Star className="h-4 w-4 mr-1" /> Fonctionnalités futures
+              </Link>
+              <Link 
+                to="/admin/tutorial" 
+                className="flex items-center px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-sm rounded transition-colors"
+                title="Consulter le guide d'administration"
+              >
+                <HelpCircle className="h-4 w-4 mr-1" /> Tutoriel
+              </Link>
+            </div>
           </div>
           <p className="text-blue-100">
             Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} ! </strong> Gérez le contenu et les ressources de la plateforme.

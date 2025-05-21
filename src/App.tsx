@@ -5,6 +5,7 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import SuperAdminRoute from './components/routes/SuperAdminRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -24,11 +25,13 @@ import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
 import AdminTutorial from './pages/admin/AdminTutorial';
 import AdminProgressionOverview from './pages/admin/AdminProgressionOverview';
 import AdminDropboxManager from './pages/admin/AdminDropboxManager';
+import FutureFeatures from './pages/admin/FutureFeatures';
 import TestFirebase from './pages/TestFirebase';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
 import UserTutorial from './pages/UserTutorial';
 import Help from './pages/Help';
+import ChatAI from './pages/ChatAI';
 import ResetPassword from './pages/ResetPassword';
 
 // Pages légales
@@ -95,6 +98,11 @@ function App() {
                     <Help />
                   </ProtectedRoute>
                 } />
+                <Route path="/chat-ai" element={
+                  <SuperAdminRoute>
+                    <ChatAI />
+                  </SuperAdminRoute>
+                } />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={
@@ -140,6 +148,11 @@ function App() {
                 <Route path="/admin/dropbox" element={
                   <AdminRoute>
                     <AdminDropboxManager />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/future-features" element={
+                  <AdminRoute>
+                    <FutureFeatures />
                   </AdminRoute>
                 } />
                 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, BookOpen, HelpCircle } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield } from 'lucide-react';
+import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
   const { currentUser, logout, isAdmin } = useAuth();
@@ -58,42 +59,55 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-10">
+          <nav className="hidden md:flex items-center md:space-x-4 lg:space-x-8">
             {currentUser && (
               <>
-                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 whitespace-nowrap ${
+                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  Tableau de bord
+                  <Home className="w-4 h-4 mr-1" />
+                  <span className="md:hidden lg:inline">Tableau de bord</span>
+                  <span className="md:inline lg:hidden">Accueil</span>
                 </Link>
-                <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  Ressources
+                  <FileText className="w-4 h-4 mr-1" />
+                  <span>Ressources</span>
                 </Link>
-                <Link to="/faq" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <Link to="/faq" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  FAQ
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  <span>FAQ</span>
                 </Link>
-                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  Tutoriel
+                  <Book className="w-4 h-4 mr-1" />
+                  <span>Tutoriel</span>
                 </Link>
-                <Link to="/help" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <Link to="/help" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  <span className="flex items-center">
-                    <HelpCircle className="w-4 h-4 mr-1" />
-                    Aide
-                  </span>
+                  <HelpCircle className="w-4 h-4 mr-1" />
+                  <span>Aide</span>
                 </Link>
-                {isAdmin() && (
-                  <Link to="/admin" className={`transition-colors duration-300 hover:text-blue-400 ${
+                <SuperAdminCheck>
+                  <Link to="/chat-ai" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}>
-                    Admin
+                    <Bot className="w-4 h-4 mr-1" />
+                    <span className="md:hidden lg:inline">Assistant IA</span>
+                    <span className="md:inline lg:hidden">IA</span>
+                  </Link>
+                </SuperAdminCheck>
+                {isAdmin() && (
+                  <Link to="/admin" className={`flex items-center px-2 md:px-2 lg:px-3 py-1 md:py-1 lg:py-1.5 rounded-full bg-blue-700 hover:bg-blue-600 text-white transition-colors text-sm lg:text-base ${
+                    isScrolled ? 'shadow-md' : ''
+                  }`}>
+                    <Shield className="w-4 h-4 mr-1" />
+                    <span>Admin</span>
                   </Link>
                 )}
               </>
@@ -187,60 +201,73 @@ const Header: React.FC = () => {
               {currentUser ? (
                 <>
                   <div className="flex items-center mb-2">
-  <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
-    <span className="text-white font-medium text-sm">
-      {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
-    </span>
-  </div>
-  <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
-    {currentUser.displayName || currentUser.email || 'Utilisateur'}
-  </span>
-</div>
-<Link
-  to="/profile"
-  className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
->
-  <User className="w-4 h-4 mr-2" />
-  Profil
-</Link>
+                    <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
+                      <span className="text-white font-medium text-sm">
+                        {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
+                      </span>
+                    </div>
+                    <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
+                      {currentUser.displayName || currentUser.email || 'Utilisateur'}
+                    </span>
+                  </div>
+                  <Link
+                    to="/profile"
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Profil
+                  </Link>
                   <Link 
                     to="/dashboard" 
-                    className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
-                    Tableau de bord
+                    <Home className="w-4 h-4 mr-2" />
+                    <span>Tableau de bord</span>
                   </Link>
                   <Link 
                     to="/resources" 
-                    className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
-                    Ressources
+                    <FileText className="w-4 h-4 mr-2" />
+                    <span>Ressources</span>
                   </Link>
                   <Link 
                     to="/faq" 
-                    className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
-                    FAQ
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    <span>FAQ</span>
                   </Link>
                   <Link 
                     to="/tutorial" 
                     className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Tutoriel
+                    <Book className="w-4 h-4 mr-2" />
+                    <span>Tutoriel</span>
                   </Link>
                   <Link 
                     to="/help" 
                     className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
-                    Aide
+                    <span>Aide</span>
                   </Link>
+                  <SuperAdminCheck>
+                    <Link 
+                      to="/chat-ai" 
+                      className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    >
+                      <Bot className="w-4 h-4 mr-2" />
+                      <span>Assistant IA</span>
+                    </Link>
+                  </SuperAdminCheck>
                   {isAdmin() && (
                     <Link 
                       to="/admin" 
-                      className={`py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                      className="flex items-center px-3 py-1.5 my-2 rounded-full bg-blue-700 hover:bg-blue-600 text-white transition-colors shadow-md"
                     >
-                      Administration
+                      <Shield className="w-4 h-4 mr-1.5" />
+                      <span>Administration</span>
                     </Link>
                   )}
                   <button 
