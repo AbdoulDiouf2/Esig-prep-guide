@@ -6,17 +6,23 @@ interface DropboxError {
   status: number;
   error?: {
     shared_link_already_exists?: boolean;
-    [key: string]: unknown; // Utiliser unknown au lieu de any pour plus de sécurité de typage
+    [key: string]: unknown;
   };
 }
 
-// Récupère les identifiants Dropbox depuis les variables d'environnement
-const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
-const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
-const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
-
-if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
-  console.warn('VITE_DBX_REFRESH_TOKEN, VITE_DBX_APP_KEY ou VITE_DBX_CLIENT_SECRET ne sont pas définis. La connexion à Dropbox ne fonctionnera pas.');
+// Fonction pour récupérer un access token via l'endpoint Netlify
+async function getDropboxAccessToken(): Promise<string> {
+  try {
+    const response = await fetch('/.netlify/functions/dropbox-token');
+    if (!response.ok) {
+      throw new Error(`Erreur: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du token Dropbox:", error);
+    throw error;
+  }
 }
 
 // Types pour les props
@@ -70,25 +76,29 @@ export default function DropboxFileBrowser({ onSelect, showTitle = true }: Dropb
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Initialisation du SDK Dropbox avec l'access token récupéré via l'endpoint
+  const createDropboxClient = async (): Promise<Dropbox | null> => {
+    try {
+      const accessToken = await getDropboxAccessToken();
+      return new Dropbox({ accessToken });
+    } catch (err) {
+      console.error("Échec de la création du client Dropbox:", err);
+      setError("Impossible de se connecter à Dropbox. Vérifiez votre connexion et les permissions.");
+      return null;
+    }
+  };
+
   // Charge les fichiers depuis Dropbox
   const loadFiles = useCallback(async (path: string = "") => {
     setLoading(true);
     setError(null);
     
-    if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
-      setError("Identifiants Dropbox non configurés. Veuillez vérifier vos variables d'environnement.");
-      setLoading(false);
-      return;
-    }
-    
     try {
-      // Initialisation avec le mode de compatibilité pour éviter certaines erreurs d'API
-      const dbx = new Dropbox({
-        refreshToken: DROPBOX_REFRESH_TOKEN,
-        clientId: DROPBOX_CLIENT_ID,
-        clientSecret: DROPBOX_CLIENT_SECRET,
-        fetch: fetch
-      });
+      const dbx = await createDropboxClient();
+      if (!dbx) {
+        setLoading(false);
+        return;
+      }
       
       // Récupère les fichiers et dossiers
       const response = await dbx.filesListFolder({
@@ -138,18 +148,9 @@ export default function DropboxFileBrowser({ onSelect, showTitle = true }: Dropb
   const getSharedLink = async (file: DropboxFile) => {
     if (file.url) return file.url; // URL déjà obtenue
     
-    if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
-      setError("Identifiants Dropbox non configurés. Veuillez vérifier vos variables d'environnement.");
-      return null;
-    }
-    
     try {
-      const dbx = new Dropbox({
-        refreshToken: DROPBOX_REFRESH_TOKEN,
-        clientId: DROPBOX_CLIENT_ID,
-        clientSecret: DROPBOX_CLIENT_SECRET,
-        fetch: fetch
-      });
+      const dbx = await createDropboxClient();
+      if (!dbx) return null;
       
       let linkRes;
       try {

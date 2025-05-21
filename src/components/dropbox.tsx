@@ -2,9 +2,20 @@ import React, { useState } from "react";
 import { Dropbox } from "dropbox";
 import { CheckCircle, X, AlertTriangle, FileText, Upload, XCircle } from "lucide-react";
 
-const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
-const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
-const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
+// Fonction pour récupérer un access token via l'endpoint Netlify
+async function getDropboxAccessToken(): Promise<string> {
+  try {
+    const response = await fetch('/.netlify/functions/dropbox-token');
+    if (!response.ok) {
+      throw new Error(`Erreur: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du token Dropbox:", error);
+    throw error;
+  }
+}
 
 // Types pour les props
 interface DropboxUploaderProps {
@@ -47,10 +58,8 @@ export default function DropboxUploader({ onSuccess, buttonText = "Uploader sur 
     if (!file) return;
     setUploading(true);
     const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+      accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+    });
     let uploadSuccess = false;
     let uploadPath = "";
     

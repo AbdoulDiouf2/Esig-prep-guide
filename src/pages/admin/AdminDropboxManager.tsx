@@ -1,18 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Dropbox } from 'dropbox';
+import DropboxUploader from '../../components/dropbox';
 import { 
   AlertTriangle, ArrowLeft, CheckCircle, Download, ExternalLink, 
   FileText, RefreshCw, Search, Trash2, Upload, X 
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
-const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
-const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
-
-// Composant pour uploader des fichiers 
-import DropboxUploader from '../../components/dropbox';
+// Fonction pour récupérer un access token via l'endpoint Netlify
+async function getDropboxAccessToken(): Promise<string> {
+  try {
+    const response = await fetch('/.netlify/functions/dropbox-token');
+    if (!response.ok) {
+      throw new Error(`Erreur: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du token Dropbox:", error);
+    throw error;
+  }
+}
 
 // Interface pour les fichiers Dropbox
 interface DropboxFile {
@@ -39,7 +48,7 @@ interface DropboxError {
 
 const AdminDropboxManager: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser  } = useAuth();
 
   // États pour la gestion des fichiers Dropbox
   const [dropboxStatus, setDropboxStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -57,29 +66,20 @@ const AdminDropboxManager: React.FC = () => {
 
   // Protection de la route admin
   useEffect(() => {
-    if (!currentUser?.uid) {
+    if (!currentUser ?.uid) {
       navigate('/login');
     }
-  }, [currentUser, navigate]);
+  }, [currentUser , navigate]);
 
   // Tester la connexion à Dropbox avec useCallback pour éviter les recréations
   const testDropboxConnection = useCallback(async () => {
     setDropboxStatus('loading');
     setDropboxError('');
     
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setDropboxStatus('error');
-      setDropboxError("Erreur : Token Dropbox non trouvé dans les variables d'environnement");
-      return;
-    }
-    
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       const response = await dbx.usersGetCurrentAccount();
       
       if (response && response.status === 200) {
@@ -103,21 +103,13 @@ const AdminDropboxManager: React.FC = () => {
   
   // Liste les fichiers disponibles dans Dropbox
   const listDropboxFiles = useCallback(async () => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setDropboxError("Erreur : Token Dropbox non trouvé dans les variables d'environnement");
-      return;
-    }
-    
     setLoadingFiles(true);
     setDropboxError('');
     
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       
       // Lister le contenu du dossier racine
       const response = await dbx.filesListFolder({
@@ -151,19 +143,14 @@ const AdminDropboxManager: React.FC = () => {
     } finally {
       setLoadingFiles(false);
     }
-  }, [setDropboxFiles, setDropboxError, setLoadingFiles]);
+  }, []);
   
   // Créer un lien de partage pour un fichier
   const createShareLink = useCallback(async (file: DropboxFile) => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) return;
-    
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       
       let shareUrl = '';
       
@@ -229,18 +216,10 @@ const AdminDropboxManager: React.FC = () => {
   
   // Supprimer un fichier Dropbox
   const deleteDropboxFile = useCallback(async (filePath: string) => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setDropboxError("Erreur : Token Dropbox non trouvé dans les variables d'environnement");
-      return;
-    }
-    
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       
       await dbx.filesDeleteV2({ path: filePath });
       
@@ -304,7 +283,6 @@ const AdminDropboxManager: React.FC = () => {
   
   // Changement de page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-  
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* En-tête */}
@@ -587,6 +565,7 @@ const AdminDropboxManager: React.FC = () => {
       </div>
     </div>
   );
+  
 };
 
 export default AdminDropboxManager;

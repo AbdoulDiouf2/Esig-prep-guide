@@ -13,10 +13,21 @@ import DropboxUploader from '../../components/dropbox';
 import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { Dropbox } from 'dropbox';
-const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
-const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
-const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
 
+// Fonction pour récupérer un access token via l'endpoint Netlify
+async function getDropboxAccessToken(): Promise<string> {
+  try {
+    const response = await fetch('/.netlify/functions/dropbox-token');
+    if (!response.ok) {
+      throw new Error(`Erreur: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du token Dropbox:", error);
+    throw error;
+  }
+}
 
 // Types de fichiers supportés
 type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
@@ -47,7 +58,7 @@ interface DropboxError {
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser  } = useAuth();
   const { 
     resources, 
     addResource, 
@@ -107,21 +118,13 @@ const AdminResourceManager: React.FC = () => {
   
   // Liste les fichiers disponibles dans Dropbox
   const listDropboxFiles = async () => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setDropboxError("Erreur : Token Dropbox non trouvé dans les variables d'environnement");
-      return;
-    }
-    
     setLoadingFiles(true);
     setDropboxError('');
     
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       
       // Lister le contenu du dossier racine
       const response = await dbx.filesListFolder({
@@ -159,15 +162,10 @@ const AdminResourceManager: React.FC = () => {
   
   // Créer un lien de partage pour un fichier
   const createShareLink = async (file: DropboxFile) => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) return;
-    
     try {
       const dbx = new Dropbox({
-  refreshToken: DROPBOX_REFRESH_TOKEN,
-  clientId: DROPBOX_CLIENT_ID,
-  clientSecret: DROPBOX_CLIENT_SECRET
-});
+        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
+      });
       
       let shareUrl = '';
       
@@ -265,29 +263,6 @@ const AdminResourceManager: React.FC = () => {
     }
   }, [editResourceId, isNewResource, resources]);
   
-  // Initialize form with existing data if editing
-  useEffect(() => {
-    if (editResourceId) {
-      const resource = resources.find(r => r.id === editResourceId);
-      if (resource) {
-        setTitle(resource.title);
-        setDescription(resource.description);
-        setPhase(resource.phase);
-        setCategory(resource.category);
-        setFileUrl(resource.fileUrl);
-        setFileType(resource.fileType);
-      }
-    } else if (isNewResource) {
-      // For a new resource, initialize with default values
-      setTitle('');
-      setDescription('');
-      setPhase('post-cps');
-      setCategory('');
-      setFileUrl('');
-      setFileType('link');
-    }
-  }, [editResourceId, isNewResource, resources]);
-  
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +281,7 @@ const AdminResourceManager: React.FC = () => {
         type: 'Modification',
         target: 'Ressource',
         targetId: editResourceId,
-        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
         details: { title }
       });
     } else {
@@ -324,7 +299,7 @@ const AdminResourceManager: React.FC = () => {
       logAdminActivity({
         type: 'Ajout',
         target: 'Ressource',
-        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
         details: { title }
       });
     }
@@ -346,7 +321,7 @@ const AdminResourceManager: React.FC = () => {
         type: 'Suppression',
         target: 'Ressource',
         targetId: editResourceId,
-        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
         details: { title }
       });
       // Navigate back to admin dashboard
@@ -487,7 +462,7 @@ const AdminResourceManager: React.FC = () => {
                         <option value="txt">Texte (.txt)</option>
                       </optgroup>
                       <optgroup label="Tableurs">
-                        <option value="xls">Excel (.xls)</option>
+                      <option value="xls">Excel (.xls)</option>
                         <option value="xlsx">Excel (.xlsx)</option>
                       </optgroup>
                       <optgroup label="Présentations">
@@ -899,8 +874,7 @@ const AdminResourceManager: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">Sélectionner un fichier Dropbox</h3>
               <button
                 onClick={() => setShowFileBrowserModal(false)}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
-              >
+                className="text-gray-400 hover:text-gray-500 focus:outline-none">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
