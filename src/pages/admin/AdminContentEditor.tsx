@@ -233,7 +233,7 @@ const AdminContentEditor: React.FC = () => {
         });
       }
     }
-    navigate('/admin');
+    // navigate('/admin');
   };
 
   // Demande de confirmation avant suppression
