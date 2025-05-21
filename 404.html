@@ -4,22 +4,31 @@
     <meta charset="utf-8" />
     <title>ESIG Prep Guide - Redirection</title>
     <script>
-      // Basé sur l'URL de votre homepage dans package.json
-      var segmentCount = 1;
-      var baseUrl = '/Esig-prep-guide/';
-      
-      // Redirection vers la page d'accueil avec préservation de l'historique
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        baseUrl + 
-        l.pathname.split('/').slice(segmentCount).join('/') + 
-        (l.search ? l.search : '')
-      );
+      // Script de redirection simplifié pour éviter les boucles
+      (function() {
+        var pathSegmentsToKeep = 1; // Nombre de segments d'URL à conserver après le domaine
+        var redirectUrl = '/Esig-prep-guide/';
+
+        // Empêcher les redirections en boucle
+        var currentPath = location.pathname;
+        if (currentPath.includes('/Esig-prep-guide/Esig-prep-guide/')) {
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
+          return;
+        }
+
+        // Si nous sommes sur la route racine, juste rediriger vers la racine de l'app
+        if (currentPath === '/Esig-prep-guide/404.html') {
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
+          return;
+        }
+
+        // Pour tout autre chemin, rediriger vers la racine de l'app
+        location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/');
+      })();
     </script>
   </head>
   <body>
     <h1>Redirection vers la page d'accueil...</h1>
-    <p>Si la redirection ne fonctionne pas, <a href="https://abouldiouf2.github.io/Esig-prep-guide/">cliquez ici</a>.</p>
+    <p>Si la redirection ne fonctionne pas, <a href="https://abdouldiouf2.github.io/Esig-prep-guide/">cliquez ici</a>.</p>
   </body>
 </html>
