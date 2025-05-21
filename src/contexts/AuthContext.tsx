@@ -9,7 +9,7 @@ import {
   sendEmailVerification
 } from 'firebase/auth';
 import { auth } from '../firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -30,6 +30,7 @@ type AuthContextType = {
   register: (email: string, password: string, name: string) => Promise<FirebaseUser>;
   login: (email: string, password: string) => Promise<AppUser | null>;
   loginWithGoogle: () => Promise<AppUser | null>;
+  loginWithGithub: () => Promise<AppUser | null>;
   logout: () => Promise<void>;
   isAdmin: () => boolean;
   sendVerificationEmail: () => Promise<void>;
@@ -207,12 +208,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Connexion avec GitHub
+  const loginWithGithub = async (): Promise<AppUser | null> => {
+    const provider = new GithubAuthProvider();
+    let user = null;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      user = result.user;
+      console.log('[GitHub] Utilisateur connecté:', user);
+
+      // Vérifier si le document utilisateur existe déjà
+      const userDocRef = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      console.log('[GitHub] Document utilisateur existe:', userSnapshot.exists());
+
+      if (!userSnapshot.exists()) {
+        // Création du document utilisateur avec isAdmin: false par défaut
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          emailVerified: user.emailVerified,
+          isAdmin: false,
+          createdAt: serverTimestamp(),
+          photoURL: user.photoURL ?? undefined,
+        });
+        console.log('[GitHub] Document utilisateur créé dans Firestore');
+      }
+
+      // Retourne l'utilisateur sous forme AppUser
+      const appUser: AppUser = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        emailVerified: user.emailVerified,
+        isAdmin: userSnapshot.exists() ? userSnapshot.data().isAdmin : false,
+        createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+        photoURL: user.photoURL ?? undefined,
+      };
+      console.log('[GitHub] AppUser retourné:', appUser);
+      return appUser;
+    } catch (error) {
+      console.error('[GitHub] Erreur dans loginWithGithub:', error, user);
+      throw error;
+    }
+  };
+
   const value = {
     currentUser,
     loading,
     register,
     login,
     loginWithGoogle,
+    loginWithGithub,
     logout,
     isAdmin,
     sendVerificationEmail,
