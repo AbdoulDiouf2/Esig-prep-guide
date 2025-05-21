@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "homepage": "https://abouldiouf2.github.io/Esig-prep-guide/",
+  "homepage": "https://abdouldiouf2.github.io/Esig-prep-guide/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
