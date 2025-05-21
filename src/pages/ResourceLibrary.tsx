@@ -332,19 +332,34 @@ const ResourceLibrary: React.FC = () => {
 
       {/* Modal de prévisualisation */}
       {showPreview && previewResource && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+          onClick={() => setShowPreview(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] flex flex-col relative" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton fermer (X) dans le coin supérieur droit */}
+            <button
+              onClick={() => setShowPreview(false)}
+              className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{previewResource.title}</h3>
                 <p className="text-sm text-gray-500">{previewResource.category}</p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                 <a 
                   href={previewResource.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center justify-center w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 >
                   <ExternalLink className="w-4 h-4 mr-1" />
                   Ouvrir
@@ -352,18 +367,11 @@ const ResourceLibrary: React.FC = () => {
                 <a 
                   href={previewResource.fileUrl}
                   download
-                  className="flex items-center bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center justify-center w-full sm:w-auto bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Télécharger
                 </a>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Fermer
-                </button>
               </div>
             </div>
             <div className="p-4 flex-grow overflow-hidden">

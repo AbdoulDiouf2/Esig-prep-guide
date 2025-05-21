@@ -274,7 +274,12 @@ const AdminDashboard: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500">{faq.phase === 'post-cps' ? 'Post-CPS' : faq.phase === 'during-process' ? 'Démarches' : 'Pré-arrivée'}</span>
+                        <div className="flex items-center mt-1">
+                          <span className="text-xs text-gray-500">{faq.phase === 'post-cps' ? 'Post-CPS' : faq.phase === 'during-process' ? 'Démarches' : 'Pré-arrivée'}</span>
+                          {faq.userEmail && (
+                            <span className="text-xs text-gray-500 ml-2">· {faq.userEmail}</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2 flex-shrink-0">
                         <Link

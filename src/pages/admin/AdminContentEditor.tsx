@@ -463,29 +463,29 @@ const AdminContentEditor: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex justify-between">
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-4 sm:space-y-0">
                         <div>
                           {editFaqId && (
                             <button
                               type="button"
                               onClick={() => handleDeleteClick('faq')}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                             >
                               <Trash2 className="mr-2 -ml-0.5 h-4 w-4" /> Supprimer
                             </button>
                           )}
                         </div>
-                        <div className="flex space-x-3">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                           <button
                             type="button"
                             onClick={() => navigate('/admin')}
-                            className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
                           >
                             Annuler
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             {isNewFaq ? 'Ajouter' : 'Enregistrer'}
@@ -602,31 +602,31 @@ const AdminContentEditor: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between space-y-4 sm:space-y-0">
                     <div>
                       {editSectionId && (
                         <button
                           type="button"
                           onClick={() => handleDeleteClick('section')}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                         >
                           <Trash2 className="mr-2 -ml-0.5 h-4 w-4" /> Supprimer
                         </button>
                       )}
                     </div>
                     
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                       <button
                         type="button"
                         onClick={() => navigate('/admin')}
-                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
+                        className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 border border-blue-200 transition-all gap-2"
                       >
                         Annuler
                       </button>
                       
                       <button
                         type="submit"
-                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                        className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
                       >
                         <Save className="mr-2 h-4 w-4" />
                         {isNewSection ? 'Ajouter' : 'Enregistrer'}
