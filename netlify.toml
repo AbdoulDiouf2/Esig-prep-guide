@@ -1,5 +1,5 @@
 [build]
   command = "npm run build"
-  publish = "dist"
+  publish = "build"
 
 # Si tu veux ajouter d'autres fonctions, elles seront automatiquement détectées dans /netlify/functions
