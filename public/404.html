@@ -4,62 +4,31 @@
     <meta charset="utf-8" />
     <title>ESIG Prep Guide - Redirection</title>
     <script>
-      // Redirection intelligente pour pages existantes et inexistantes
+      // Script de redirection simplifié pour éviter les boucles
       (function() {
-        // La base de l'application
-        var baseUrl = 'https://abdouldiouf2.github.io/Esig-prep-guide';
+        var pathSegmentsToKeep = 1; // Nombre de segments d'URL à conserver après le domaine
+        var redirectUrl = '/Esig-prep-guide/';
+
+        // Empêcher les redirections en boucle
         var currentPath = location.pathname;
-
-        // Liste des routes valides dans l'application
-        // Ajoutez toutes vos routes valides ici
-        var validRoutes = [
-          '/',
-          '/login',
-          '/register',
-          '/dashboard',
-          '/profile',
-          '/faq',
-          '/reset-password',
-          '/resource-library',
-          '/terms',
-          '/not-found',
-          '/admin/dashboard'
-          // autres routes...
-        ];
-
-        // Nettoyer le chemin pour l'analyse
-        var pathToCheck = currentPath.replace('/Esig-prep-guide', '');
-        if (pathToCheck === '') pathToCheck = '/';
-        
-        // Détecter et corriger les boucles de redirection
-        if (currentPath.match(/\/Esig-prep-guide\/Esig-prep-guide/)) {
-          console.log('Boucle détectée, redirection vers la racine');
-          location.replace(baseUrl);
+        if (currentPath.includes('/Esig-prep-guide/Esig-prep-guide/')) {
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/dashboard');
           return;
         }
 
-        // Vérifier si c'est une route valide
-        var isValidRoute = validRoutes.some(function(route) {
-          return pathToCheck === route || pathToCheck.startsWith(route + '/');
-        });
-
-        if (isValidRoute) {
-          // Si c'est une route valide, préserver la route
-          var cleanPath = currentPath.replace(/\/Esig-prep-guide\/Esig-prep-guide\//g, '/Esig-prep-guide/');
-          console.log('Route valide, préservation: ' + cleanPath);
-          if (cleanPath !== currentPath) {
-            location.replace(baseUrl + pathToCheck);
-          }
-        } else {
-          // Si c'est une route invalide, rediriger vers NotFound
-          console.log('Route invalide, redirection vers NotFound');
-          location.replace(baseUrl + '/not-found');
+        // Si nous sommes sur la route racine, juste rediriger vers la racine de l'app
+        if (currentPath === '/Esig-prep-guide/404.html') {
+          location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/dashboard');
+          return;
         }
+
+        // Pour tout autre chemin, rediriger vers la racine de l'app
+        location.replace('https://abdouldiouf2.github.io/Esig-prep-guide/dashboard');
       })();
     </script>
   </head>
   <body>
-    <h1>Redirection en cours...</h1>
-    <p>Si la redirection ne fonctionne pas, <a href="https://abdouldiouf2.github.io/Esig-prep-guide/">retournez à la page d'accueil</a>.</p>
+    <h1>Redirection vers la page d'accueil...</h1>
+    <p>Si la redirection ne fonctionne pas, <a href="https://abdouldiouf2.github.io/Esig-prep-guide/dashboard">cliquez ici</a>.</p>
   </body>
 </html>
