@@ -13,28 +13,7 @@ import DropboxUploader from '../../components/dropbox';
 import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { Dropbox } from 'dropbox';
-
-// Fonction pour récupérer un access token via l'endpoint Netlify
-async function getDropboxAccessToken(): Promise<string> {
-  try {
-    // Déterminer l'URL correcte selon l'environnement
-    const isNetlify = window.location.hostname.includes('netlify.app');
-    const baseUrl = isNetlify ? '' : '/Esig-prep-guide';
-    const tokenUrl = `${baseUrl}/.netlify/functions/dropbox-token`;
-    
-    console.log(`Calling Dropbox token endpoint: ${tokenUrl}`);
-    const response = await fetch(tokenUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Erreur: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    console.error("Erreur lors de la récupération du token Dropbox:", error);
-    throw error;
-  }
-}
+import { getDropboxAccessToken } from '../../utils/dropboxUtils';
 
 // Types de fichiers supportés
 type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';

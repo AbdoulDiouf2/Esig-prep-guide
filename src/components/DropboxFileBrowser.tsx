@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Dropbox, files } from "dropbox";
+import { getDropboxAccessToken } from '../utils/dropboxUtils';
 
 // Interface pour les erreurs Dropbox
 interface DropboxError {
@@ -8,28 +9,6 @@ interface DropboxError {
     shared_link_already_exists?: boolean;
     [key: string]: unknown;
   };
-}
-
-// Fonction pour récupérer un access token via l'endpoint Netlify
-async function getDropboxAccessToken(): Promise<string> {
-  try {
-    // Déterminer l'URL correcte selon l'environnement
-    const isNetlify = window.location.hostname.includes('netlify.app');
-    const baseUrl = isNetlify ? '' : '/Esig-prep-guide';
-    const tokenUrl = `${baseUrl}/.netlify/functions/dropbox-token`;
-    
-    console.log(`Calling Dropbox token endpoint: ${tokenUrl}`);
-    const response = await fetch(tokenUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Erreur: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    console.error("Erreur lors de la récupération du token Dropbox:", error);
-    throw error;
-  }
 }
 
 // Types pour les props
