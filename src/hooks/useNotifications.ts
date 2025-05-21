@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import NotificationService from '../services/NotificationService';
+import { NotificationService } from '../services/NotificationService';
 
 /**
  * Hook personnalisé pour gérer les notifications utilisateurs

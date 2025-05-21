@@ -27,11 +27,11 @@ export const NotificationService = {
   async sendFaqAnswerNotification(faqId: string, questionText: string, answerText: string): Promise<boolean> {
     try {
       // 1. Récupérer les détails de la question FAQ
-      const faqRef = doc(db, 'faqItems', faqId);
+      const faqRef = doc(db, 'faq', faqId);
       const faqDoc = await getDoc(faqRef);
       
       if (!faqDoc.exists()) {
-        console.error('FAQ item not found:', faqId);
+        console.error(`FAQ item not found (ID: ${faqId}) dans la collection 'faq'. Vérifiez le nom de collection.`);
         return false;
       }
       
@@ -100,20 +100,7 @@ export const EMAILJS_CONFIG = {
  * Fonction qui envoie un email via EmailJS
  */
 const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => {
-  // Afficher les valeurs des variables d'environnement (sans la clé publique complète pour des raisons de sécurité)
-  console.log('Configuration EmailJS utilisée:', {
-    SERVICE_ID: EMAILJS_CONFIG.SERVICE_ID,
-    TEMPLATE_ID: EMAILJS_CONFIG.TEMPLATE_ID,
-    PUBLIC_KEY: EMAILJS_CONFIG.PUBLIC_KEY ? 'Configuré (commence par ' + EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 3) + '...)' : 'Non configuré'
-  });
-  
   console.log('Préparation de l\'envoi d\'email avec les données:', emailData);
-  
-  // Vérifier que toutes les données nécessaires sont présentes
-  if (!emailData.to_email) {
-    console.error('Erreur: email du destinataire manquant');
-    return false;
-  }
   
   try {
     // Mapper les données au format attendu par le template EmailJS
@@ -122,40 +109,11 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
       to_name: emailData.to_name || 'Utilisateur',
       question: emailData.question,
       answer: emailData.answer,
-      app_name: emailData.app_name || 'ESIG-prep-guide',
-      faq_url: emailData.faq_url || window.location.origin + '/Esig-prep-guide/faq'
+      app_name: emailData.app_name,
+      faq_url: emailData.faq_url
     };
     
-    console.log('Paramètres du template:', templateParams);
-    console.log('Tentative d\'envoi d\'email via EmailJS...');
-    
-    // Vérifier qu'on est en environnement de développement
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    // Configurer EmailJS pour utiliser le proxy en développement
-    if (isDevelopment) {
-      // On définit l'URL de base pour les requêtes EmailJS
-      // Ceci permet d'utiliser notre proxy configuré dans vite.config.ts
-      emailjs.init({
-        publicKey: EMAILJS_CONFIG.PUBLIC_KEY,
-        // Utiliser le proxy pour éviter les erreurs CORS en développement
-        blockHeadless: false,
-        limitRate: {
-          // Limiter à 3 emails par seconde
-          id: 'faq_responses',
-          throttle: 3000
-        }
-      });
-    }
-    
     // Envoyer l'email via EmailJS
-    console.log('Envoi via EmailJS avec les paramètres:', {
-      serviceId: EMAILJS_CONFIG.SERVICE_ID,
-      templateId: EMAILJS_CONFIG.TEMPLATE_ID,
-      template_params: templateParams,
-      user_id: EMAILJS_CONFIG.PUBLIC_KEY?.substring(0, 3) + '...' // Pour ne pas afficher la clé complète dans les logs
-    });
-    
     const response = await emailjs.send(
       EMAILJS_CONFIG.SERVICE_ID,
       EMAILJS_CONFIG.TEMPLATE_ID,
@@ -168,15 +126,7 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
     // EmailJS renvoie un status 200 en cas de succès
     return response.status === 200;
   } catch (error) {
-    // Afficher des informations plus détaillées sur l'erreur
-    console.error('Détails de l\'erreur lors de l\'envoi d\'email:');
-    if (error instanceof Error) {
-      console.error('Message d\'erreur:', error.message);
-      console.error('Nom de l\'erreur:', error.name);
-      console.error('Stack trace:', error.stack);
-    } else {
-      console.error('Erreur inconnue:', error);
-    }
+    console.error('Erreur lors de l\'envoi d\'email:', error);
     return false;
   }
 };

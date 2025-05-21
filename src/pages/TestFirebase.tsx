@@ -9,6 +9,8 @@ import {
 } from 'firebase/auth';
 import DropboxUploader from '../components/dropbox';
 import { Dropbox } from 'dropbox';
+import emailjs from '@emailjs/browser';
+import { EMAILJS_CONFIG } from '../services/NotificationService';
 
 // Interface pour les fichiers Dropbox
 interface DropboxFile {
@@ -35,7 +37,13 @@ const TestFirebase: React.FC = () => {
   const [dropboxFiles, setDropboxFiles] = useState<DropboxFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<DropboxFile | null>(null);
-  const [shareUrl, setShareUrl] = useState<string>('');
+  
+  // États pour les tests d'envoi d'email
+  const [emailTestStatus, setEmailTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [emailTestError, setEmailTestError] = useState<string>('');
+  const [testEmail, setTestEmail] = useState<string>('');
+  const [testSubject, setTestSubject] = useState<string>('Test EmailJS depuis ESIG-prep-guide');
+  const [testMessage, setTestMessage] = useState<string>('Ceci est un email de test pour vérifier la configuration d\'EmailJS.');
 
   // Tester la connexion à Firestore
   const testFirestore = async () => {
@@ -160,7 +168,6 @@ const TestFirebase: React.FC = () => {
       });
       
       const rawUrl = response.result.url.replace("?dl=0", "?raw=1");
-      setShareUrl(rawUrl);
       setTestData(prev => prev + `\n\nLien de partage créé avec succès: ${rawUrl}`);
       
       // Mise à jour du fichier sélectionné avec le lien
@@ -185,23 +192,82 @@ const TestFirebase: React.FC = () => {
   // Tester l'authentification
   const testAuth = async () => {
     try {
-      // Créer un utilisateur de test
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      setUser(userCredential.user);
-      
-      // Se connecter avec le même utilisateur
-      await signInWithEmailAndPassword(auth, email, password);
-      setTestData(prev => prev + '\nAuthentification réussie!');
-    } catch (error) {
-      const authError = error as AuthError;
-      if (authError.code === 'auth/email-already-in-use') {
-        // Si l'utilisateur existe déjà, on se connecte simplement
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        setUser(userCredential.user);
-        setTestData(prev => prev + '\nConnexion réussie (utilisateur existant)!');
+      // Création ou connexion d'un utilisateur de test
+      if (email) {
+        // Essayer de créer l'utilisateur d'abord
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          setUser(userCredential.user);
+          setTestData(prev => prev + `\n\nCréation de l'utilisateur réussie! UID: ${userCredential.user.uid}`);
+        } catch (error) {
+          // Si l'utilisateur existe déjà, essayer de se connecter
+          console.log('Erreur lors de la création, tentative de connexion...', error);
+          try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            setUser(userCredential.user);
+            setTestData(prev => prev + `\n\nConnexion réussie! UID: ${userCredential.user.uid}`);
+          } catch (loginError) {
+            const authError = loginError as AuthError;
+            console.error('Erreur d\'authentification:', authError);
+            setTestData(prev => prev + `\n\nErreur d'authentification: ${authError.message}`);
+          }
+        }
       } else {
-        console.error('Erreur d\'authentification:', error);
-setTestData(prev => prev + `\nErreur d'authentification: ${authError.message}`);
+        setTestData(prev => prev + '\n\nErreur: Veuillez entrer une adresse email.');
+      }
+    } catch (error) {
+      console.error('Erreur inattendue:', error);
+      if (error instanceof Error) {
+        setTestData(prev => prev + `\n\nErreur inattendue: ${error.message}`);
+      } else {
+        setTestData(prev => prev + `\n\nErreur inattendue: ${String(error)}`);
+      }
+    }
+  };
+
+  // Tester l'envoi d'email avec EmailJS
+  const testEmailSending = async () => {
+    if (!testEmail) {
+      setEmailTestError('Veuillez entrer une adresse email de destination');
+      return;
+    }
+
+    setEmailTestStatus('loading');
+    setEmailTestError('');
+    setTestData(prev => prev + '\n\nEnvoi d\'email en cours...');
+
+    try {
+      // Préparation des données pour le template
+      const templateParams = {
+        to_email: testEmail,
+        to_name: 'Utilisateur de test',
+        subject: testSubject,
+        message: testMessage,
+        app_name: 'ESIG-prep-guide',
+        faq_url: window.location.origin + '/faq'
+      };
+
+      // Envoi d'email via EmailJS
+      const response = await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      console.log('Email envoyé avec succès!', response);
+      setEmailTestStatus('success');
+      setTestData(prev => prev + `\n\nEmail envoyé avec succès! ID: ${response.status}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi d\'email:', error);
+      setEmailTestStatus('error');
+      
+      if (error instanceof Error) {
+        setEmailTestError(`Erreur lors de l'envoi d'email: ${error.message}`);
+        setTestData(prev => prev + `\n\nErreur lors de l'envoi d'email: ${error.message}`);
+      } else {
+        setEmailTestError(`Erreur lors de l'envoi d'email: ${String(error)}`);
+        setTestData(prev => prev + `\n\nErreur lors de l'envoi d'email: ${String(error)}`);
       }
     }
   };
@@ -313,6 +379,54 @@ setTestData(prev => prev + `\nErreur d'authentification: ${authError.message}`);
         >
           {user ? 'Se connecter' : 'Créer un compte'}
         </button>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Test d'envoi d'email</h2>
+        <div className="mb-4">
+          <label className="block mb-2">Adresse email de destination:</label>
+          <input
+            type="email"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            className="border p-2 w-full max-w-md"
+            placeholder="email@example.com"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2">Sujet:</label>
+          <input
+            type="text"
+            value={testSubject}
+            onChange={(e) => setTestSubject(e.target.value)}
+            className="border p-2 w-full max-w-md"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2">Message:</label>
+          <textarea
+            value={testMessage}
+            onChange={(e) => setTestMessage(e.target.value)}
+            className="border p-2 w-full max-w-md"
+          />
+        </div>
+        <button
+          onClick={testEmailSending}
+          className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
+          disabled={!testEmail}
+        >
+          Envoyer l'email
+        </button>
+        {emailTestStatus === 'error' && (
+          <div className="mt-3 p-3 bg-red-50 text-red-800 rounded-md border border-red-200">
+            ❌ {emailTestError}
+          </div>
+        )}
+        {emailTestStatus === 'success' && (
+          <div className="mt-3 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
+            ✅ Email envoyé avec succès!
+          </div>
+        )}
       </div>
 
       <div className="mt-8 p-4 bg-gray-100 rounded-lg">
