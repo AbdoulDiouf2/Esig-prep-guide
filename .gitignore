@@ -53,3 +53,5 @@ firebase-debug.*.log
 esig-prep-guide-firebase-adminsdk-fbsvc-299d3c9622.json
 build
 .firebase
+# Local Netlify folder
+.netlify

@@ -11,7 +11,14 @@ import { useAuth } from '../../contexts/AuthContext';
 // Fonction pour récupérer un access token via l'endpoint Netlify
 async function getDropboxAccessToken(): Promise<string> {
   try {
-    const response = await fetch('/.netlify/functions/dropbox-token.cjs');
+    // Déterminer l'URL correcte selon l'environnement
+    const isNetlify = window.location.hostname.includes('netlify.app');
+    const baseUrl = isNetlify ? '' : '/Esig-prep-guide';
+    const tokenUrl = `${baseUrl}/.netlify/functions/dropbox-token`;
+    
+    console.log(`Calling Dropbox token endpoint: ${tokenUrl}`);
+    const response = await fetch(tokenUrl);
+    
     if (!response.ok) {
       throw new Error(`Erreur: ${response.status}`);
     }

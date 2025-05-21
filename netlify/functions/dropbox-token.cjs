@@ -28,6 +28,11 @@ exports.handler = async function(event, context) {
     if (!response.ok) {
       return {
         statusCode: response.status,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        },
         body: JSON.stringify({ error: 'Failed to get access token', details: await response.text() })
       };
     }
@@ -35,12 +40,35 @@ exports.handler = async function(event, context) {
     const data = await response.json();
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*', // Autorise toutes les origines
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+      },
       body: JSON.stringify({ access_token: data.access_token })
     };
   } catch (err) {
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+      },
       body: JSON.stringify({ error: err.message })
+    };
+  };
+  
+  // Gérer les requêtes OPTIONS (pré-vol CORS)
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+      },
+      body: ''
     };
   }
 };

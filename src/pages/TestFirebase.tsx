@@ -45,6 +45,107 @@ const TestFirebase: React.FC = () => {
   const [testSubject, setTestSubject] = useState<string>('Test EmailJS depuis ESIG-prep-guide');
   const [testMessage, setTestMessage] = useState<string>('Ceci est un email de test pour vérifier la configuration d\'EmailJS.');
 
+  // États pour les tests Dropbox Token
+  const [dropboxTokenStatus, setDropboxTokenStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [dropboxToken, setDropboxToken] = useState<string>('');
+  const [dropboxTokenError, setDropboxTokenError] = useState<string>('');
+
+  // Tester la récupération de l'access token Dropbox depuis Netlify Function
+  const testDropboxToken = async () => {
+    setDropboxTokenStatus('loading');
+    setDropboxToken('');
+    setDropboxTokenError('');
+    
+    try {
+      // Créer différentes variantes d'URL à tester
+      const urls = [
+        // URL absolue de Netlify (fonctionne quel que soit l'hébergement)
+        'https://esig-prep-guide.netlify.app/.netlify/functions/dropbox-token',
+        
+        // URLs locales avec CORS (pour le dev local)
+        'http://localhost:8888/.netlify/functions/dropbox-token',
+        'http://localhost:8888/.netlify/functions/dropbox-token.cjs',
+        
+        // URLs relatives ajustées selon l'environnement
+        window.location.hostname.includes('netlify.app') 
+          ? '/.netlify/functions/dropbox-token' 
+          : '/Esig-prep-guide/.netlify/functions/dropbox-token',
+          
+        window.location.hostname.includes('netlify.app') 
+          ? '/.netlify/functions/dropbox-token.cjs' 
+          : '/Esig-prep-guide/.netlify/functions/dropbox-token.cjs'
+      ];
+      
+      console.log('Environnement :', {
+        hostname: window.location.hostname,
+        pathname: window.location.pathname,
+        protocol: window.location.protocol,
+        urls: urls
+      });
+      
+      let success = false;
+      let lastError = '';
+      
+      // Essayer les deux URLs
+      for (const url of urls) {
+        try {
+          const response = await fetch(url);
+          console.log(`Test ${url} - Status:`, response.status);
+          
+          if (response.ok) {
+            // Vérifier le Content-Type pour déterminer comment traiter la réponse
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const data = await response.json();
+                console.log(`Test ${url} - Data:`, data);
+                
+                if (data.access_token) {
+                  setDropboxToken(data.access_token);
+                  setDropboxTokenStatus('success');
+                  success = true;
+                  break; // Sortir de la boucle si on a réussi
+                } else {
+                  lastError = `Réponse reçue de ${url} mais pas d'access_token trouvé: ${JSON.stringify(data)}`;
+                }
+              } catch (parseError) {
+                const text = await response.clone().text();
+                const preview = text.substring(0, 100) + '...';
+                lastError = `Erreur de parsing JSON pour ${url}: ${preview}`;
+                console.error('Erreur de parsing JSON:', parseError);
+                console.log('Contenu de la réponse (début):', preview);
+              }
+            } else {
+              // La réponse n'est pas du JSON
+              const text = await response.text();
+              const preview = text.substring(0, 150) + '...';
+              lastError = `Réponse reçue de ${url} mais pas au format JSON (${contentType}): ${preview}`;
+              console.log('Réponse complète:', text);
+            }
+          } else {
+            const text = await response.text();
+            const preview = text.length > 150 ? text.substring(0, 150) + '...' : text;
+            lastError = `Erreur HTTP ${response.status} pour ${url}: ${preview}`;
+          }
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          lastError = `Exception lors de l'appel à ${url}: ${errorMessage}`;
+        }
+      }
+      
+      if (!success) {
+        setDropboxTokenError(lastError);
+        setDropboxTokenStatus('error');
+      }
+    } catch (err: unknown) {
+      console.error('Erreur lors du test de récupération de token:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setDropboxTokenError(`Erreur générale: ${errorMessage}`);
+      setDropboxTokenStatus('error');
+    }
+  };
+  
   // Tester la connexion à Firestore
   const testFirestore = async () => {
     try {
@@ -439,7 +540,32 @@ const TestFirebase: React.FC = () => {
         <h2 className="text-xl font-semibold mb-2">Test Dropbox</h2>
         
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium mb-2">1. Tester la connectivité Dropbox</h3>
+          <h3 className="font-medium mb-2">1. Tester l'endpoint Netlify Function pour Dropbox Token</h3>
+          <button
+            onClick={testDropboxToken}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+            disabled={dropboxTokenStatus === 'loading'}
+          >
+            {dropboxTokenStatus === 'loading' ? 'Chargement...' : 'Tester l\'endpoint Dropbox Token'}
+          </button>
+          
+          {dropboxTokenStatus === 'error' && (
+            <div className="mt-3 p-3 bg-red-50 text-red-800 rounded-md border border-red-200">
+              <h4 className="font-semibold mb-1">❌ Erreur lors de la récupération du token</h4>
+              <p className="text-sm">{dropboxTokenError}</p>
+            </div>
+          )}
+          
+          {dropboxTokenStatus === 'success' && (
+            <div className="mt-3 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
+              <h4 className="font-semibold mb-1">✅ Access token récupéré avec succès !</h4>
+              <p className="text-sm break-all">Token: {dropboxToken.substring(0, 20)}...{dropboxToken.substring(dropboxToken.length - 10)}</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-lg mb-4">
+          <h3 className="font-medium mb-2">2. Tester la connectivité Dropbox</h3>
           <p className="text-sm text-gray-600 mb-2">
             Vérifiez d'abord si vos identifiants Dropbox sont correctement configurés et si la connexion fonctionne.
           </p>
