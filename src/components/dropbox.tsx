@@ -5,7 +5,7 @@ import { CheckCircle, X, AlertTriangle, FileText, Upload, XCircle } from "lucide
 // Fonction pour récupérer un access token via l'endpoint Netlify
 async function getDropboxAccessToken(): Promise<string> {
   try {
-    const response = await fetch('/.netlify/functions/dropbox-token');
+    const response = await fetch('/.netlify/functions/dropbox-token.cjs');
     if (!response.ok) {
       throw new Error(`Erreur: ${response.status}`);
     }
