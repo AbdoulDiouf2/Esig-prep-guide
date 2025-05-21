@@ -1,4 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getAllUserProgressions } from '../../services/adminProgressionService';
+import { db } from '../../firebase';
+import { DocumentData } from 'firebase/firestore';
+
+interface UserDoc {
+  uid: string;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+  isSuperAdmin?: boolean;
+  emailVerified: boolean;
+  photoURL?: string;
+}
+
 import { Link } from 'react-router-dom';
 import { useContent } from '../../contexts/ContentContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,7 +52,36 @@ const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { resources, guideSections, faqItems } = useContent();
   const { recentActivity, loading: loadingActivity } = useRecentAdminActivity();
-  
+
+  // Progression utilisateurs
+  const [userProgressions, setUserProgressions] = useState<{ userId: string, completedSections: string[] }[]>([]);
+  const [users, setUsers] = useState<UserDoc[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(true);
+
+  useEffect(() => {
+    const fetchProgressions = async () => {
+      setLoadingProgress(true);
+      const [progressions, usersSnap] = await Promise.all([
+        getAllUserProgressions(),
+        import('firebase/firestore').then(({ collection, getDocs }) => getDocs(collection(db, 'users')))
+      ]);
+      const usersList: UserDoc[] = [];
+      usersSnap.forEach((docSnap: DocumentData) => {
+        usersList.push({ ...docSnap.data(), uid: docSnap.id } as UserDoc);
+      });
+      setUserProgressions(progressions);
+      setUsers(usersList);
+      setLoadingProgress(false);
+    };
+    fetchProgressions();
+  }, []);
+
+  // Calcul progression globale
+  const getUserGlobalProgress = (completedSections: string[]) => {
+    if (!guideSections || guideSections.length === 0) return 0;
+    return Math.round((completedSections.length / guideSections.length) * 100);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
@@ -62,6 +105,10 @@ const AdminDashboard: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Quick action buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
+          <Link to="/admin/progressions" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <Users className="-ml-1 mr-2 h-5 w-5" />
+            Progression des utilisateurs
+          </Link>
           <Link to="/admin/content" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <Edit className="-ml-1 mr-2 h-5 w-5" />
             Éditer le contenu
@@ -84,6 +131,76 @@ const AdminDashboard: React.FC = () => {
           </Link>
         </div>
         
+        {/* KPI Progression */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <Users className="w-5 h-5 mr-2 text-blue-700" /> Statistiques de progression des utilisateurs
+          </h2>
+          {loadingProgress ? (
+            <div className="text-center text-gray-500">Chargement des statistiques...</div>
+          ) : (
+            <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="text-3xl font-bold text-blue-800 mb-1">{users.length}</div>
+                <div className="text-sm text-gray-600">Utilisateurs inscrits</div>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <div className="text-3xl font-bold text-green-800 mb-1">
+                  {(() => {
+                    const total = users.length;
+                    const full = userProgressions.filter(p => getUserGlobalProgress(p.completedSections) === 100).length;
+                    return total === 0 ? 0 : Math.round((full / total) * 100);
+                  })()}%
+                </div>
+                <div className="text-sm text-gray-600">ont terminé toutes les sections</div>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <div className="text-3xl font-bold text-yellow-800 mb-1">
+                  {(() => {
+                    if (userProgressions.length === 0) return 0;
+                    const sum = userProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
+                    return Math.round(sum / userProgressions.length);
+                  })()}%
+                </div>
+                <div className="text-sm text-gray-600">Progression moyenne</div>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <div className="text-3xl font-bold text-purple-800 mb-1">
+                  {userProgressions.filter(p => getUserGlobalProgress(p.completedSections) >= 50).length}
+                </div>
+                <div className="text-sm text-gray-600">utilisateurs à plus de 50%</div>
+              </div>
+            </div>
+            {/* KPI par phase */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {['pre-arrival', 'during-process', 'post-cps'].map((phase) => {
+                const phaseSections = guideSections.filter(s => s.phase === phase);
+                const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
+                const color = phase === 'pre-arrival' ? 'blue' : phase === 'during-process' ? 'green' : 'purple';
+                // Moyenne progression phase
+                const avg = userProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
+                  userProgressions.reduce((acc, p) => acc + Math.round((p.completedSections.filter(id => phaseSections.some(s => s.id === id)).length / phaseSections.length) * 100), 0) / userProgressions.length
+                );
+                // % users ayant validé toute la phase
+                const full = userProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
+                  userProgressions.filter(p => phaseSections.every(s => p.completedSections.includes(s.id))).length / userProgressions.length * 100
+                );
+                return (
+                  <div className={`p-4 bg-${color}-50 rounded-lg`} key={phase}>
+                    <div className={`text-3xl font-bold text-${color}-800 mb-1`}>{avg}%</div>
+                    <div className="text-sm text-gray-600 mb-1">Progression moyenne {phaseLabel}</div>
+                    <div className={`text-lg font-bold text-${color}-800 mb-1`}>{full}%</div>
+                    <div className="text-sm text-gray-600">ont terminé {phaseLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+            </>
+          )}
+          {/* Prévoir un graphique ici plus tard */}
+        </div>
+
         {/* Stats overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
@@ -17,12 +18,27 @@ const Dashboard: React.FC = () => {
   
   // Progress tracking (would be stored in user profile in a real app)
   const [completedSections, setCompletedSections] = useState<string[]>([]);
-  
-  const toggleSectionCompletion = (sectionId: string) => {
+  const [progressLoading, setProgressLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      setProgressLoading(true);
+      getUserProgression(currentUser.uid)
+        .then((sections) => setCompletedSections(sections))
+        .finally(() => setProgressLoading(false));
+    }
+  }, [currentUser?.uid]);
+
+  const toggleSectionCompletion = async (sectionId: string) => {
+    let updatedSections;
     if (completedSections.includes(sectionId)) {
-      setCompletedSections(completedSections.filter(id => id !== sectionId));
+      updatedSections = completedSections.filter(id => id !== sectionId);
     } else {
-      setCompletedSections([...completedSections, sectionId]);
+      updatedSections = [...completedSections, sectionId];
+    }
+    setCompletedSections(updatedSections);
+    if (currentUser?.uid) {
+      await setUserProgression(currentUser.uid, updatedSections);
     }
   };
 
@@ -39,9 +55,17 @@ const Dashboard: React.FC = () => {
     return Math.round((completedPhaseSections.length / phaseSectionsSafe.length) * 100);
   };
 
+  // Calcul de la progression globale (toutes phases confondues)
+  const calculateGlobalProgress = () => {
+    if (!guideSections || guideSections.length === 0) return 0;
+    const completed = guideSections.filter(section => completedSections.includes(section.id));
+    return Math.round((completed.length / guideSections.length) * 100);
+  };
+
+
 
   // Affichage de chargement si les données ne sont pas encore chargées
-  if (!resources || !faqItems || !guideSections) {
+  if (!resources || !faqItems || !guideSections || progressLoading) {
     return <div className="p-8 text-center">Chargement du tableau de bord...</div>;
   }
 
@@ -177,7 +201,20 @@ const Dashboard: React.FC = () => {
             {/* Progress tracking */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Votre progression</h2>
-              
+
+              {/* Progression globale */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-bold text-gray-700">Progression globale</span>
+                  <span className="text-sm font-bold text-blue-700">{calculateGlobalProgress()}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div 
+                    className="bg-blue-900 h-3 rounded-full transition-all duration-500" 
+                    style={{ width: `${calculateGlobalProgress()}%` }}
+                  ></div>
+                </div>
+              </div>
               <div className="space-y-4">
                 {/* Post-CPS progress */}
                 <div>

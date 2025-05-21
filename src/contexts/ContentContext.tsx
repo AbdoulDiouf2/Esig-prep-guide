@@ -31,7 +31,8 @@ export interface FAQItem {
   question: string;
   answer: string;
   category: string;
-  phase: GuidePhase;
+  phase?: GuidePhase;
+  questionType: 'phase' | 'site' | 'general';
   isApproved: boolean;
   isAnswered: boolean; // Indique si la question a été répondue par un admin
   createdDate: string;

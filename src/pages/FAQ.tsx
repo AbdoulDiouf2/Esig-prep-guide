@@ -7,7 +7,7 @@ const FAQ: React.FC = () => {
   const { faqItems, addFAQItem } = useContent();
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPhase, setSelectedPhase] = useState<GuidePhase | 'all'>('all');
+  const [selectedPhase, setSelectedPhase] = useState<GuidePhase | 'all' | 'site' | 'general'>('all');
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -15,6 +15,7 @@ const FAQ: React.FC = () => {
   const [newQuestion, setNewQuestion] = useState('');
   const [newPhase, setNewPhase] = useState<GuidePhase>('post-cps');
   const [newCategory, setNewCategory] = useState('');
+  const [questionType, setQuestionType] = useState<'phase' | 'site' | 'general'>('phase');
 
   // Filtrer et séparer les questions en différentes catégories
   const [answeredQuestions, unansweredQuestions, publicQuestions] = faqItems.reduce(
@@ -24,7 +25,6 @@ const FAQ: React.FC = () => {
       
       // Séparer les questions répondues et non répondues de l'utilisateur
       if (isUserQuestion) {
-        // On utilise maintenant le champ dédié isAnswered pour déterminer si une question a reçu une réponse
         if (item.isAnswered) {
           acc[0].push(item); // Questions répondues
         } else {
@@ -34,10 +34,13 @@ const FAQ: React.FC = () => {
       
       // Filtrer les questions publiques (uniquement questions répondues et approuvées)
       if (item.isApproved && item.isAnswered) {
-          
-        // Filtrer par phase si nécessaire
-        if (selectedPhase === 'all' || item.phase === selectedPhase) {
-          // Filtrer par recherche si nécessaire
+        // Nouveau filtre : selon le type de question
+        if (
+          (selectedPhase === 'all' && (item.questionType === 'general' || item.questionType === 'site' || item.questionType === 'phase')) ||
+          (selectedPhase === 'general' && item.questionType === 'general') ||
+          (selectedPhase === 'site' && item.questionType === 'site') ||
+          (['post-cps','during-process','pre-arrival'].includes(selectedPhase) && item.questionType === 'phase' && item.phase === selectedPhase)
+        ) {
           if (!searchQuery || 
               item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
               item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,7 +76,8 @@ const FAQ: React.FC = () => {
       question: newQuestion,
       answer: "Cette question est en attente de réponse par notre équipe.",
       category: newCategory || 'général',
-      phase: newPhase,
+      phase: questionType === 'phase' ? newPhase : undefined,
+      questionType,
       isApproved: false,
       isAnswered: false, // Nouvelle question, pas encore répondue
       createdDate: new Date().toISOString().split('T')[0],
@@ -133,14 +137,16 @@ const FAQ: React.FC = () => {
           <div className="flex space-x-2">
             <select
               value={selectedPhase}
-              onChange={(e) => setSelectedPhase(e.target.value as GuidePhase | 'all')}
+              onChange={(e) => setSelectedPhase(e.target.value as GuidePhase | 'all' | 'site' | 'general')}
               className="block rounded-md border border-gray-300 shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              disabled={showMyQuestions} // Désactiver le filtre par phase quand on affiche "Mes questions"
+              disabled={showMyQuestions}
             >
-              <option value="all">Toutes les phases</option>
-              <option value="post-cps">Post-CPS</option>
-              <option value="during-process">Pendant les démarches</option>
-              <option value="pre-arrival">Pré-arrivée</option>
+              <option value="all">Toutes les questions</option>
+              <option value="post-cps">Phase : Post-CPS</option>
+              <option value="during-process">Phase : Pendant les démarches</option>
+              <option value="pre-arrival">Phase : Pré-arrivée</option>
+              <option value="site">Fonctionnement du site</option>
+              <option value="general">Question générale</option>
             </select>
             
             {currentUser && (
@@ -191,6 +197,23 @@ const FAQ: React.FC = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
+                    <label htmlFor="questionType" className="block text-sm font-medium text-gray-700">
+                      Type de question
+                    </label>
+                    <select
+                      id="questionType"
+                      className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
+                      value={questionType}
+                      onChange={e => setQuestionType(e.target.value as 'phase' | 'site' | 'general')}
+                      required
+                    >
+                      <option value="phase">En lien avec une phase</option>
+                      <option value="site">Fonctionnement du site</option>
+                      <option value="general">Question générale</option>
+                    </select>
+                  </div>
+                  {questionType === 'phase' && (
+                  <div>
                     <label htmlFor="phase" className="block text-sm font-medium text-gray-700">
                       Phase concernée
                     </label>
@@ -199,13 +222,14 @@ const FAQ: React.FC = () => {
                       className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={newPhase}
                       onChange={(e) => setNewPhase(e.target.value as GuidePhase)}
-                      required
+                      required={questionType === 'phase'}
                     >
                       <option value="post-cps">Post-CPS</option>
                       <option value="during-process">Pendant les démarches</option>
                       <option value="pre-arrival">Pré-arrivée</option>
                     </select>
                   </div>
+                  )}
                   
                   <div>
                     <label htmlFor="category" className="block text-sm font-medium text-gray-700">

@@ -13,6 +13,10 @@ import DropboxUploader from '../../components/dropbox';
 import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { Dropbox } from 'dropbox';
+const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
+const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
+const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
+
 
 // Types de fichiers supportés
 type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
@@ -113,7 +117,11 @@ const AdminResourceManager: React.FC = () => {
     setDropboxError('');
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       
       // Lister le contenu du dossier racine
       const response = await dbx.filesListFolder({
@@ -155,7 +163,11 @@ const AdminResourceManager: React.FC = () => {
     if (!DROPBOX_ACCESS_TOKEN) return;
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       
       let shareUrl = '';
       

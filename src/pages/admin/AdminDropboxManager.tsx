@@ -7,6 +7,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
+const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
+const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
+const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
+
 // Composant pour uploader des fichiers 
 import DropboxUploader from '../../components/dropbox';
 
@@ -71,7 +75,11 @@ const AdminDropboxManager: React.FC = () => {
     }
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       const response = await dbx.usersGetCurrentAccount();
       
       if (response && response.status === 200) {
@@ -105,7 +113,11 @@ const AdminDropboxManager: React.FC = () => {
     setDropboxError('');
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       
       // Lister le contenu du dossier racine
       const response = await dbx.filesListFolder({
@@ -147,7 +159,11 @@ const AdminDropboxManager: React.FC = () => {
     if (!DROPBOX_ACCESS_TOKEN) return;
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       
       let shareUrl = '';
       
@@ -220,7 +236,11 @@ const AdminDropboxManager: React.FC = () => {
     }
     
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+      const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
       
       await dbx.filesDeleteV2({ path: filePath });
       

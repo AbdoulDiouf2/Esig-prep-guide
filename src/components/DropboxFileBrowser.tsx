@@ -10,12 +10,13 @@ interface DropboxError {
   };
 }
 
-// Récupère le token d'accès depuis les variables d'environnement
-const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN || '';
+// Récupère les identifiants Dropbox depuis les variables d'environnement
+const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
+const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
+const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
 
-// Affiche un avertissement dans la console si le token n'est pas défini
-if (!DROPBOX_ACCESS_TOKEN) {
-  console.warn('VITE_DROPBOX_ACCESS_TOKEN n\'est pas défini. La connexion à Dropbox ne fonctionnera pas.');
+if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
+  console.warn('VITE_DBX_REFRESH_TOKEN, VITE_DBX_APP_KEY ou VITE_DBX_CLIENT_SECRET ne sont pas définis. La connexion à Dropbox ne fonctionnera pas.');
 }
 
 // Types pour les props
@@ -74,16 +75,18 @@ export default function DropboxFileBrowser({ onSelect, showTitle = true }: Dropb
     setLoading(true);
     setError(null);
     
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setError("Token d'accès Dropbox non configuré. Veuillez vérifier vos variables d'environnement.");
+    if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
+      setError("Identifiants Dropbox non configurés. Veuillez vérifier vos variables d'environnement.");
       setLoading(false);
       return;
     }
     
     try {
       // Initialisation avec le mode de compatibilité pour éviter certaines erreurs d'API
-      const dbx = new Dropbox({ 
-        accessToken: DROPBOX_ACCESS_TOKEN,
+      const dbx = new Dropbox({
+        refreshToken: DROPBOX_REFRESH_TOKEN,
+        clientId: DROPBOX_CLIENT_ID,
+        clientSecret: DROPBOX_CLIENT_SECRET,
         fetch: fetch
       });
       
@@ -135,14 +138,16 @@ export default function DropboxFileBrowser({ onSelect, showTitle = true }: Dropb
   const getSharedLink = async (file: DropboxFile) => {
     if (file.url) return file.url; // URL déjà obtenue
     
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setError("Token d'accès Dropbox non configuré. Veuillez vérifier vos variables d'environnement.");
+    if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET) {
+      setError("Identifiants Dropbox non configurés. Veuillez vérifier vos variables d'environnement.");
       return null;
     }
     
     try {
-      const dbx = new Dropbox({ 
-        accessToken: DROPBOX_ACCESS_TOKEN,
+      const dbx = new Dropbox({
+        refreshToken: DROPBOX_REFRESH_TOKEN,
+        clientId: DROPBOX_CLIENT_ID,
+        clientSecret: DROPBOX_CLIENT_SECRET,
         fetch: fetch
       });
       

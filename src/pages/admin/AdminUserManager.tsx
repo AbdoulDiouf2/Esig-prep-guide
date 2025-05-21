@@ -1,10 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ArrowLeft, Shield, UserMinus, UserPlus } from 'lucide-react';
+import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
+
+// Typage strict de la réponse REST Firebase Auth
+export interface FirebaseAuthUser {
+  localId: string;
+  email: string;
+  displayName?: string;
+  emailVerified?: boolean;
+  photoUrl?: string;
+  [key: string]: unknown;
+}
+interface FirebaseAuthBatchGetResponse {
+  users?: FirebaseAuthUser[];
+  nextPageToken?: string;
+}
+// Fonction utilitaire pour récupérer tous les utilisateurs Firebase Auth via REST API
+async function fetchAllFirebaseAuthUsers(apiKey: string): Promise<FirebaseAuthUser[]> {
+  let users: FirebaseAuthUser[] = [];
+  let nextPageToken = undefined;
+  do {
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${process.env.REACT_APP_FIREBASE_PROJECT_ID}/accounts:batchGet?key=${apiKey}` + (nextPageToken ? `&nextPageToken=${nextPageToken}` : ''), {
+      method: 'GET',
+    });
+    const data: FirebaseAuthBatchGetResponse = await res.json();
+    if (data && data.users) users = users.concat(data.users);
+    nextPageToken = data.nextPageToken;
+  } while (nextPageToken);
+  return users;
+}
+
 
 interface UserDoc {
   uid: string;
@@ -17,7 +46,6 @@ interface UserDoc {
 }
 
 const AdminUserManager: React.FC = () => {
-
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -25,8 +53,12 @@ const AdminUserManager: React.FC = () => {
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authUsers, setAuthUsers] = useState<FirebaseAuthUser[]>([]);
+  const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
+  const [missingProfiles, setMissingProfiles] = useState<FirebaseAuthUser[]>([]);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || '';
 
   // Fonction fetchUsers accessible partout dans le composant
   const fetchUsers = async () => {
@@ -49,6 +81,31 @@ const AdminUserManager: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Récupère les utilisateurs Auth qui n'ont pas de profil Firestore
+  useEffect(() => {
+    const fetchAuthUsers = async () => {
+      setLoadingAuthUsers(true);
+      try {
+        if (!apiKey) return;
+        const allAuthUsers = await fetchAllFirebaseAuthUsers(apiKey);
+        setAuthUsers(allAuthUsers);
+      } catch {
+        // ignore
+      } finally {
+        setLoadingAuthUsers(false);
+      }
+    };
+    fetchAuthUsers();
+  }, [apiKey]);
+
+  useEffect(() => {
+    // Compare les uid
+    if (authUsers.length && users.length) {
+      const missing = authUsers.filter(au => !users.some(u => u.uid === au.localId));
+      setMissingProfiles(missing);
+    }
+  }, [authUsers, users]);
 
   const handleToggleAdmin = async (uid: string, isAdmin: boolean) => {
     setModalOpen(true);
@@ -90,6 +147,23 @@ const AdminUserManager: React.FC = () => {
 
   
 
+  // Création d'un profil Firestore pour un utilisateur Auth
+  const handleCreateFirestoreProfile = async (authUser: FirebaseAuthUser) => {
+    try {
+      await setDoc(doc(db, 'users', authUser.localId), {
+        uid: authUser.localId,
+        email: authUser.email,
+        displayName: authUser.displayName || '',
+        isAdmin: false,
+        emailVerified: authUser.emailVerified || false,
+        photoURL: authUser.photoUrl || '',
+      });
+      fetchUsers();
+    } catch (e) {
+      alert("Erreur lors de la création du profil Firestore : " + (e as Error).message);
+    }
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
@@ -105,6 +179,26 @@ const AdminUserManager: React.FC = () => {
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">
+
+        {/* Utilisateurs Auth sans profil Firestore */}
+        {loadingAuthUsers ? (
+          <div className="mb-6 flex items-center text-yellow-600"><AlertTriangle className="w-5 h-5 mr-2" /> Chargement des utilisateurs Firebase Auth...</div>
+        ) : (
+          missingProfiles.length > 0 && (
+            <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+              <div className="font-bold text-yellow-800 mb-2 flex items-center"><AlertTriangle className="w-5 h-5 mr-2" /> Utilisateurs sans profil Firestore</div>
+              <ul className="mb-2 text-sm">
+                {missingProfiles.map(u => (
+                  <li key={u.localId} className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-gray-700">{u.email}</span>
+                    <button onClick={() => handleCreateFirestoreProfile(u)} className="ml-2 px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700">Créer le profil Firestore</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="text-xs text-yellow-700">Ces utilisateurs existent dans l’authentification Firebase mais n’ont pas encore de document dans la collection <b>users</b>.</div>
+            </div>
+          )
+        )}
 
         {loading ? (
           <div>Chargement...</div>

@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Dropbox } from "dropbox";
 import { CheckCircle, X, AlertTriangle, FileText, Upload, XCircle } from "lucide-react";
 
-const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
+const DROPBOX_REFRESH_TOKEN = import.meta.env.VITE_DBX_REFRESH_TOKEN || '';
+const DROPBOX_CLIENT_ID = import.meta.env.VITE_DBX_APP_KEY || '';
+const DROPBOX_CLIENT_SECRET = import.meta.env.VITE_DBX_CLIENT_SECRET || '';
 
 // Types pour les props
 interface DropboxUploaderProps {
@@ -44,7 +46,11 @@ export default function DropboxUploader({ onSuccess, buttonText = "Uploader sur 
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
-    const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+    const dbx = new Dropbox({
+  refreshToken: DROPBOX_REFRESH_TOKEN,
+  clientId: DROPBOX_CLIENT_ID,
+  clientSecret: DROPBOX_CLIENT_SECRET
+});
     let uploadSuccess = false;
     let uploadPath = "";
     

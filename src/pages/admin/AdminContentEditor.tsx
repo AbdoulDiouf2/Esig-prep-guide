@@ -43,6 +43,7 @@ const AdminContentEditor: React.FC = () => {
   const [answer, setAnswer] = useState('');
   const [faqCategory, setFaqCategory] = useState('');
   const [faqPhase, setFaqPhase] = useState<GuidePhase>('post-cps');
+  const [questionType, setQuestionType] = useState<'phase' | 'site' | 'general'>('phase');
   const [isApproved, setIsApproved] = useState(true);
   const [isAnswered, setIsAnswered] = useState(false);
 
@@ -79,7 +80,8 @@ const AdminContentEditor: React.FC = () => {
         setQuestion(faq.question);
         setAnswer(faq.answer);
         setFaqCategory(faq.category || '');
-        setFaqPhase(faq.phase);
+        setFaqPhase(faq.phase || 'post-cps');
+        setQuestionType(faq.questionType || 'phase');
         setIsApproved(!!faq.isApproved);
         setIsAnswered(!!faq.isAnswered);
       }
@@ -88,6 +90,7 @@ const AdminContentEditor: React.FC = () => {
       setAnswer('');
       setFaqCategory('');
       setFaqPhase('post-cps');
+      setQuestionType('phase');
       setIsApproved(true);
       setIsAnswered(false);
     }
@@ -127,7 +130,8 @@ const AdminContentEditor: React.FC = () => {
           question,
           answer,
           category: faqCategory,
-          phase: faqPhase,
+          phase: questionType === 'phase' ? faqPhase : undefined,
+          questionType,
           isApproved,
           isAnswered: hasValidAnswer
         });
@@ -187,11 +191,12 @@ const AdminContentEditor: React.FC = () => {
           question,
           answer,
           category: faqCategory,
-          phase: faqPhase,
+          phase: questionType === 'phase' ? faqPhase : undefined,
+          questionType,
           isApproved,
           isAnswered: hasValidAnswer,
-          createdDate: new Date().toISOString(),
-          updatedDate: new Date().toISOString()
+          createdDate: new Date().toISOString().split('T')[0],
+          updatedDate: new Date().toISOString().split('T')[0],
         });
         logAdminActivity({
           type: 'Ajout',
@@ -394,6 +399,42 @@ const AdminContentEditor: React.FC = () => {
                       </div>
 
                       <div>
+                        <label htmlFor="faq-questionType" className="block text-sm font-medium text-gray-700">
+                          Type de question
+                        </label>
+                        <select
+                          id="faq-questionType"
+                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
+                          value={questionType}
+                          onChange={e => setQuestionType(e.target.value as 'phase' | 'site' | 'general')}
+                          required
+                        >
+                          <option value="phase">En lien avec une phase</option>
+                          <option value="site">Fonctionnement du site</option>
+                          <option value="general">Question générale</option>
+                        </select>
+                      </div>
+
+                      {questionType === 'phase' && (
+                        <div>
+                          <label htmlFor="faq-phase" className="block text-sm font-medium text-gray-700">
+                            Phase
+                          </label>
+                          <select
+                            id="faq-phase"
+                            className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
+                            value={faqPhase}
+                            onChange={e => setFaqPhase(e.target.value as GuidePhase)}
+                            required={questionType === 'phase'}
+                          >
+                            <option value="post-cps">Post-CPS</option>
+                            <option value="during-process">Pendant les démarches</option>
+                            <option value="pre-arrival">Pré-arrivée</option>
+                          </select>
+                        </div>
+                      )}
+
+                      <div>
                         <label htmlFor="faq-category" className="block text-sm font-medium text-gray-700">
                           Catégorie
                         </label>
@@ -405,23 +446,6 @@ const AdminContentEditor: React.FC = () => {
                           onChange={e => setFaqCategory(e.target.value)}
                           required
                         />
-                      </div>
-
-                      <div>
-                        <label htmlFor="faq-phase" className="block text-sm font-medium text-gray-700">
-                          Phase
-                        </label>
-                        <select
-                          id="faq-phase"
-                          className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
-                          value={faqPhase}
-                          onChange={e => setFaqPhase(e.target.value as GuidePhase)}
-                          required
-                        >
-                          <option value="post-cps">Post-CPS</option>
-                          <option value="during-process">Pendant les démarches</option>
-                          <option value="pre-arrival">Pré-arrivée</option>
-                        </select>
                       </div>
 
                       <div className="space-y-2">

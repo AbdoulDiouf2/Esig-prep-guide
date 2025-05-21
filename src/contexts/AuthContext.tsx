@@ -72,6 +72,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Vérifier/créer le profil Firestore
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userSnapshot = await getDoc(userDocRef);
+        if (!userSnapshot.exists()) {
+          const userData = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            emailVerified: firebaseUser.emailVerified,
+            isAdmin: false,
+            createdAt: serverTimestamp(),
+            ...(firebaseUser.displayName ? { displayName: firebaseUser.displayName } : {}),
+            ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
+          };
+          await setDoc(userDocRef, userData);
+
+        }
         const appUser = await mapFirebaseUser(firebaseUser);
         setCurrentUser(appUser);
       } else {
@@ -100,14 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 4. Créer un document utilisateur dans Firestore
       const userData = {
         uid: user.uid,
-        email: user.email,
-        displayName,
+        email: user.email || '',
         emailVerified: user.emailVerified,
         isAdmin: false, // Par défaut, l'utilisateur n'est pas admin
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        ...(displayName ? { displayName } : {}),
+        ...(user.photoURL ? { photoURL: user.photoURL } : {}),
       };
-
       await setDoc(doc(db, 'users', user.uid), userData);
 
       // 5. Mettre à jour l'état de l'utilisateur
@@ -137,7 +153,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const appUser = await mapFirebaseUser(userCredential.user);
+      const user = userCredential.user;
+      // Vérifier/créer le profil Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      if (!userSnapshot.exists()) {
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          emailVerified: user.emailVerified,
+          isAdmin: false,
+          createdAt: serverTimestamp(),
+          photoURL: user.photoURL ?? undefined,
+        });
+      }
+      const appUser = await mapFirebaseUser(user);
       setCurrentUser(appUser);
       return appUser;
     } catch (error) {
