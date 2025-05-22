@@ -31,7 +31,7 @@ import { useRecentAdminActivity } from './useRecentAdminActivity';
 
 import type { LogActivityParams } from './adminActivityLog';
 
-function formatAdminActivity(activity: LogActivityParams) {
+function formatAdminActivity(activity: LogActivityParams, usersList: UserDoc[] = []) {
   const actionMap: Record<string, string> = {
     'Ajout': 'a ajouté',
     'Suppression': 'a supprimé',
@@ -42,10 +42,19 @@ function formatAdminActivity(activity: LogActivityParams) {
     'Ressource': 'une ressource',
     'FAQ': 'une question FAQ'
   };
-  const user = activity.user || 'Admin';
+  
+  // Trouver l'utilisateur par son ID et utiliser son nom d'affichage ou email
+  let userName = 'Admin';
+  if (activity.user) {
+    const foundUser = usersList.find(u => u.uid === activity.user);
+    if (foundUser) {
+      userName = foundUser.displayName || foundUser.email || activity.user;
+    }
+  }
+  
   const action = actionMap[activity.type] || activity.type.toLowerCase();
   const target = targetMap[activity.target] || activity.target.toLowerCase();
-  return `${user} ${action} ${target}`;
+  return `${userName} ${action} ${target}`;
 }
 
 
@@ -457,7 +466,7 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <div className="font-medium text-gray-800">
-              {formatAdminActivity(activity)}
+              {formatAdminActivity(activity, users)}
             </div>
             <div className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</div>
             {typeof activity.details?.title === 'string' && (

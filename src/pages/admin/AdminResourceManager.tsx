@@ -290,8 +290,8 @@ const AdminResourceManager: React.FC = () => {
       });
     }
     
-    // Navigate back to admin dashboard
-    navigate('/admin');
+    // Stay on the resource manager page
+    // Removed navigation to stay on the same page
   };
   
   // Demande de confirmation avant suppression
@@ -310,8 +310,6 @@ const AdminResourceManager: React.FC = () => {
         user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
         details: { title }
       });
-      // Navigate back to admin dashboard
-      navigate('/admin');
     }
   };
   

@@ -34,21 +34,39 @@ const AdminProgressionOverview: React.FC = () => {
       usersSnap.forEach((docSnap: DocumentData) => {
         usersList.push({ ...docSnap.data(), uid: docSnap.id } as UserDoc);
       });
-      setUserProgressions(progressions);
+
+      // Filtrer les progressions pour ne garder que les sections qui existent encore
+      const validProgressions = progressions.map(progression => ({
+        userId: progression.userId,
+        completedSections: progression.completedSections.filter(sectionId => 
+          guideSections.some(section => section.id === sectionId)
+        )
+      }));
+
+      setUserProgressions(validProgressions);
       setUsers(usersList);
       setLoading(false);
     };
     fetchProgressions();
-  }, []);
+  }, [guideSections]);
 
   const getUserGlobalProgress = (completedSections: string[]) => {
     if (!guideSections || guideSections.length === 0) return 0;
-    return Math.round((completedSections.length / guideSections.length) * 100);
+    // Filtrer pour ne garder que les sections qui existent encore
+    const validCompletedSections = completedSections.filter(sectionId => 
+      guideSections.some(section => section.id === sectionId)
+    );
+    return Math.round((validCompletedSections.length / guideSections.length) * 100);
   };
 
   const getPhaseProgress = (completedSections: string[], phase: string) => {
     const phaseSections = guideSections.filter(section => section.phase === phase);
-    return Math.round((completedSections.filter(sectionId => phaseSections.some(s => s.id === sectionId)).length / phaseSections.length) * 100);
+    if (phaseSections.length === 0) return 0;
+    // Filtrer pour ne garder que les sections existantes
+    const validCompletedSections = completedSections.filter(sectionId => 
+      phaseSections.some(s => s.id === sectionId)
+    );
+    return Math.round((validCompletedSections.length / phaseSections.length) * 100);
   };
 
   return (
@@ -82,7 +100,11 @@ const AdminProgressionOverview: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.filter(user => !user.isAdmin).map(user => {
                   const progression = userProgressions.find(p => p.userId === user.uid);
-                  const completed = progression ? progression.completedSections.length : 0;
+                  // Assurons-nous que nous ne comptons que les sections qui existent encore
+                  const validCompletedSections = progression ? progression.completedSections.filter(sectionId => 
+                    guideSections.some(section => section.id === sectionId)
+                  ) : [];
+                  const completed = validCompletedSections.length;
                   const percent = progression ? getUserGlobalProgress(progression.completedSections) : 0;
                   const preArrivalPercent = progression ? getPhaseProgress(progression.completedSections, 'pre-arrival') : 0;
                   const duringProcessPercent = progression ? getPhaseProgress(progression.completedSections, 'during-process') : 0;
@@ -105,7 +127,7 @@ const AdminProgressionOverview: React.FC = () => {
                         <ul className="mt-2 text-xs text-left">
                           {guideSections.filter(s => s.phase === 'pre-arrival').map(section => (
                             <li key={section.id} className="flex items-center gap-1">
-                              {progression && progression.completedSections.includes(section.id) ? (
+                              {progression && validCompletedSections.includes(section.id) ? (
                                 <span className="text-green-600 font-bold">✔</span>
                               ) : (
                                 <span className="text-red-500 font-bold">✗</span>
@@ -123,7 +145,7 @@ const AdminProgressionOverview: React.FC = () => {
                         <ul className="mt-2 text-xs text-left">
                           {guideSections.filter(s => s.phase === 'during-process').map(section => (
                             <li key={section.id} className="flex items-center gap-1">
-                              {progression && progression.completedSections.includes(section.id) ? (
+                              {progression && validCompletedSections.includes(section.id) ? (
                                 <span className="text-green-600 font-bold">✔</span>
                               ) : (
                                 <span className="text-red-500 font-bold">✗</span>
@@ -141,7 +163,7 @@ const AdminProgressionOverview: React.FC = () => {
                         <ul className="mt-2 text-xs text-left">
                           {guideSections.filter(s => s.phase === 'post-cps').map(section => (
                             <li key={section.id} className="flex items-center gap-1">
-                              {progression && progression.completedSections.includes(section.id) ? (
+                              {progression && validCompletedSections.includes(section.id) ? (
                                 <span className="text-green-600 font-bold">✔</span>
                               ) : (
                                 <span className="text-red-500 font-bold">✗</span>

@@ -238,7 +238,29 @@ const AdminContentEditor: React.FC = () => {
         });
       }
     }
-    // navigate('/admin');
+    // Rester sur la même page
+  
+  // Réinitialiser les champs après ajout ou modification
+  if (isNewFaq || isNewSection) {
+    if (isNewFaq) {
+      // Réinitialiser les champs FAQ
+      setQuestion('');
+      setAnswer('');
+      setFaqCategory('');
+      setFaqPhase('post-cps');
+      setQuestionType('phase');
+      setIsApproved(true);
+      setIsAnswered(false);
+    } else if (isNewSection) {
+      // Réinitialiser les champs Section
+      setTitle('');
+      setContent('');
+      // Recalculer l'ordre pour la prochaine section
+      const phaseSections = guideSections.filter(s => s.phase === phase);
+      setOrder(phaseSections.length > 0 ? Math.max(...phaseSections.map(s => s.order)) + 1 : 1);
+      setSelectedResources([]);
+    }
+  }
   };
 
   // Demande de confirmation avant suppression
@@ -269,8 +291,7 @@ const AdminContentEditor: React.FC = () => {
         user: currentUser?.uid,
         details: { question }
       });
-      // Redirection vers le tableau de bord
-      navigate('/admin/content');
+      // Rester sur la même page au lieu de rediriger
     }
     setShowDeleteModal(false);
   };
