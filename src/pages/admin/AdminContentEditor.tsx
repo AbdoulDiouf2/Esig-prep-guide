@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
-import { useContent, GuidePhase } from '../../contexts/ContentContext';
-import { Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle } from 'lucide-react';
+import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem } from '../../contexts/ContentContext';
+import { 
+  Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle,
+  List, CheckSquare, Type, X, FileEdit
+} from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -37,6 +40,15 @@ const AdminContentEditor: React.FC = () => {
   const [content, setContent] = useState('');
   const [order, setOrder] = useState(1);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  
+  // États pour les sous-sections
+  const [subSections, setSubSections] = useState<SubSection[]>([]);
+  const [showSubSectionModal, setShowSubSectionModal] = useState(false);
+  const [editingSubSection, setEditingSubSection] = useState<SubSection | null>(null);
+  const [newSubSectionTitle, setNewSubSectionTitle] = useState('');
+  const [newSubSectionType, setNewSubSectionType] = useState<SubSectionType>('bulletList');
+  const [newSubSectionItems, setNewSubSectionItems] = useState<SubSectionItem[]>([]);
+  const [newItemContent, setNewItemContent] = useState('');
 
   // États FAQ
   const [question, setQuestion] = useState('');
@@ -65,6 +77,8 @@ const AdminContentEditor: React.FC = () => {
         setContent(section.content);
         setOrder(section.order);
         setSelectedResources(Array.isArray(section.resources) ? section.resources : []);
+        // Initialiser les sous-sections si elles existent
+        setSubSections(section.subSections || []);
       }
     } else if (isNewSection) {
       setTitle('');
@@ -73,6 +87,7 @@ const AdminContentEditor: React.FC = () => {
       const phaseSections = guideSections.filter(s => s.phase === 'post-cps');
       setOrder(phaseSections.length > 0 ? Math.max(...phaseSections.map(s => s.order)) + 1 : 1);
       setSelectedResources([]);
+      setSubSections([]);
     }
     if (editFaqId) {
       const faq = faqItems.find(f => f.id === editFaqId);
@@ -213,7 +228,8 @@ const AdminContentEditor: React.FC = () => {
           phase,
           content,
           order,
-          resources: selectedResources
+          resources: selectedResources,
+          subSections: subSections.length > 0 ? subSections : undefined
         });
         logAdminActivity({
           type: 'Modification',
@@ -228,7 +244,8 @@ const AdminContentEditor: React.FC = () => {
           phase,
           content,
           order,
-          resources: selectedResources
+          resources: selectedResources,
+          subSections: subSections.length > 0 ? subSections : undefined
         });
         logAdminActivity({
           type: 'Ajout',
@@ -303,6 +320,158 @@ const AdminContentEditor: React.FC = () => {
     } else {
       setSelectedResources([...selectedResources, resourceId]);
     }
+  };
+  
+  // Fonctions pour gérer les sous-sections
+  const openSubSectionModal = (subSection?: SubSection) => {
+    if (subSection) {
+      // Mode édition
+      setEditingSubSection(subSection);
+      setNewSubSectionTitle(subSection.title);
+      setNewSubSectionType(subSection.type);
+      setNewSubSectionItems([...subSection.items]);
+    } else {
+      // Mode création
+      setEditingSubSection(null);
+      setNewSubSectionTitle('');
+      setNewSubSectionType('bulletList');
+      setNewSubSectionItems([]);
+    }
+    setShowSubSectionModal(true);
+  };
+  
+  const closeSubSectionModal = () => {
+    setShowSubSectionModal(false);
+    setNewSubSectionTitle('');
+    setNewItemContent('');
+  };
+  
+  const addItemToSubSection = () => {
+    if (newItemContent.trim() === '') return;
+    
+    const newItem: SubSectionItem = {
+      id: Date.now().toString(),
+      content: newItemContent,
+      checked: false,
+      value: ''
+    };
+    
+    setNewSubSectionItems([...newSubSectionItems, newItem]);
+    setNewItemContent('');
+  };
+  
+  const removeItemFromSubSection = (itemId: string) => {
+    setNewSubSectionItems(newSubSectionItems.filter(item => item.id !== itemId));
+  };
+  
+  const saveSubSection = async () => {
+    if (newSubSectionTitle.trim() === '' || newSubSectionItems.length === 0) {
+      alert('Veuillez ajouter un titre et au moins un élément');
+      return;
+    }
+    
+    const subSection: SubSection = {
+      id: editingSubSection ? editingSubSection.id : Date.now().toString(),
+      title: newSubSectionTitle,
+      type: newSubSectionType,
+      items: newSubSectionItems
+    };
+    
+    let updatedSubSections: SubSection[];
+    
+    if (editingSubSection) {
+      // Mode édition: remplacer la sous-section existante
+      updatedSubSections = subSections.map(ss => 
+        ss.id === editingSubSection.id ? subSection : ss
+      );
+    } else {
+      // Mode création: ajouter une nouvelle sous-section
+      updatedSubSections = [...subSections, subSection];
+    }
+    
+    // Mettre à jour l'état local
+    setSubSections(updatedSubSections);
+    
+    // Si on modifie une section existante, sauvegarder immédiatement les changements dans Firestore
+    if (editSectionId) {
+      try {
+        // Récupérer la section actuelle
+        const section = guideSections.find(s => s.id === editSectionId);
+        if (section) {
+          // Mettre à jour la section avec les sous-sections mises à jour
+          await updateGuideSection(editSectionId, {
+            subSections: updatedSubSections
+          });
+          
+          // Logger l'activité admin
+          logAdminActivity({
+            type: 'Modification',
+            target: 'Sous-section',
+            targetId: editSectionId,
+            user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+            details: { 
+              action: editingSubSection ? 'Modification de sous-section' : 'Ajout de sous-section', 
+              sectionTitle: title 
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la sous-section:', error);
+        alert('Erreur lors de la sauvegarde. Veuillez réessayer.');
+      }
+    }
+    
+    closeSubSectionModal();
+  };
+  
+  const deleteSubSection = async (subSectionId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette sous-section?')) {
+      // Mettre à jour l'état local
+      const updatedSubSections = subSections.filter(ss => ss.id !== subSectionId);
+      setSubSections(updatedSubSections);
+      
+      // Si on modifie une section existante, sauvegarder immédiatement les changements dans Firestore
+      if (editSectionId) {
+        try {
+          // Récupérer la section actuelle
+          const section = guideSections.find(s => s.id === editSectionId);
+          if (section) {
+            // Mettre à jour la section avec les sous-sections mises à jour
+            await updateGuideSection(editSectionId, {
+              subSections: updatedSubSections.length > 0 ? updatedSubSections : []
+            });
+            
+            // Logger l'activité admin
+            logAdminActivity({
+              type: 'Modification',
+              target: 'Sous-section',
+              targetId: editSectionId,
+              user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+              details: { action: 'Suppression de sous-section', sectionTitle: title }
+            });
+          }
+        } catch (error) {
+          console.error('Erreur lors de la suppression de la sous-section:', error);
+          alert('Erreur lors de la suppression. Veuillez réessayer.');
+          // Rétablir l'état précédent en cas d'erreur
+          setSubSections(subSections);
+        }
+      }
+    }
+  };
+  
+  const moveSubSectionUp = (index: number) => {
+    if (index === 0) return;
+    const newSubSections = [...subSections];
+    [newSubSections[index], newSubSections[index - 1]] = [newSubSections[index - 1], newSubSections[index]];
+    setSubSections(newSubSections);
+  };
+  
+  const moveSubSectionDown = (index: number) => {
+    if (index === subSections.length - 1) return;
+    const newSubSections = [...subSections];
+    [newSubSections[index], newSubSections[index + 1]] = [newSubSections[index + 1], newSubSections[index]];
+    setSubSections(newSubSections);
   };
   
   // Filter resources by selected phase
@@ -588,6 +757,102 @@ const AdminContentEditor: React.FC = () => {
                     />
                   </div>
                   
+                  {/* Sous-sections */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Sous-sections
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openSubSectionModal()}
+                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Ajouter une sous-section
+                      </button>
+                    </div>
+                    
+                    {subSections.length > 0 ? (
+                      <div className="mt-2 space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        {subSections.map((subSection, index) => (
+                          <div key={subSection.id} className="bg-white p-3 rounded-md border border-gray-200 shadow-sm">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                {subSection.type === 'bulletList' && <List className="w-4 h-4 text-blue-500 mr-2" />}
+                                {subSection.type === 'checkList' && <CheckSquare className="w-4 h-4 text-green-500 mr-2" />}
+                                {subSection.type === 'inputField' && <Type className="w-4 h-4 text-purple-500 mr-2" />}
+                                <h4 className="text-md font-medium text-gray-800">{subSection.title}</h4>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button 
+                                  type="button" 
+                                  onClick={() => moveSubSectionUp(index)}
+                                  className="text-gray-400 hover:text-gray-600 p-1 rounded" 
+                                  disabled={index === 0}
+                                  title="Monter">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => moveSubSectionDown(index)}
+                                  className="text-gray-400 hover:text-gray-600 p-1 rounded" 
+                                  disabled={index === subSections.length - 1}
+                                  title="Descendre">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => openSubSectionModal(subSection)}
+                                  className="text-blue-500 hover:text-blue-700 p-1 rounded"
+                                  title="Modifier">
+                                  <FileEdit className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => deleteSubSection(subSection.id)}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded"
+                                  title="Supprimer">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <ul className="pl-5 mt-1 space-y-1">
+                              {subSection.items.map(item => (
+                                <li key={item.id} className="text-sm text-gray-700">
+                                  {subSection.type === 'bulletList' && <span>• {item.content}</span>}
+                                  {subSection.type === 'checkList' && (
+                                    <div className="flex items-center">
+                                      <svg className="h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      <span>{item.content}</span>
+                                    </div>
+                                  )}
+                                  {subSection.type === 'inputField' && (
+                                    <div className="flex items-center">
+                                      <span>{item.content}:</span>
+                                      <span className="ml-2 text-gray-400 italic">champ de saisie</span>
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Aucune sous-section ajoutée. Ajoutez des sous-sections pour organiser votre contenu.
+                      </p>
+                    )}
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Ressources associées
@@ -834,6 +1099,142 @@ const AdminContentEditor: React.FC = () => {
         confirmButtonText="Supprimer"
         type="danger"
       />
+      
+      {/* Modal d'ajout/édition de sous-section */}
+      {showSubSectionModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 px-4 py-6 overflow-y-auto">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                {editingSubSection ? 'Modifier la sous-section' : 'Ajouter une sous-section'}
+              </h3>
+              <button
+                onClick={closeSubSectionModal}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-grow overflow-y-auto p-6 space-y-4">
+              <div>
+                <label htmlFor="subSectionTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                  Titre de la sous-section
+                </label>
+                <input
+                  type="text"
+                  id="subSectionTitle"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                  value={newSubSectionTitle}
+                  onChange={(e) => setNewSubSectionTitle(e.target.value)}
+                  placeholder="Ex: Documents nécessaires"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type de sous-section
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center px-4 py-2 border rounded-md ${newSubSectionType === 'bulletList' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setNewSubSectionType('bulletList')}
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    Liste à puces
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center px-4 py-2 border rounded-md ${newSubSectionType === 'checkList' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setNewSubSectionType('checkList')}
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Cases à cocher
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center px-4 py-2 border rounded-md ${newSubSectionType === 'inputField' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setNewSubSectionType('inputField')}
+                  >
+                    <Type className="w-4 h-4 mr-2" />
+                    Champs à remplir
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {newSubSectionType === 'bulletList' ? 'Éléments de la liste' : 
+                     newSubSectionType === 'checkList' ? 'Éléments à cocher' : 
+                     'Champs à remplir'}
+                  </label>
+                </div>
+                
+                <div className="mb-4 flex">
+                  <input
+                    type="text"
+                    className="block w-full rounded-l-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                    value={newItemContent}
+                    onChange={(e) => setNewItemContent(e.target.value)}
+                    placeholder={newSubSectionType === 'bulletList' ? 'Nouvel élément de liste' : 
+                               newSubSectionType === 'checkList' ? 'Nouvelle case à cocher' : 
+                               'Libellé du champ'}
+                  />
+                  <button
+                    type="button"
+                    onClick={addItemToSubSection}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-r-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {newSubSectionItems.length > 0 ? (
+                  <ul className="bg-gray-50 rounded-md border border-gray-200 p-3 space-y-2 max-h-60 overflow-y-auto">
+                    {newSubSectionItems.map((item) => (
+                      <li key={item.id} className="flex items-center justify-between group p-2 hover:bg-gray-100 rounded-md">
+                        <div className="flex items-center">
+                          {newSubSectionType === 'bulletList' && <span className="mr-2">•</span>}
+                          {newSubSectionType === 'checkList' && <CheckSquare className="w-4 h-4 mr-2 text-gray-400" />}
+                          {newSubSectionType === 'inputField' && <Type className="w-4 h-4 mr-2 text-gray-400" />}
+                          <span>{item.content}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeItemFromSubSection(item.id)}
+                          className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Aucun élément ajouté. Ajoutez au moins un élément pour continuer.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={closeSubSectionModal}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={saveSubSection}
+                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {editingSubSection ? 'Mettre à jour' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

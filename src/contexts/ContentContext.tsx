@@ -17,6 +17,25 @@ export interface ResourceDocument {
   updatedDate: string;
 }
 
+// Types de sous-sections disponibles
+export type SubSectionType = 'bulletList' | 'checkList' | 'inputField';
+
+// Interface pour les éléments de sous-section
+export interface SubSectionItem {
+  id: string;
+  content: string;
+  checked?: boolean; // Pour les listes à cocher
+  value?: string; // Pour les champs à remplir
+}
+
+// Interface pour les sous-sections
+export interface SubSection {
+  id: string;
+  title: string;
+  type: SubSectionType;
+  items: SubSectionItem[];
+}
+
 export interface GuideSection {
   id: string;
   title: string;
@@ -24,6 +43,7 @@ export interface GuideSection {
   content: string;
   order: number;
   resources: string[]; // Resource IDs
+  subSections?: SubSection[]; // Sous-sections optionnelles
 }
 
 export interface FAQItem {

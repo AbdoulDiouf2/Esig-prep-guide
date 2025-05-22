@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { FileText, CheckCircle } from 'lucide-react';
+import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info } from 'lucide-react';
+import { getUserSubsectionData, saveUserCheckItems, saveUserInputValues, cleanupSubsectionData } from '../services/subsectionDataService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -14,12 +15,36 @@ const Dashboard: React.FC = () => {
     faqItems
   } = useContent();
   
-  const [activePhase, setActivePhase] = useState<GuidePhase>('post-cps');
+  // Références pour le positionnement de la bulle d'aide
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
   
+  const [activePhase, setActivePhase] = useState<GuidePhase>('post-cps');
   // Progress tracking (would be stored in user profile in a real app)
   const [completedSections, setCompletedSections] = useState<string[]>([]);
+  // État pour les cases à cocher des sous-sections
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  // État pour les champs de saisie des sous-sections
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  // État de chargement des données des sous-sections
+  const [subsectionDataLoading, setSubsectionDataLoading] = useState<boolean>(true);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
   const [progressLoading, setProgressLoading] = useState<boolean>(true);
 
+  // Fermer la bulle d'aide si on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (helpButtonRef.current && !helpButtonRef.current.contains(event.target as Node) && showHelp) {
+        setShowHelp(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showHelp]);
+
+  // Charger les données de progression de l'utilisateur
   useEffect(() => {
     if (currentUser?.uid) {
       setProgressLoading(true);
@@ -28,6 +53,59 @@ const Dashboard: React.FC = () => {
         .finally(() => setProgressLoading(false));
     }
   }, [currentUser?.uid]);
+  
+  // Charger les données des sous-sections (cases à cocher et champs de saisie)
+  useEffect(() => {
+    if (currentUser?.uid) {
+      setSubsectionDataLoading(true);
+      getUserSubsectionData(currentUser.uid)
+        .then((data) => {
+          setCheckedItems(data.checkItems || {});
+          setInputValues(data.inputValues || {});
+        })
+        .finally(() => setSubsectionDataLoading(false));
+    }
+  }, [currentUser?.uid]);
+  
+  // Extraire tous les IDs d'items de sous-sections valides actuellement
+  const getAllValidSubsectionItemIds = useCallback(() => {
+    const validItemIds: string[] = [];
+    
+    // Parcourir toutes les sections pour collecter les IDs des items de sous-sections
+    guideSections.forEach(section => {
+      if (section.subSections) {
+        section.subSections.forEach(subSection => {
+          subSection.items.forEach(item => {
+            validItemIds.push(item.id);
+          });
+        });
+      }
+    });
+    
+    return validItemIds;
+  }, [guideSections]);
+  
+  // Nettoyer les données obsolètes quand les sous-sections changent
+  useEffect(() => {
+    // Vérifier si l'utilisateur est connecté et que les sections sont chargées
+    if (currentUser?.uid && guideSections.length > 0 && !subsectionDataLoading) {
+      const validItemIds = getAllValidSubsectionItemIds();
+      
+      // Nettoyer les données
+      cleanupSubsectionData(currentUser.uid, validItemIds)
+        .then(() => {
+          // Actualiser les données locales après le nettoyage
+          return getUserSubsectionData(currentUser.uid);
+        })
+        .then((data) => {
+          setCheckedItems(data.checkItems || {});
+          setInputValues(data.inputValues || {});
+        })
+        .catch(error => {
+          console.error("Erreur lors du nettoyage des données de sous-section:", error);
+        });
+    }
+  }, [currentUser?.uid, guideSections, getAllValidSubsectionItemIds, subsectionDataLoading]);
 
   const toggleSectionCompletion = async (sectionId: string) => {
     let updatedSections;
@@ -41,6 +119,136 @@ const Dashboard: React.FC = () => {
       await setUserProgression(currentUser.uid, updatedSections);
     }
   };
+  
+  // Vérifier si une section est complètement remplie
+  const checkSectionCompletion = useCallback((sectionId: string, currentCheckedItems: Record<string, boolean>, currentInputValues: Record<string, string>) => {
+    // Si la section est déjà marquée comme complétée, rien à faire
+    if (completedSections.includes(sectionId)) {
+      return false; // Aucun changement nécessaire
+    }
+    
+    // Trouver la section concernée
+    const section = guideSections.find(s => s.id === sectionId);
+    if (!section || !section.subSections || section.subSections.length === 0) {
+      return false; // Pas de sous-sections à vérifier
+    }
+    
+    // Compter les éléments interactifs et ceux complétés
+    let totalInteractiveItems = 0;
+    let completedInteractiveItems = 0;
+    
+    section.subSections.forEach(subSection => {
+      // Ne vérifier que les sous-sections interactives
+      if (subSection.type === 'checkList' || subSection.type === 'inputField') {
+        subSection.items.forEach(item => {
+          totalInteractiveItems++;
+          
+          if (subSection.type === 'checkList' && currentCheckedItems[item.id]) {
+            completedInteractiveItems++;
+          } else if (subSection.type === 'inputField' && currentInputValues[item.id] && currentInputValues[item.id].trim() !== '') {
+            completedInteractiveItems++;
+          }
+        });
+      }
+    });
+    
+    // Si tous les éléments interactifs sont complétés, marquer la section comme complète
+    return totalInteractiveItems > 0 && completedInteractiveItems === totalInteractiveItems;
+  }, [guideSections, completedSections]);
+  
+  // Mettre à jour la liste des sections complétées et sauvegarder
+  const updateCompletedSections = useCallback(async (sectionId: string) => {
+    if (!completedSections.includes(sectionId)) {
+      const updatedSections = [...completedSections, sectionId];
+      setCompletedSections(updatedSections);
+      
+      if (currentUser?.uid) {
+        try {
+          await setUserProgression(currentUser.uid, updatedSections);
+        } catch (error) {
+          console.error('Erreur lors de la mise à jour des sections complétées:', error);
+        }
+      }
+    }
+  }, [completedSections, currentUser?.uid]);
+  
+  // Vérifier les sections après chaque modification des valeurs
+  useEffect(() => {
+    if (currentUser?.uid && !progressLoading && !subsectionDataLoading) {
+      // Vérifier toutes les sections pour la complétion automatique
+      guideSections.forEach(section => {
+        if (checkSectionCompletion(section.id, checkedItems, inputValues)) {
+          updateCompletedSections(section.id);
+        }
+      });
+    }
+  }, [checkedItems, inputValues, guideSections, currentUser?.uid, progressLoading, subsectionDataLoading, checkSectionCompletion, updateCompletedSections]);
+  
+  // Fonction pour mettre à jour et sauvegarder les cases à cocher
+  const handleCheckItemChange = useCallback(async (itemId: string) => {
+    const newValue = !checkedItems[itemId];
+    const updatedItems = {
+      ...checkedItems,
+      [itemId]: newValue
+    };
+    
+    setCheckedItems(updatedItems);
+    
+    if (currentUser?.uid) {
+      try {
+        await saveUserCheckItems(currentUser.uid, updatedItems);
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la case à cocher:', error);
+      }
+    }
+  }, [checkedItems, currentUser?.uid]);
+  
+  // Fonction pour mettre à jour les champs de saisie sans sauvegarde immédiate
+  const handleInputChange = useCallback((itemId: string, value: string) => {
+    const updatedValues = {
+      ...inputValues,
+      [itemId]: value
+    };
+    
+    setInputValues(updatedValues);
+  }, [inputValues]);
+  
+  // Fonction pour valider et sauvegarder les champs de saisie
+  const validateAndSaveInput = useCallback(async (itemId: string) => {
+    if (currentUser?.uid) {
+      try {
+        await saveUserInputValues(currentUser.uid, inputValues);
+        // Animation visuelle temporaire pour indiquer la sauvegarde réussie
+        const inputElement = document.getElementById(`input-${itemId}`);
+        if (inputElement) {
+          inputElement.classList.add('bg-green-50');
+          setTimeout(() => {
+            inputElement.classList.remove('bg-green-50');
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la validation du champ de saisie:', error);
+      }
+    }
+  }, [inputValues, currentUser?.uid]);
+  
+  // Fonction pour effacer un champ de saisie
+  const clearInputField = useCallback(async (itemId: string) => {
+    const updatedValues = {
+      ...inputValues,
+      [itemId]: ''
+    };
+    
+    setInputValues(updatedValues);
+    
+    if (currentUser?.uid) {
+      try {
+        await saveUserInputValues(currentUser.uid, updatedValues);
+      } catch (error) {
+        console.error('Erreur lors de l\'effacement du champ de saisie:', error);
+      }
+    }
+  }, [inputValues, currentUser?.uid]);
 
   const phaseSections = getGuideSectionsByPhase ? getGuideSectionsByPhase(activePhase) : [];
   // const phaseResources = getResourcesByPhase ? getResourcesByPhase(activePhase) : [];
@@ -49,23 +257,109 @@ const Dashboard: React.FC = () => {
   const calculateProgressPercentage = (phase: GuidePhase) => {
     const phaseSectionsSafe = getGuideSectionsByPhase ? getGuideSectionsByPhase(phase) : [];
     if (!phaseSectionsSafe || phaseSectionsSafe.length === 0) return 0;
-    const completedPhaseSections = phaseSectionsSafe.filter(section => 
-      completedSections.includes(section.id)
-    );
-    return Math.round((completedPhaseSections.length / phaseSectionsSafe.length) * 100);
+    
+    // Calculer le nombre total de composants et ceux complétés
+    let totalComponents = 0;
+    let completedComponents = 0;
+    
+    phaseSectionsSafe.forEach(section => {
+      // Chaque section compte comme un composant de base
+      totalComponents++;
+      
+      // Si la section est marquée comme complétée
+      if (completedSections.includes(section.id)) {
+        completedComponents++;
+      }
+      
+      // Ajouter les sous-sections interactives au calcul
+      if (section.subSections && section.subSections.length > 0) {
+        section.subSections.forEach(subSection => {
+          // Traiter uniquement les sous-sections interactives (checkList et inputField)
+          if (subSection.type === 'checkList' || subSection.type === 'inputField') {
+            // Chaque item dans ces sous-sections compte dans la progression
+            const interactiveItemsCount = subSection.items.length;
+            totalComponents += interactiveItemsCount;
+            
+            // Calculer les items complétés
+            if (subSection.type === 'checkList') {
+              // Compter les cases cochées
+              subSection.items.forEach(item => {
+                if (checkedItems[item.id]) {
+                  completedComponents++;
+                }
+              });
+            } else if (subSection.type === 'inputField') {
+              // Compter les champs de saisie remplis
+              subSection.items.forEach(item => {
+                if (inputValues[item.id] && inputValues[item.id].trim() !== '') {
+                  completedComponents++;
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    // Calculer le pourcentage global
+    return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
 
   // Calcul de la progression globale (toutes phases confondues)
   const calculateGlobalProgress = () => {
     if (!guideSections || guideSections.length === 0) return 0;
-    const completed = guideSections.filter(section => completedSections.includes(section.id));
-    return Math.round((completed.length / guideSections.length) * 100);
+    
+    // Calculer le nombre total de composants et ceux complétés
+    let totalComponents = 0;
+    let completedComponents = 0;
+    
+    guideSections.forEach(section => {
+      // Chaque section compte comme un composant de base
+      totalComponents++;
+      
+      // Si la section est marquée comme complétée
+      if (completedSections.includes(section.id)) {
+        completedComponents++;
+      }
+      
+      // Ajouter les sous-sections interactives au calcul
+      if (section.subSections && section.subSections.length > 0) {
+        section.subSections.forEach(subSection => {
+          // Traiter uniquement les sous-sections interactives (checkList et inputField)
+          if (subSection.type === 'checkList' || subSection.type === 'inputField') {
+            // Chaque item dans ces sous-sections compte dans la progression
+            const interactiveItemsCount = subSection.items.length;
+            totalComponents += interactiveItemsCount;
+            
+            // Calculer les items complétés
+            if (subSection.type === 'checkList') {
+              // Compter les cases cochées
+              subSection.items.forEach(item => {
+                if (checkedItems[item.id]) {
+                  completedComponents++;
+                }
+              });
+            } else if (subSection.type === 'inputField') {
+              // Compter les champs de saisie remplis
+              subSection.items.forEach(item => {
+                if (inputValues[item.id] && inputValues[item.id].trim() !== '') {
+                  completedComponents++;
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    // Calculer le pourcentage global
+    return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
 
 
 
   // Affichage de chargement si les données ne sont pas encore chargées
-  if (!resources || !faqItems || !guideSections || progressLoading) {
+  if (!resources || !faqItems || !guideSections || progressLoading || subsectionDataLoading) {
     return <div className="p-8 text-center">Chargement du tableau de bord...</div>;
   }
 
@@ -80,8 +374,58 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 relative">
+        {/* Bouton d'aide flottant */}
+        <div className="fixed bottom-6 left-6 z-50">
+          <button
+            ref={helpButtonRef}
+            onClick={() => setShowHelp(!showHelp)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+            aria-label="Aide"
+            title="Comment ça fonctionne ?"
+          >
+            <Info className="w-6 h-6" />
+          </button>
+          
+          {/* Bulle d'aide */}
+          {showHelp && (
+            <div className="absolute bottom-16 left-0 w-72 bg-white rounded-lg shadow-xl p-4 text-sm animate-fade-in">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-gray-900">Comment ça fonctionne ?</h3>
+                <button 
+                  onClick={() => setShowHelp(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Fermer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="space-y-3 text-gray-700">
+                <div>
+                  <h4 className="font-medium text-blue-800 mb-1">Progression</h4>
+                  <p>Cocher toutes les cases et remplir tous les champs d'une section la marque automatiquement comme complétée.</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-blue-800 mb-1">Sections</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Naviguez entre les phases avec les onglets en haut</li>
+                    <li>Les sous-sections peuvent être des listes, cases à cocher ou champs</li>
+                    <li>Vos réponses sont automatiquement sauvegardées</li>
+                  </ul>
+                </div>
+                
+                <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                  <p>Cliquez sur <span className="inline-flex items-center"><Check className="w-3 h-3 text-green-500 mr-1" /></span> pour valider vos réponses</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
           {/* Main content */}
           <div className="lg:col-span-2">
             {/* Phases navigation */}
@@ -157,6 +501,99 @@ const Dashboard: React.FC = () => {
                             {section.title}
                           </h3>
                           <p className="text-gray-600 mb-4">{section.content}</p>
+                          
+                          {/* Sous-sections */}
+                          {section.subSections && section.subSections.length > 0 && (
+                            <div className="mt-4 space-y-4">
+                              {section.subSections.map((subSection) => (
+                                <div key={subSection.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                  <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
+                                    {subSection.type === 'bulletList' && <List className="w-4 h-4 text-blue-500 mr-2" />}
+                                    {subSection.type === 'checkList' && <CheckSquare className="w-4 h-4 text-green-500 mr-2" />}
+                                    {subSection.type === 'inputField' && <Type className="w-4 h-4 text-purple-500 mr-2" />}
+                                    {subSection.title}
+                                  </h4>
+                                  
+                                  <div className="ml-1">
+                                    {subSection.type === 'bulletList' && (
+                                      <ul className="list-disc pl-5 space-y-1">
+                                        {subSection.items.map(item => (
+                                          <li key={item.id} className="text-sm text-gray-700">{item.content}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    
+                                    {subSection.type === 'checkList' && (
+                                      <div className="space-y-2">
+                                        {subSection.items.map(item => (
+                                          <div key={item.id} className="flex items-start">
+                                            <input
+                                              type="checkbox"
+                                              id={`check-${item.id}`}
+                                              className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                              checked={checkedItems[item.id] || false}
+                                              onChange={() => handleCheckItemChange(item.id)}
+                                            />
+                                            <label htmlFor={`check-${item.id}`} className="ml-2 block text-sm text-gray-700">
+                                              {item.content}
+                                            </label>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    
+                                    {subSection.type === 'inputField' && (
+                                      <div className="space-y-2">
+                                        {subSection.items.map(item => (
+                                          <div key={item.id} className="group relative">
+                                            <div className="flex items-center bg-white overflow-hidden rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all shadow-sm hover:shadow">
+                                              <label 
+                                                htmlFor={`input-${item.id}`} 
+                                                className="flex-shrink-0 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 border-r border-gray-200 select-none">
+                                                {item.content}
+                                              </label>
+                                              <input
+                                                type="text"
+                                                id={`input-${item.id}`}
+                                                className="block w-full flex-1 px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 transition-colors duration-300"
+                                                placeholder="Entrez votre information"
+                                                value={inputValues[item.id] || ''}
+                                                onChange={(e) => handleInputChange(item.id, e.target.value)}
+                                              />
+                                              <div className="flex">
+                                                {inputValues[item.id] && (
+                                                  <>
+                                                    <button 
+                                                      className="p-2 text-green-500 hover:text-green-700 focus:outline-none" 
+                                                      onClick={() => validateAndSaveInput(item.id)}
+                                                      type="button"
+                                                      aria-label="Valider"
+                                                      title="Valider"
+                                                    >
+                                                      <Check className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <button 
+                                                      className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none" 
+                                                      onClick={() => clearInputField(item.id)}
+                                                      type="button"
+                                                      aria-label="Effacer"
+                                                      title="Effacer"
+                                                    >
+                                                      <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                  </>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           
                           {/* Associated resources */}
                           {Array.isArray(section.resources) && section.resources.length > 0 && (
