@@ -16,6 +16,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ResourceLibrary from './pages/ResourceLibrary';
 import FAQ from './pages/FAQ';
+import Forum from './pages/Forum';
+import ThreadView from './pages/ThreadView';
+import NewThread from './pages/NewThread';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminContentEditor from './pages/admin/AdminContentEditor';
 import AdminResourceManager from './pages/admin/AdminResourceManager';
@@ -82,6 +85,28 @@ function App() {
                   <ProtectedRoute>
                     <FAQ />
                   </ProtectedRoute>
+                } />
+                
+                {/* Forum Routes - Restreint au SuperAdmin uniquement */}
+                <Route path="/forum" element={
+                  <SuperAdminRoute>
+                    <Forum />
+                  </SuperAdminRoute>
+                } />
+                <Route path="/forum/category/:categoryId" element={
+                  <SuperAdminRoute>
+                    <Forum />
+                  </SuperAdminRoute>
+                } />
+                <Route path="/forum/thread/:threadId" element={
+                  <SuperAdminRoute>
+                    <ThreadView />
+                  </SuperAdminRoute>
+                } />
+                <Route path="/forum/new-thread" element={
+                  <SuperAdminRoute>
+                    <NewThread />
+                  </SuperAdminRoute>
                 } />
                 <Route path="/profile" element={
                   <ProtectedRoute>

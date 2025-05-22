@@ -3,7 +3,8 @@ import { getUserProgression, setUserProgression } from '../services/progressionS
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info } from 'lucide-react';
+import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users } from 'lucide-react';
+import SuperAdminCheck from '../components/routes/SuperAdminCheck';
 import { getUserSubsectionData, saveUserCheckItems, saveUserInputValues, cleanupSubsectionData } from '../services/subsectionDataService';
 
 const Dashboard: React.FC = () => {
@@ -29,6 +30,7 @@ const Dashboard: React.FC = () => {
   const [subsectionDataLoading, setSubsectionDataLoading] = useState<boolean>(true);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [progressLoading, setProgressLoading] = useState<boolean>(true);
+  // État de publication du forum
 
   // Fermer la bulle d'aide si on clique ailleurs
   useEffect(() => {
@@ -425,6 +427,41 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Forum Button */}
+          <div className="mb-4 lg:col-span-2">
+            <SuperAdminCheck
+              fallback={
+                <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gray-400 rounded-full p-2">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">Forum des étudiants</h3>
+                      <p className="text-xs text-gray-600">Bientôt disponible</p>
+                    </div>
+                  </div>
+                  <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">Nouveauté</span>
+                </div>
+              }
+            >
+              <div className="space-y-3">
+                <Link to="/forum" className="flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 rounded-full p-2">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-blue-800">Forum des étudiants</h3>
+                      <p className="text-xs text-blue-600">Discussions entre étudiants</p>
+                    </div>
+                  </div>
+                  <span className="text-blue-600 text-sm font-medium">Accéder →</span>
+                </Link>
+              </div>
+            </SuperAdminCheck>
+          </div>
           
           {/* Main content */}
           <div className="lg:col-span-2">
