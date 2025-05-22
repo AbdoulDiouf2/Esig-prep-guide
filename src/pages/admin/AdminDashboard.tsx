@@ -87,28 +87,30 @@ const AdminDashboard: React.FC = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold">Tableau de bord administrateur</h1>
-            <div className="flex space-x-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-2 md:gap-0">
+            <div className="order-1 md:order-none">
+              <h1 className="text-2xl font-bold">Tableau de bord administrateur</h1>
+              <p className="text-blue-100 mt-1">
+                Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} ! </strong> Gérez le contenu et les ressources de la plateforme.
+              </p>
+            </div>
+            <div className="order-2 md:order-none flex flex-col gap-2 sm:flex-row sm:space-x-2 sm:gap-0 w-full md:w-auto mt-2 md:mt-0">
               <Link 
                 to="/admin/future-features" 
-                className="flex items-center px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm rounded transition-colors"
+                className="flex items-center justify-center px-3 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm rounded transition-colors w-full sm:w-auto"
                 title="Voir les fonctionnalités futures"
               >
                 <Star className="h-4 w-4 mr-1" /> Fonctionnalités futures
               </Link>
               <Link 
                 to="/admin/tutorial" 
-                className="flex items-center px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-sm rounded transition-colors"
+                className="flex items-center justify-center px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-sm rounded transition-colors w-full sm:w-auto"
                 title="Consulter le guide d'administration"
               >
                 <HelpCircle className="h-4 w-4 mr-1" /> Tutoriel
               </Link>
             </div>
           </div>
-          <p className="text-blue-100">
-            Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} ! </strong> Gérez le contenu et les ressources de la plateforme.
-          </p>
         </div>
       </div>
       

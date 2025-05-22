@@ -6,6 +6,11 @@ import InfiniteLogoScroll from '../components/InfiniteLogoScroll';
 
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -52,7 +57,7 @@ const Home: React.FC = () => {
   <img
     src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
     alt="Campus universitaire"
-    className="rounded-lg shadow-lg w-full max-w-[320px] md:max-w-[380px] lg:max-w-[420px] h-auto object-cover"
+    className={`rounded-lg shadow-lg w-full max-w-[320px] md:max-w-[380px] lg:max-w-[420px] h-auto object-cover transition-opacity duration-700 ease-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}
   />
 </div>
           </div>
