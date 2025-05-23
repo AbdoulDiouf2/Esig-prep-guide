@@ -141,11 +141,23 @@ const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   // Guide section methods
   const addGuideSection = async (section: Omit<GuideSection, 'id'>) => {
-    await addDoc(collection(db, 'guideSections'), section);
+    // Ne pas envoyer subSections si vide
+    const dataToSend = { ...section };
+    if (!section.subSections || section.subSections.length === 0) {
+      delete dataToSend.subSections;
+    }
+    await addDoc(collection(db, 'guideSections'), dataToSend);
     await reloadAll();
   };
   const updateGuideSection = async (id: string, section: Partial<GuideSection>) => {
-    await updateDoc(doc(db, 'guideSections', id), section);
+    // Ne pas inclure subSections si vide ou undefined
+    const dataToUpdate = { ...section };
+    if ('subSections' in dataToUpdate) {
+      if (!dataToUpdate.subSections || dataToUpdate.subSections.length === 0) {
+        delete dataToUpdate.subSections;
+      }
+    }
+    await updateDoc(doc(db, 'guideSections', id), dataToUpdate);
     await reloadAll();
   };
   const deleteGuideSection = async (id: string) => {
@@ -216,3 +228,4 @@ const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 }
 
 export { ContentProvider };
+
