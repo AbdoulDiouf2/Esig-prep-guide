@@ -105,11 +105,18 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="order-2 md:order-none flex flex-col gap-2 sm:flex-row sm:space-x-2 sm:gap-0 w-full md:w-auto mt-2 md:mt-0">
               <Link 
-                to="/admin/future-features" 
-                className="flex items-center justify-center px-3 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm rounded transition-colors w-full sm:w-auto"
-                title="Voir les fonctionnalités futures"
+                to="/admin/feedbacks" 
+                className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
               >
-                <Star className="h-4 w-4 mr-1" /> Fonctionnalités futures
+                <MessageSquare className="w-4 h-4 mr-1.5" />
+                Feedbacks
+              </Link>
+              <Link 
+                to="/admin/future-features" 
+                className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
+              >
+                <Star className="w-4 h-4 mr-1.5" />
+                Fonctionnalités à venir
               </Link>
               <Link 
                 to="/admin/tutorial" 

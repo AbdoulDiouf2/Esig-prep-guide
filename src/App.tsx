@@ -30,12 +30,14 @@ import AdminProgressionOverview from './pages/admin/AdminProgressionOverview';
 import AdminDropboxManager from './pages/admin/AdminDropboxManager';
 import FutureFeatures from './pages/admin/FutureFeatures';
 import TestFirebase from './pages/TestFirebase';
+import FeedbackAdmin from './pages/admin/FeedbackAdmin';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
 import UserTutorial from './pages/UserTutorial';
 import Help from './pages/Help';
 import ChatAI from './pages/ChatAI';
 import ResetPassword from './pages/ResetPassword';
+import Feedback from './pages/Feedback';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -86,6 +88,7 @@ function App() {
                     <FAQ />
                   </ProtectedRoute>
                 } />
+                <Route path="/feedback" element={<Feedback />} />
                 
                 {/* Forum Routes - Restreint au SuperAdmin uniquement */}
                 <Route path="/forum" element={
@@ -178,6 +181,11 @@ function App() {
                 <Route path="/admin/future-features" element={
                   <AdminRoute>
                     <FutureFeatures />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/feedbacks" element={
+                  <AdminRoute>
+                    <FeedbackAdmin />
                   </AdminRoute>
                 } />
                 

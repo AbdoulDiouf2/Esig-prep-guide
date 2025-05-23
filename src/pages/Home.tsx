@@ -250,6 +250,22 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Feedback CTA Section */}
+      <section className="py-12 bg-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 flex flex-col items-center text-center border border-blue-100">
+            <h2 className="text-2xl md:text-3xl font-bold text-blue-900 mb-3">Votre avis compte !</h2>
+            <p className="text-blue-800 mb-6">Aidez-nous à améliorer la plateforme en partageant vos suggestions, remarques ou critiques constructives. Nous lisons chaque retour avec attention.</p>
+            <Link
+              to="/feedback"
+              className="inline-block px-6 py-3 bg-blue-700 text-white font-semibold rounded-lg shadow hover:bg-blue-800 transition-colors text-lg"
+            >
+              Donner mon avis
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-r from-green-800 to-green-700 text-white">
         <div className="container mx-auto px-4 text-center">
