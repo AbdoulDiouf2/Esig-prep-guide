@@ -4,6 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## 📋 Sommaire
@@ -42,10 +43,13 @@
 - **Phase Pre-Arrival**: Informations pour préparer l'arrivée en France et à l'ESIGELEC
 
 ### ❓ Système de FAQ interactif
-- FAQ organisées par catégories et phases du processus
-- Possibilité pour les utilisateurs de **soumettre leurs propres questions**
-- **Message de confirmation** après soumission d'une question
-- Stockage de l'**identifiant (uid)** et de l'**email** de l'utilisateur lors de la soumission
+- FAQ organisées par catégories et phases du processus (post-CPS, démarches, pré-arrivée)
+- Possibilité pour les utilisateurs de **soumettre leurs propres questions** avec catégorisation
+- **Message de confirmation** après soumission d'une question avec informations sur le suivi
+- **Vue personnalisée** des questions pour les utilisateurs connectés (questions répondues vs. en attente)
+- Filtrage par type de question (spécifique à une phase, liée au site, ou générale)
+- Recherche textuelle dans les questions, réponses et catégories
+- Stockage de l'**identifiant (uid)** et de l'**email** de l'utilisateur lors de la soumission pour le suivi
 
 ### 👤 Gestion des utilisateurs
 - **Authentification** via email/mot de passe, Google ou GitHub
@@ -75,10 +79,12 @@
 
 ### Backend & Services
 - **Firebase**
-  - Authentication pour la gestion des utilisateurs
-  - Firestore pour le stockage des données
-- **Dropbox API** pour la gestion des fichiers
-- **GitHub Pages** pour le déploiement
+  - Authentication pour la gestion des utilisateurs (email/mot de passe, Google, GitHub)
+  - Firestore pour le stockage structuré des données (utilisateurs, ressources, FAQ, sections)
+  - Analytics pour le suivi de l'utilisation
+- **Dropbox API** pour la gestion des fichiers et ressources
+- **EmailJS** pour l'envoi de notifications par email
+- **Options de déploiement**: GitHub Pages, Netlify, Firebase Hosting
 
 ## 💻 Installation
 
@@ -134,17 +140,24 @@ src/
 │   ├── auth/              # Composants d'authentification
 │   ├── layout/            # Composants structurels (Header, Footer)
 │   ├── legal/             # Composants liés aux aspects juridiques
-│   └── notifications/     # Composants de notification
-├── contexts/              # Contextes React
-│   ├── AuthContext.tsx    # Gestion de l'authentification
+│   └── ui/                # Composants d'interface utilisateur
+├── contexts/              # Contextes React pour la gestion d'état global
+│   ├── AuthContext.tsx    # Gestion de l'authentification et des utilisateurs
 │   └── ContentContext.tsx # Gestion du contenu (ressources, guide, FAQ)
-├── hooks/                 # Hooks personnalisés
-├── pages/                 # Pages principales
-│   ├── admin/             # Interface d'administration
-│   └── legal/             # Pages juridiques
-├── services/              # Services externes (Firebase, Dropbox)
-├── utils/                 # Fonctions utilitaires
-├── firebase.ts            # Configuration Firebase
+├── hooks/                 # Hooks personnalisés pour la réutilisation de logique
+├── pages/                 # Pages principales de l'application
+│   ├── admin/             # Interface d'administration complète
+│   ├── legal/             # Pages juridiques (CGU, confidentialité)
+│   ├── Dashboard.tsx      # Tableau de bord utilisateur
+│   ├── FAQ.tsx            # Système de FAQ interactif
+│   ├── ResourceLibrary.tsx # Bibliothèque de ressources
+│   └── ...                # Autres pages
+├── services/              # Services d'accès aux données et APIs
+│   ├── dropbox/           # Intégration avec Dropbox
+│   └── firebase/          # Services Firebase spécifiques
+├── types/                 # Types TypeScript partagés dans l'application
+├── utils/                 # Fonctions utilitaires et helpers
+├── firebase.ts            # Configuration centrale Firebase
 └── App.tsx                # Point d'entrée avec routage
 ```
 
@@ -154,11 +167,13 @@ src/
 
 1. **Configurer le basename dans App.tsx**
    Assurez-vous que le routeur est configuré avec le bon basename:
+
    ```jsx
    <Router basename="/Esig-prep-guide">
    ```
 
 2. **Construire l'application**
+
    ```bash
    npm run build
    # ou
@@ -166,15 +181,59 @@ src/
    ```
 
 3. **Déployer**
+
    ```bash
    npm run deploy
    # ou
    yarn deploy
    ```
 
-### Déploiement sur d'autres plateformes
+### Déploiement sur Netlify
 
-Le projet peut également être déployé sur d'autres plateformes comme Netlify, Vercel ou Firebase Hosting avec des configurations minimales.
+1. **Connecter votre dépôt GitHub à Netlify**
+
+2. **Configurer les paramètres de build**
+   - Build command: `npm run build` ou `yarn build`
+   - Publish directory: `dist`
+   - Variables d'environnement: Ajoutez les mêmes variables que dans votre fichier `.env`
+
+3. **Configurer les redirections pour SPA**
+   Créez un fichier `netlify.toml` à la racine du projet:
+
+   ```toml
+   [[redirects]]
+     from = "/*"
+     to = "/index.html"
+     status = 200
+   ```
+
+### Déploiement sur Firebase Hosting
+
+1. **Installer Firebase CLI**
+
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. **Connexion à Firebase**
+
+   ```bash
+   firebase login
+   ```
+
+3. **Initialiser Firebase dans le projet**
+
+   ```bash
+   firebase init
+   ```
+
+   Sélectionnez Hosting et suivez les instructions.
+
+4. **Déployer**
+
+   ```bash
+   firebase deploy
+   ```
 
 ## 📝 Licence
 
@@ -190,4 +249,4 @@ Projet: [https://github.com/AbdoulDiouf2/Esig-prep-guide](https://github.com/Abd
 
 Développé avec ❤️ pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
 
-Dernière mise à jour: Mai 2025
+Dernière mise à jour: 23 Mai 2025
