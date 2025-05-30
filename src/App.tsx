@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ContentProvider } from './contexts/ContentContext';
 import Header from './components/layout/Header';
@@ -50,7 +50,7 @@ function App() {
   return (
     <AuthProvider>
       <ContentProvider>
-        <Router basename="/Esig-prep-guide">
+        <Router>
           <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
             <main className="flex-grow">
