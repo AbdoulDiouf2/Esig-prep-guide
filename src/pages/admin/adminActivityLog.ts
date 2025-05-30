@@ -10,12 +10,19 @@ export interface LogActivityParams {
 }
 
 export async function logAdminActivity({ type, target, targetId, user, details }: LogActivityParams) {
-  await addDoc(collection(db, 'adminActivityLog'), {
-    type,
-    target,
-    targetId: targetId || null,
-    user: user || null,
-    date: new Date().toISOString(),
-    details: details || null,
-  });
+  try {
+    await addDoc(collection(db, 'adminActivityLog'), {
+      type,
+      target,
+      targetId: targetId || null,
+      user: user || null,
+      date: new Date().toISOString(),
+      details: details || null,
+    });
+    console.log('Activité administrative enregistrée avec succès');
+  } catch (error) {
+    // Logger l'erreur mais ne pas la remonter pour ne pas bloquer l'opération principale
+    console.error('Erreur lors de l\'enregistrement de l\'activité administrative:', error);
+    // Retourner silencieusement - ne pas bloquer l'opération principale
+  }
 }

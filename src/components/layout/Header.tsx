@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
-  const { currentUser, logout, isAdmin } = useAuth();
+  const { currentUser, logout, isAdmin, isEditor } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -98,16 +98,26 @@ const Header: React.FC = () => {
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}>
                     <Bot className="w-4 h-4 mr-1" />
-                    <span className="md:hidden lg:inline">Assistant IA</span>
-                    <span className="md:inline lg:hidden">IA</span>
+                    <span>Assistant IA</span>
                   </Link>
                 </SuperAdminCheck>
+                
                 {isAdmin() && (
-                  <Link to="/admin" className={`flex items-center px-2 md:px-2 lg:px-3 py-1 md:py-1 lg:py-1.5 rounded-full bg-blue-700 hover:bg-blue-600 text-white transition-colors text-sm lg:text-base ${
-                    isScrolled ? 'shadow-md' : ''
+                  <Link to="/admin" className={`flex items-center text-white bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm ${
+                    location.pathname.startsWith('/admin') ? 'bg-blue-600' : ''
                   }`}>
                     <Shield className="w-4 h-4 mr-1" />
                     <span>Admin</span>
+                  </Link>
+                )}
+
+                {/* Bouton Édition pour les éditeurs dans le header principal */}
+                {isEditor() && !isAdmin() && (
+                  <Link to="/editor" className={`flex items-center text-white bg-green-700 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm ${
+                    location.pathname.startsWith('/editor') ? 'bg-green-600' : ''
+                  }`}>
+                    <Edit className="w-4 h-4 mr-1" />
+                    <span>Édition</span>
                   </Link>
                 )}
               </>
@@ -149,6 +159,15 @@ const Header: React.FC = () => {
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         <span>Administration</span>
+                      </Link>
+                    )}
+                    {isEditor() && !isAdmin() && (
+                      <Link 
+                        to="/editor" 
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        <span>Edition</span>
                       </Link>
                     )}
                     <button 
@@ -268,6 +287,15 @@ const Header: React.FC = () => {
                     >
                       <Shield className="w-4 h-4 mr-1.5" />
                       <span>Administration</span>
+                    </Link>
+                  )}
+                  {isEditor() && !isAdmin() && (
+                    <Link 
+                      to="/editor" 
+                      className="flex items-center px-3 py-1.5 my-2 rounded-full bg-green-700 hover:bg-green-600 text-white transition-colors shadow-md"
+                    >
+                      <Edit className="w-4 h-4 mr-1.5" />
+                      <span>Edition</span>
                     </Link>
                   )}
                   <button 

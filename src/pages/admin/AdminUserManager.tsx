@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
 
@@ -34,13 +34,13 @@ async function fetchAllFirebaseAuthUsers(apiKey: string): Promise<FirebaseAuthUs
   return users;
 }
 
-
 interface UserDoc {
   uid: string;
   email: string;
   displayName: string;
   isAdmin: boolean;
   isSuperAdmin?: boolean; // Ajouté pour la gestion du super admin
+  isEditor?: boolean;     // Ajouté pour la gestion des éditeurs
   emailVerified: boolean;
   photoURL?: string;
 }
@@ -49,7 +49,7 @@ const AdminUserManager: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-  const [pendingUser, setPendingUser] = useState<{uid: string, isAdmin: boolean} | null>(null);
+  const [pendingUser, setPendingUser] = useState<{uid: string, action: 'toggleAdmin' | 'toggleEditor'} | null>(null);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +57,7 @@ const AdminUserManager: React.FC = () => {
   const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
   const [missingProfiles, setMissingProfiles] = useState<FirebaseAuthUser[]>([]);
   const { currentUser } = useAuth();
+  const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
   const navigate = useNavigate();
   const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || '';
 
@@ -107,9 +108,23 @@ const AdminUserManager: React.FC = () => {
     }
   }, [authUsers, users]);
 
-  const handleToggleAdmin = async (uid: string, isAdmin: boolean) => {
+  // Vérifier si l'utilisateur actuel est un super admin
+  useEffect(() => {
+    if (currentUser && users.length > 0) {
+      const userProfile = users.find(u => u.uid === currentUser.uid);
+      setCurrentUserIsSuperAdmin(!!userProfile?.isSuperAdmin);
+    }
+  }, [currentUser, users]);
+
+  const handleToggleAdmin = async (uid: string) => {
     setModalOpen(true);
-    setPendingUser({ uid, isAdmin });
+    setPendingUser({ uid, action: 'toggleAdmin' });
+    setModalError(null);
+  };
+
+  const handleToggleEditor = async (uid: string) => {
+    setModalOpen(true);
+    setPendingUser({ uid, action: 'toggleEditor' });
     setModalError(null);
   };
 
@@ -124,28 +139,37 @@ const AdminUserManager: React.FC = () => {
     }
     // Vérification super admin
     const targetUser = users.find(u => u.uid === pendingUser.uid);
-    if (targetUser?.isSuperAdmin && targetUser.uid !== currentUser?.uid) {
+    // Permettre à un super admin de modifier d'autres super admins
+    if (targetUser?.isSuperAdmin && targetUser.uid !== currentUser?.uid && !currentUserIsSuperAdmin) {
       setModalError("Impossible de modifier le rôle d'un admin principal.");
       setModalLoading(false);
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', pendingUser.uid), { isAdmin: !pendingUser.isAdmin });
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.uid === pendingUser.uid ? { ...user, isAdmin: !pendingUser.isAdmin } : user
-        )
-      );
+      if (pendingUser.action === 'toggleAdmin') {
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isAdmin: !targetUser?.isAdmin });
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.uid === pendingUser.uid ? { ...user, isAdmin: !user.isAdmin } : user
+          )
+        );
+      } else if (pendingUser.action === 'toggleEditor') {
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isEditor: !targetUser?.isEditor });
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.uid === pendingUser.uid ? { ...user, isEditor: !user.isEditor } : user
+          )
+        );
+      }
       setModalOpen(false);
       setPendingUser(null);
-    } catch {
-      setModalError('Erreur lors de la mise à jour du statut administrateur.');
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      setModalError('Erreur lors de la mise à jour du statut utilisateur.');
     } finally {
       setModalLoading(false);
     }
   };
-
-  
 
   // Création d'un profil Firestore pour un utilisateur Auth
   const handleCreateFirestoreProfile = async (authUser: FirebaseAuthUser) => {
@@ -155,6 +179,7 @@ const AdminUserManager: React.FC = () => {
         email: authUser.email,
         displayName: authUser.displayName || '',
         isAdmin: false,
+        isEditor: false,
         emailVerified: authUser.emailVerified || false,
         photoURL: authUser.photoUrl || '',
       });
@@ -207,17 +232,17 @@ const AdminUserManager: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2">Nom</th>
-                  <th className="px-4 py-2">Email</th>
-                  <th className="px-4 py-2">Admin</th>
-                  <th className="px-4 py-2">Actions</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
-                  <tr key={user.uid}>
+                  <tr key={user.uid} className="hover:bg-gray-50">
                     <td className="px-4 py-2 flex items-center cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/admin/users/${user.uid}`)}>
                       {user.photoURL ? (
                         <img src={user.photoURL} alt={user.displayName || user.email} className="w-8 h-8 rounded-full mr-2 object-cover bg-gray-200" />
@@ -236,44 +261,77 @@ const AdminUserManager: React.FC = () => {
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2">
-                      {user.isAdmin ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          <Shield className="w-4 h-4 mr-1" /> Admin
-                        </span>
-                      ) : (
-                        <span className="text-gray-500 text-xs">Standard</span>
-                      )}
-                      {user.isSuperAdmin && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
-                      )}
+                      <div className="flex flex-col space-y-1">
+                        {user.isAdmin ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <Shield className="w-4 h-4 mr-1" /> Admin
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 text-xs">Standard</span>
+                        )}
+                        
+                        {user.isEditor && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            <Edit className="w-4 h-4 mr-1" /> Éditeur
+                          </span>
+                        )}
+                        
+                        {user.isSuperAdmin && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-2">
-                      {user.uid !== currentUser?.uid && !user.isSuperAdmin && (
-                        <button
-                          onClick={() => handleToggleAdmin(user.uid, user.isAdmin)}
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                        >
-                          {user.isAdmin ? (
-                            <>
-                              <UserMinus className="w-4 h-4 mr-1" /> Retirer admin
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus className="w-4 h-4 mr-1" /> Promouvoir admin
-                            </>
-                          )}
-                        </button>
-                      )}
-                      {user.uid !== currentUser?.uid && user.isSuperAdmin && (
-                        <button
-                          className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
-                          disabled={true}
-                          title="Impossible de modifier le rôle d'un admin principal"
-                        >
-                          Impossible de modifier
-                        </button>
-                      )}
-                      
+                      {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {user.uid !== currentUser?.uid && (
+                          ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
+                            <button
+                              onClick={() => handleToggleAdmin(user.uid)}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                            >
+                              {user.isAdmin ? (
+                                <>
+                                  <UserMinus className="w-4 h-4 mr-1" /> Retirer admin
+                                </>
+                              ) : (
+                                <>
+                                  <UserPlus className="w-4 h-4 mr-1" /> Promouvoir admin
+                                </>
+                              )}
+                            </button>
+                          )
+                        )}
+
+                        {user.uid !== currentUser?.uid && (
+                          ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
+                            <button
+                              onClick={() => handleToggleEditor(user.uid)}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isEditor ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                            >
+                              {user.isEditor ? (
+                                <>
+                                  <X className="w-4 h-4 mr-1" /> Retirer éditeur
+                                </>
+                              ) : (
+                                <>
+                                  <Edit className="w-4 h-4 mr-1" /> Promouvoir éditeur
+                                </>
+                              )}
+                            </button>
+                          )
+                        )}
+                        
+                        {user.uid !== currentUser?.uid && user.isSuperAdmin && !currentUserIsSuperAdmin && (
+                          <button
+                            className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
+                            disabled={true}
+                            title="Impossible de modifier le rôle d'un admin principal"
+                          >
+                            Impossible de modifier
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

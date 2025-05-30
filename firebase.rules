@@ -1,0 +1,229 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonctions utilitaires
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin == true;
+    }
+    
+    function isEditor() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isEditor == true;
+    }
+    
+
+// Règles pour la collection users
+    match /users/{userId} {
+      // Un utilisateur ne peut accéder qu'à son propre profil
+      // Les admins et super admins peuvent voir tous les profils
+      // Les éditeurs n'ont pas accès aux profils des autres utilisateurs
+      allow read: if isOwner(userId) || isAdmin() || isSuperAdmin();
+      
+      // Seul le propriétaire peut modifier son profil de base
+      allow update: if isOwner(userId) && 
+                      (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isEditor', 'isSuperAdmin']));
+      
+      // Seuls les administrateurs peuvent modifier le statut admin et éditeur
+      // Mais un admin normal ne peut pas modifier un super admin
+      allow update: if isAdmin() && (
+                      !resource.data.isSuperAdmin || isSuperAdmin()
+                    );
+      
+      // Permet aux super admins de supprimer n'importe quel utilisateur
+      allow delete: if isSuperAdmin();
+      
+      // Création autorisée lors de l'inscription
+      // Règle modifiée pour éviter la dépendance circulaire
+      allow create: if isAuthenticated() && 
+                    request.auth.uid == userId && 
+                    (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false) && 
+                    (!('isEditor' in request.resource.data) || request.resource.data.isEditor == false) && 
+                    (!('isSuperAdmin' in request.resource.data) || request.resource.data.isSuperAdmin == false);
+    }
+    
+    // Règles pour les questions FAQ
+    match /faq/{faqId} {
+      // Tout le monde peut lire les questions/réponses publiques
+      allow read: if true;
+      
+      // Les utilisateurs authentifiés peuvent créer des questions
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.userEmail == request.auth.token.email;
+      
+      // Les admins et éditeurs peuvent répondre aux questions
+      allow update: if isAdmin() || isEditor();
+      
+      // Le propriétaire, les admins et les éditeurs peuvent supprimer
+      allow delete: if isOwner(resource.data.userId) || isAdmin() || isEditor();
+    }
+    
+    // Règles pour les sections du guide
+    match /guideSections/{sectionId} {
+      // Tout le monde peut lire le contenu des guides
+      allow read: if true;
+      
+      // Les administrateurs et éditeurs peuvent modifier le contenu
+      allow write: if isAdmin() || isEditor();
+    }
+    
+    // Règles pour les ressources
+    match /resources/{resourceId} {
+      // Tout le monde peut lire les ressources
+      allow read: if true;
+      
+      // Les administrateurs et éditeurs peuvent ajouter/modifier des ressources
+      allow write: if isAdmin() || isEditor();
+    }
+    
+    // Règles pour la progression utilisateur - pas d'accès pour les éditeurs
+    match /progressions/{userId} {
+      // L'utilisateur peut lire et écrire sa propre progression
+      // Un admin peut lire la progression de tous les utilisateurs
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+    
+    // Règles pour le log d'activité admin - accès pour les éditeurs et admins
+    match /adminActivity/{logId} {
+      // Les admins et éditeurs peuvent lire et écrire dans cette collection
+      allow read: if isAdmin() || isEditor();
+      allow create: if isAdmin() || isEditor();
+      // Pas de mise à jour/suppression des logs pour l'intégrité des données
+      allow update, delete: if false;
+    }
+    
+    // Support pour l'ancienne collection adminActivityLog
+    match /adminActivityLog/{logId} {
+      // Les admins et éditeurs peuvent lire et écrire dans cette collection
+      allow read: if isAdmin() || isEditor();
+      allow create: if isAdmin() || isEditor();
+      // Pas de mise à jour/suppression des logs pour l'intégrité des données
+      allow update, delete: if false;
+    }
+    
+    // Règles pour les données des sous-sections (cases à cocher et champs de saisie)
+    match /userSubsectionData/{userId} {
+      // L'utilisateur peut lire et écrire ses propres données de sous-sections
+      // Un admin peut lire les données de tous les utilisateurs
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+    
+    // Règles pour les notifications
+    match /notifications/{notificationId} {
+      // Les utilisateurs peuvent lire leurs propres notifications et les notifications globales
+      allow read: if isAuthenticated() && (
+                    resource.data.userId == request.auth.uid || 
+                    resource.data.userId == null || 
+                    (resource.data.type == 'admin' && (isAdmin() || isEditor()))
+                  );
+      
+      // Les administrateurs et éditeurs peuvent créer des notifications globales
+      allow create: if (isAdmin() || isEditor()) && (
+                      request.resource.data.userId == null || 
+                      request.resource.data.type == 'admin'
+                    );
+                    
+      // Les utilisateurs peuvent créer des notifications spécifiques pour eux-mêmes
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+                      
+      // Les utilisateurs peuvent marquer leurs propres notifications comme lues
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+                      
+      // Les administrateurs et éditeurs peuvent mettre à jour n'importe quelle notification
+      allow update: if isAdmin() || isEditor();
+      
+      // Les utilisateurs peuvent supprimer leurs propres notifications
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Les administrateurs et éditeurs peuvent supprimer n'importe quelle notification
+      allow delete: if isAdmin() || isEditor();
+    }
+    
+    // NOUVELLES RÈGLES POUR LE FORUM
+    
+    // Règles pour les catégories du forum
+    match /forumCategories/{categoryId} {
+      // Tout utilisateur authentifié peut lire les catégories
+      allow read: if isAuthenticated();
+      
+      // Les administrateurs et éditeurs peuvent créer/modifier/supprimer des catégories
+      allow write: if isAdmin() || isEditor();
+    }
+    
+    // Règles pour les discussions du forum
+    match /forumThreads/{threadId} {
+      // Tout utilisateur authentifié peut lire les discussions
+      allow read: if isAuthenticated();
+      
+      // Les utilisateurs authentifiés peuvent créer des discussions
+      allow create: if isAuthenticated() && 
+                     request.resource.data.authorId == request.auth.uid;
+      
+      // Les propriétaires peuvent modifier le contenu de leurs discussions
+      allow update: if isAuthenticated() && 
+                     resource.data.authorId == request.auth.uid &&
+                     !request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['isPinned', 'isLocked']);
+      
+      // Les administrateurs et éditeurs peuvent épingler ou verrouiller des discussions
+      allow update: if isAdmin() || isEditor();
+      
+      // Les propriétaires, administrateurs et éditeurs peuvent supprimer des discussions
+      allow delete: if isAuthenticated() && 
+                     (resource.data.authorId == request.auth.uid || isAdmin() || isEditor());
+    }
+    
+    // Règles pour les messages du forum
+    match /forumPosts/{postId} {
+      // Tout utilisateur authentifié peut lire les messages
+      allow read: if isAuthenticated();
+      
+      // Les utilisateurs authentifiés peuvent créer des messages
+      allow create: if isAuthenticated() && 
+                     request.resource.data.authorId == request.auth.uid;
+      
+      // Les propriétaires peuvent modifier leurs propres messages
+      allow update: if isAuthenticated() && 
+                     resource.data.authorId == request.auth.uid;
+      
+      // Les propriétaires, administrateurs et éditeurs peuvent supprimer des messages
+      allow delete: if isAuthenticated() && 
+                     (resource.data.authorId == request.auth.uid || isAdmin() || isEditor());
+    }
+    
+    // Règles pour la collection feedback
+    match /feedback/{feedbackId} {
+      // Les admins et éditeurs peuvent lire tous les feedbacks
+      allow read: if isAdmin() || isEditor();
+
+      // Les utilisateurs authentifiés peuvent créer un feedback
+      allow create: if isAuthenticated() && (
+        !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid
+      );
+
+      // Personne ne peut modifier un feedback après création
+      allow update, delete: if false;
+    }
+    
+    // Règle par défaut - bloquer tout autre accès
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

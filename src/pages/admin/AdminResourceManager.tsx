@@ -44,7 +44,28 @@ interface DropboxError {
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentUser  } = useAuth();
+  const { currentUser, isAdmin, isEditor  } = useAuth();
+  
+  // Déterminer si l'utilisateur est en mode admin ou éditeur en fonction de l'URL et des droits
+  const urlIndicatesAdmin = window.location.href.includes('/admin/');
+  
+  // Si l'URL est de type admin mais que l'utilisateur n'est qu'un éditeur, force le mode éditeur
+  const isAdminMode = urlIndicatesAdmin ? isAdmin : false;
+  
+  // Rediriger les éditeurs qui tentent d'accéder à l'interface admin
+  useEffect(() => {
+    if (urlIndicatesAdmin && !isAdmin && isEditor) {
+      // Rediriger vers l'interface éditeur avec les mêmes paramètres
+      const currentParams = window.location.search;
+      navigate(`/editor/resources${currentParams}`);
+    }
+  }, [urlIndicatesAdmin, isAdmin, isEditor, navigate]);
+  
+  // Fonction pour construire les liens en fonction du rôle de l'utilisateur
+  const buildEditLink = (id: string) => {
+    const baseUrl = isAdminMode ? '/admin' : '/editor';
+    return `${baseUrl}/resources?edit=${id}`;
+  };
   const { 
     resources, 
     addResource, 
@@ -738,7 +759,7 @@ const AdminResourceManager: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Ressources</h2>
                 <button
-                  onClick={() => navigate('/admin/resources?new=resource')}
+                  onClick={() => navigate(`${isAdminMode ? '/admin' : '/editor'}/resources?new=resource`)}
                   className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -755,7 +776,7 @@ const AdminResourceManager: React.FC = () => {
                       {resourcesByPhase['post-cps'].map(resource => (
                         <li key={resource.id}>
                           <button
-                            onClick={() => navigate(`/admin/resources?edit=${resource.id}`)}
+                            onClick={() => navigate(buildEditLink(resource.id))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editResourceId === resource.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}
@@ -784,7 +805,7 @@ const AdminResourceManager: React.FC = () => {
                       {resourcesByPhase['during-process'].map(resource => (
                         <li key={resource.id}>
                           <button
-                            onClick={() => navigate(`/admin/resources?edit=${resource.id}`)}
+                            onClick={() => navigate(buildEditLink(resource.id))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editResourceId === resource.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}
@@ -813,7 +834,7 @@ const AdminResourceManager: React.FC = () => {
                       {resourcesByPhase['pre-arrival'].map(resource => (
                         <li key={resource.id}>
                           <button
-                            onClick={() => navigate(`/admin/resources?edit=${resource.id}`)}
+                            onClick={() => navigate(buildEditLink(resource.id))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editResourceId === resource.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}

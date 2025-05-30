@@ -21,6 +21,7 @@ export type AppUser = {
   emailVerified: boolean;
   isAdmin: boolean;
   isSuperAdmin?: boolean;
+  isEditor?: boolean;
   createdAt?: Date;
   photoURL?: string;
 };
@@ -34,6 +35,7 @@ type AuthContextType = {
   loginWithGithub: () => Promise<AppUser | null>;
   logout: () => Promise<void>;
   isAdmin: () => boolean;
+  isEditor: () => boolean;
   isSuperAdmin: () => Promise<boolean>;
   sendVerificationEmail: () => Promise<void>;
 };
@@ -63,6 +65,7 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     emailVerified: firebaseUser.emailVerified,
     isAdmin: userData?.isAdmin || false,
     isSuperAdmin: userData?.isSuperAdmin || false,
+    isEditor: userData?.isEditor || false,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
     createdAt: userData?.createdAt?.toDate()
   };
@@ -84,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: firebaseUser.email || '',
             emailVerified: firebaseUser.emailVerified,
             isAdmin: false,
+            isEditor: false,
             createdAt: serverTimestamp(),
             ...(firebaseUser.displayName ? { displayName: firebaseUser.displayName } : {}),
             ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
@@ -122,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: user.email || '',
         emailVerified: user.emailVerified,
         isAdmin: false, // Par défaut, l'utilisateur n'est pas admin
+        isEditor: false, // Par défaut, l'utilisateur n'est pas éditeur
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         ...(displayName ? { displayName } : {}),
@@ -193,7 +198,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Vérifier si l'utilisateur est administrateur
   const isAdmin = () => {
-    return currentUser?.isAdmin || false;
+    return Boolean(currentUser && currentUser.isAdmin);
+  };
+
+  // Vérifier si l'utilisateur est éditeur
+  const isEditor = () => {
+    return Boolean(currentUser && currentUser.isEditor);
   };
 
   // Vérifier si l'utilisateur est superadmin
@@ -214,95 +224,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Connexion avec Google
   const loginWithGoogle = async (): Promise<AppUser | null> => {
-    const provider = new GoogleAuthProvider();
-    let user = null;
-    try {
-      const result = await signInWithPopup(auth, provider);
-      user = result.user;
-      console.log('[Google] Utilisateur connecté:', user);
+  const provider = new GoogleAuthProvider();
+  let user = null;
+  try {
+    const result = await signInWithPopup(auth, provider);
+    user = result.user;
+    console.log('[Google] Utilisateur connecté:', user);
 
-      // Vérifier si le document utilisateur existe déjà
-      const userDocRef = doc(db, 'users', user.uid);
-      const userSnapshot = await getDoc(userDocRef);
+    // Vérifier si le document utilisateur existe déjà
+    const userDocRef = doc(db, 'users', user.uid);
+    let userSnapshot;
+    
+    try {
+      userSnapshot = await getDoc(userDocRef);
       console.log('[Google] Document utilisateur existe:', userSnapshot.exists());
 
       if (!userSnapshot.exists()) {
-        // Création du document utilisateur avec isAdmin: false par défaut
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          emailVerified: user.emailVerified,
-          isAdmin: false,
-          createdAt: serverTimestamp(),
-          photoURL: user.photoURL ?? undefined,
-        });
-        console.log('[Google] Document utilisateur créé dans Firestore');
+        try {
+          // Création du document utilisateur avec isAdmin: false par défaut
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            emailVerified: user.emailVerified,
+            isAdmin: false,
+            isEditor: false,
+            createdAt: serverTimestamp(),
+            photoURL: user.photoURL ?? undefined,
+          });
+          console.log('[Google] Document utilisateur créé dans Firestore');
+        } catch (firestoreError) {
+          console.error('[Google] Erreur lors de la création du document utilisateur:', firestoreError);
+          // On continue quand même pour permettre la connexion, même si le document n'a pas pu être créé
+        }
       }
-
-      // Retourne l'utilisateur sous forme AppUser
-      const appUser: AppUser = {
-        uid: user.uid,
-        email: user.email || '',
-        displayName: user.displayName || '',
-        emailVerified: user.emailVerified,
-        isAdmin: userSnapshot.exists() ? userSnapshot.data().isAdmin : false,
-        createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
-        photoURL: user.photoURL ?? undefined,
-      };
-      console.log('[Google] AppUser retourné:', appUser);
-      return appUser;
-    } catch (error) {
-      console.error('[Google] Erreur dans loginWithGoogle:', error, user);
-      throw error;
+    } catch (firestoreError) {
+      console.error('[Google] Erreur lors de la vérification du document utilisateur:', firestoreError);
+      // On suppose que le document n'existe pas mais on continue la connexion
+      userSnapshot = { exists: () => false, data: () => ({ isAdmin: false, isEditor: false }) };
     }
-  };
+
+    // Retourne l'utilisateur sous forme AppUser
+    const appUser: AppUser = {
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      emailVerified: user.emailVerified,
+      isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
+      isEditor: userSnapshot.exists() ? userSnapshot.data()?.isEditor ?? false : false,
+      createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+      photoURL: user.photoURL ?? undefined,
+    };
+    console.log('[Google] AppUser retourné:', appUser);
+    return appUser;
+  } catch (error) {
+    console.error('[Google] Erreur dans loginWithGoogle:', error, user);
+    throw error;
+  }
+};
 
   // Connexion avec GitHub
   const loginWithGithub = async (): Promise<AppUser | null> => {
-    const provider = new GithubAuthProvider();
-    let user = null;
-    try {
-      const result = await signInWithPopup(auth, provider);
-      user = result.user;
-      console.log('[GitHub] Utilisateur connecté:', user);
+  const provider = new GithubAuthProvider();
+  let user = null;
+  try {
+    const result = await signInWithPopup(auth, provider);
+    user = result.user;
+    console.log('[GitHub] Utilisateur connecté:', user);
 
-      // Vérifier si le document utilisateur existe déjà
-      const userDocRef = doc(db, 'users', user.uid);
-      const userSnapshot = await getDoc(userDocRef);
+    // Vérifier si le document utilisateur existe déjà
+    const userDocRef = doc(db, 'users', user.uid);
+    let userSnapshot;
+    
+    try {
+      userSnapshot = await getDoc(userDocRef);
       console.log('[GitHub] Document utilisateur existe:', userSnapshot.exists());
 
       if (!userSnapshot.exists()) {
-        // Création du document utilisateur avec isAdmin: false par défaut
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          emailVerified: user.emailVerified,
-          isAdmin: false,
-          createdAt: serverTimestamp(),
-          photoURL: user.photoURL ?? undefined,
-        });
-        console.log('[GitHub] Document utilisateur créé dans Firestore');
+        try {
+          // Création du document utilisateur avec isAdmin: false par défaut
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            emailVerified: user.emailVerified,
+            isAdmin: false,
+            isEditor: false,
+            createdAt: serverTimestamp(),
+            photoURL: user.photoURL ?? undefined,
+          });
+          console.log('[GitHub] Document utilisateur créé dans Firestore');
+        } catch (firestoreError) {
+          console.error('[GitHub] Erreur lors de la création du document utilisateur:', firestoreError);
+          // On continue quand même pour permettre la connexion, même si le document n'a pas pu être créé
+        }
       }
-
-      // Retourne l'utilisateur sous forme AppUser
-      const appUser: AppUser = {
-        uid: user.uid,
-        email: user.email || '',
-        displayName: user.displayName || '',
-        emailVerified: user.emailVerified,
-        isAdmin: userSnapshot.exists() ? userSnapshot.data().isAdmin : false,
-        createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
-        photoURL: user.photoURL ?? undefined,
-      };
-      console.log('[GitHub] AppUser retourné:', appUser);
-      return appUser;
-    } catch (error) {
-      console.error('[GitHub] Erreur dans loginWithGithub:', error, user);
-      throw error;
+    } catch (firestoreError) {
+      console.error('[GitHub] Erreur lors de la vérification du document utilisateur:', firestoreError);
+      // On suppose que le document n'existe pas mais on continue la connexion
+      userSnapshot = { exists: () => false, data: () => ({ isAdmin: false, isEditor: false }) };
     }
-  };
+
+    // Retourne l'utilisateur sous forme AppUser
+    const appUser: AppUser = {
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      emailVerified: user.emailVerified,
+      isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
+      isEditor: userSnapshot.exists() ? userSnapshot.data()?.isEditor ?? false : false,
+      createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+      photoURL: user.photoURL ?? undefined,
+    };
+    console.log('[GitHub] AppUser retourné:', appUser);
+    return appUser;
+  } catch (error) {
+    console.error('[GitHub] Erreur dans loginWithGithub:', error, user);
+    throw error;
+  }
+};
 
   const value = {
     currentUser,
@@ -313,6 +353,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginWithGithub,
     logout,
     isAdmin,
+    isEditor,
     isSuperAdmin,
     sendVerificationEmail,
   };

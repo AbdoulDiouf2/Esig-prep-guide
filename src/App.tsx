@@ -6,6 +6,7 @@ import Footer from './components/layout/Footer';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import SuperAdminRoute from './components/routes/SuperAdminRoute';
+import EditorRoute from './components/routes/EditorRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -38,6 +39,7 @@ import Help from './pages/Help';
 import ChatAI from './pages/ChatAI';
 import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
+import EditorDashboard from './pages/editor/EditorDashboard';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -187,6 +189,43 @@ function App() {
                   <AdminRoute>
                     <FeedbackAdmin />
                   </AdminRoute>
+                } />
+                
+                {/* Editor Routes */}
+                <Route path="/editor" element={
+                  <EditorRoute>
+                    <EditorDashboard />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/content" element={
+                  <EditorRoute>
+                    <AdminContentEditor />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/resources" element={
+                  <EditorRoute>
+                    <AdminResourceManager />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/faq" element={
+                  <EditorRoute>
+                    <AdminContentEditor />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/forum" element={
+                  <EditorRoute>
+                    <Forum />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/dashboard" element={
+                  <EditorRoute>
+                    <AdminDashboard />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/feedbacks" element={
+                  <EditorRoute>
+                    <FeedbackAdmin />
+                  </EditorRoute>
                 } />
                 
                 {/* 404 Page */}

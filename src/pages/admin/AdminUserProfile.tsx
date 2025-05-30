@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, auth } from '../../firebase';
 import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft } from 'lucide-react';
+import { getIdToken } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import PasswordModal from '../../components/PasswordModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -32,6 +33,7 @@ const AdminUserProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -54,6 +56,26 @@ const AdminUserProfile: React.FC = () => {
     if (uid) fetchUser();
   }, [uid]);
 
+  // Vérifier si l'utilisateur actuel est un super admin
+  useEffect(() => {
+    const checkCurrentUserSuperAdmin = async () => {
+      if (currentUser) {
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data() as UserDoc;
+            setCurrentUserIsSuperAdmin(!!userData.isSuperAdmin);
+          }
+        } catch {
+          // En cas d'erreur, on suppose que l'utilisateur n'est pas super admin
+          setCurrentUserIsSuperAdmin(false);
+        }
+      }
+    };
+    checkCurrentUserSuperAdmin();
+  }, [currentUser]);
+
   const handleToggleAdmin = async () => {
     setModalOpen(true);
     setModalError(null);
@@ -68,12 +90,19 @@ const AdminUserProfile: React.FC = () => {
       setModalLoading(false);
       return;
     }
+    // Vérifier si on peut modifier cet utilisateur
+    if (user.isSuperAdmin && user.uid !== currentUser?.uid && !currentUserIsSuperAdmin) {
+      setModalError("Impossible de modifier le rôle d'un admin principal.");
+      setModalLoading(false);
+      return;
+    }
     setSaving(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), { isAdmin: !user.isAdmin });
       setUser({ ...user, isAdmin: !user.isAdmin });
       setModalOpen(false);
-    } catch {
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
       setModalError('Erreur lors de la mise à jour du statut administrateur.');
     } finally {
       setSaving(false);
@@ -88,6 +117,11 @@ const AdminUserProfile: React.FC = () => {
       alert('Vous ne pouvez pas supprimer votre propre compte administrateur.');
       return;
     }
+    // Vérifier si on peut supprimer cet utilisateur
+    if (user.isSuperAdmin && !currentUserIsSuperAdmin) {
+      alert("Impossible de supprimer un admin principal.");
+      return;
+    }
     setShowDeleteModal(true);
   };
 
@@ -95,9 +129,35 @@ const AdminUserProfile: React.FC = () => {
     if (!user) return;
     setSaving(true);
     try {
+      // 1. Appel à la fonction Cloud pour supprimer l'utilisateur de l'authentification
+      const functionUrl = `https://deleteuser-4t2yrgzbgq-uc.a.run.app`;
+      
+      // Obtenir le token d'authentification Firebase directement via l'objet auth
+      if (!auth.currentUser) {
+        throw new Error('Vous devez être connecté pour effectuer cette action');
+      }
+      const idToken = await getIdToken(auth.currentUser);
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ uid: user.uid })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la suppression de l'utilisateur de l'authentification: ${response.statusText}`);
+      }
+      
+      // 2. Suppression du document utilisateur dans Firestore
       await deleteDoc(doc(db, 'users', user.uid));
+      
+      // 3. Redirection
       navigate('/admin/users');
-    } catch {
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
       alert('Erreur lors de la suppression de l\'utilisateur.');
     } finally {
       setSaving(false);
@@ -158,7 +218,7 @@ const AdminUserProfile: React.FC = () => {
             className="border-2 border-blue-100 rounded-lg px-4 py-2 mb-2 w-full text-center text-lg font-semibold focus:border-blue-400 transition"
             value={user?.displayName || ''}
             onChange={handleChange}
-            disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
+            disabled={saving || (user?.isSuperAdmin && !currentUserIsSuperAdmin && user?.uid !== currentUser?.uid)}
           />
           {user?.isSuperAdmin && (
             <div className="mb-2 text-yellow-800 font-bold text-xs inline-flex items-center px-2 py-0.5 rounded bg-yellow-100 border border-yellow-300">Admin principal</div>
@@ -198,7 +258,7 @@ const AdminUserProfile: React.FC = () => {
               <button
                 onClick={handleToggleAdmin}
                 className={`flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
+                disabled={saving || (user?.isSuperAdmin && !currentUserIsSuperAdmin && user?.uid !== currentUser?.uid)}
               >
                 {user.isAdmin ? (
                   <>
@@ -215,7 +275,7 @@ const AdminUserProfile: React.FC = () => {
               <button
                 onClick={handleDeleteClick}
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow bg-red-600 text-white hover:bg-red-700"
-                disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
+                disabled={saving || (user?.isSuperAdmin && !currentUserIsSuperAdmin && user?.uid !== currentUser?.uid)}
               >
                 <Trash2 className="w-5 h-5 mr-2" /> Supprimer utilisateur
               </button>
@@ -223,8 +283,8 @@ const AdminUserProfile: React.FC = () => {
             <button
               className="mt-4 bg-blue-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-blue-700 transition disabled:opacity-50"
               onClick={handleSave}
-              disabled={saving || (user?.isSuperAdmin && user?.uid !== currentUser?.uid)}
-              title={user?.isSuperAdmin && user?.uid !== currentUser?.uid ? "Impossible de modifier un admin principal" : undefined}
+              disabled={saving || (user?.isSuperAdmin && !currentUserIsSuperAdmin && user?.uid !== currentUser?.uid)}
+              title={(user?.isSuperAdmin && !currentUserIsSuperAdmin && user?.uid !== currentUser?.uid) ? "Impossible de modifier un admin principal" : undefined}
             >
               Enregistrer les modifications
             </button>

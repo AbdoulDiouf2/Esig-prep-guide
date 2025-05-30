@@ -14,8 +14,32 @@ import useNotifications from '../../hooks/useNotifications';
 const AdminContentEditor: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin, isEditor } = useAuth();
+  
+  // Déterminer si l'utilisateur est en mode admin ou éditeur en fonction de l'URL et des droits
+  // Protection contre les accès non autorisés en fonction du rôle
+  const urlIndicatesAdmin = window.location.href.includes('/admin/');
+  
+  // Si l'URL est de type admin mais que l'utilisateur n'est qu'un éditeur, force le mode éditeur
+  // Cela ajoute une couche de sécurité supplémentaire
+  const isAdminMode = urlIndicatesAdmin ? isAdmin : false;
+  
+  // Rediriger les éditeurs qui tentent d'accéder à l'interface admin
+  useEffect(() => {
+    if (urlIndicatesAdmin && !isAdmin && isEditor) {
+      // Rediriger vers l'interface éditeur avec les mêmes paramètres
+      const currentParams = window.location.search;
+      navigate(`/editor/content${currentParams}`);
+    }
+  }, [urlIndicatesAdmin, isAdmin, isEditor, navigate]);
+  
   const { sendFaqAnswerNotification } = useNotifications();
+  
+  // Fonction pour construire les liens en fonction du rôle de l'utilisateur
+  const buildEditLink = (id: string, type: 'section' | 'faq') => {
+    const baseUrl = isAdminMode ? '/admin' : '/editor';
+    return `${baseUrl}/content?edit=${id}${type === 'faq' ? '&mode=faq' : ''}`;
+  };
   const { 
     guideSections, 
     addGuideSection, 
@@ -931,7 +955,7 @@ const AdminContentEditor: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Sections existantes</h2>
                 <button
-                  onClick={() => navigate('/admin/content?new=section')}
+                  onClick={() => navigate(`${isAdminMode ? '/admin' : '/editor'}/content?new=section`)}
                   className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -948,7 +972,7 @@ const AdminContentEditor: React.FC = () => {
                       {sectionsByPhase['post-cps'].map(section => (
                         <li key={section.id}>
                           <button
-                            onClick={() => navigate(`/admin/content?edit=${section.id}`)}
+                            onClick={() => navigate(buildEditLink(section.id, 'section'))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editSectionId === section.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}
@@ -973,7 +997,7 @@ const AdminContentEditor: React.FC = () => {
                       {sectionsByPhase['during-process'].map(section => (
                         <li key={section.id}>
                           <button
-                            onClick={() => navigate(`/admin/content?edit=${section.id}`)}
+                            onClick={() => navigate(buildEditLink(section.id, 'section'))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editSectionId === section.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}
@@ -998,7 +1022,7 @@ const AdminContentEditor: React.FC = () => {
                       {sectionsByPhase['pre-arrival'].map(section => (
                         <li key={section.id}>
                           <button
-                            onClick={() => navigate(`/admin/content?edit=${section.id}`)}
+                            onClick={() => navigate(buildEditLink(section.id, 'section'))}
                             className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                               editSectionId === section.id ? 'bg-blue-50 border border-blue-200' : ''
                             }`}
@@ -1020,7 +1044,7 @@ const AdminContentEditor: React.FC = () => {
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold text-gray-900">Questions fréquentes</h2>
                     <button
-                      onClick={() => navigate('/admin/content?new=faq')}
+                      onClick={() => navigate(`${isAdminMode ? '/admin' : '/editor'}/content?new=faq&mode=faq`)}
                       className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                     >
                       <Plus className="w-4 h-4 mr-1" />
@@ -1050,7 +1074,7 @@ const AdminContentEditor: React.FC = () => {
                             {items.map(faq => (
                               <li key={faq.id}>
                                 <button
-                                  onClick={() => navigate(`/admin/content?edit=${faq.id}`)}
+                                  onClick={() => navigate(buildEditLink(faq.id, 'faq'))}
                                   className={`flex items-center w-full p-2 rounded-md text-left hover:bg-gray-50 transition-colors ${
                                     editFaqId === faq.id ? 'bg-blue-50 border border-blue-200' : ''
                                   }`}
