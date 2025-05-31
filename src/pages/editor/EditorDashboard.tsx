@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, FileText, HelpCircle, MessageSquare, ArrowLeft } from 'lucide-react';
+import { BookOpen, FileText, HelpCircle, MessageSquare, ArrowLeft, FolderArchive } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const EditorDashboard: React.FC = () => {
@@ -31,6 +31,12 @@ const EditorDashboard: React.FC = () => {
       description: 'Gérer les catégories, épingler, verrouiller ou supprimer des discussions',
       icon: <MessageSquare className="w-8 h-8 text-purple-500" />,
       link: '/editor/forum',
+    },
+    {
+      title: 'Gestion de Dropbox',
+      description: 'Accéder et gérer les fichiers sur Dropbox',
+      icon: <FolderArchive className="w-8 h-8 text-blue-400" />,
+      link: '/editor/dropbox',
     }
   ];
 

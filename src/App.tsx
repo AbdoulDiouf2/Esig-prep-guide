@@ -227,6 +227,11 @@ function App() {
                     <FeedbackAdmin />
                   </EditorRoute>
                 } />
+                <Route path="/editor/dropbox" element={
+                  <EditorRoute>
+                    <AdminDropboxManager />
+                  </EditorRoute>
+                } />
                 
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
