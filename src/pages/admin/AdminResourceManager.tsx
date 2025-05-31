@@ -44,17 +44,17 @@ interface DropboxError {
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentUser, isAdmin, isEditor  } = useAuth();
+  const { currentUser, isAdmin, isEditor } = useAuth();
   
   // Déterminer si l'utilisateur est en mode admin ou éditeur en fonction de l'URL et des droits
   const urlIndicatesAdmin = window.location.href.includes('/admin/');
   
   // Si l'URL est de type admin mais que l'utilisateur n'est qu'un éditeur, force le mode éditeur
-  const isAdminMode = urlIndicatesAdmin ? isAdmin : false;
+  const isAdminMode = urlIndicatesAdmin ? isAdmin() : false;
   
   // Rediriger les éditeurs qui tentent d'accéder à l'interface admin
   useEffect(() => {
-    if (urlIndicatesAdmin && !isAdmin && isEditor) {
+    if (urlIndicatesAdmin && !isAdmin() && isEditor()) {
       // Rediriger vers l'interface éditeur avec les mêmes paramètres
       const currentParams = window.location.search;
       navigate(`/editor/resources${currentParams}`);

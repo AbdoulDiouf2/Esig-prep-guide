@@ -22,11 +22,11 @@ const AdminContentEditor: React.FC = () => {
   
   // Si l'URL est de type admin mais que l'utilisateur n'est qu'un éditeur, force le mode éditeur
   // Cela ajoute une couche de sécurité supplémentaire
-  const isAdminMode = urlIndicatesAdmin ? isAdmin : false;
+  const isAdminMode = urlIndicatesAdmin ? isAdmin() : false;
   
   // Rediriger les éditeurs qui tentent d'accéder à l'interface admin
   useEffect(() => {
-    if (urlIndicatesAdmin && !isAdmin && isEditor) {
+    if (urlIndicatesAdmin && !isAdmin() && isEditor()) {
       // Rediriger vers l'interface éditeur avec les mêmes paramètres
       const currentParams = window.location.search;
       navigate(`/editor/content${currentParams}`);
