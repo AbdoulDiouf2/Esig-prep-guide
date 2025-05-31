@@ -40,6 +40,7 @@ import ChatAI from './pages/ChatAI';
 import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
 import EditorDashboard from './pages/editor/EditorDashboard';
+import ApplicationsDashboard from './pages/ApplicationsDashboard';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -78,6 +79,11 @@ function App() {
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/applications" element={
+                  <ProtectedRoute>
+                    <ApplicationsDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="/resources" element={

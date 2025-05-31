@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit, Grid } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
@@ -68,6 +68,12 @@ const Header: React.FC = () => {
                   <Home className="w-4 h-4 mr-1" />
                   <span className="md:hidden lg:inline">Tableau de bord</span>
                   <span className="md:inline lg:hidden">Accueil</span>
+                </Link>
+                <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <Grid className="w-4 h-4 mr-1" />
+                  <span>Applications</span>
                 </Link>
                 <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
@@ -215,58 +221,72 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 pt-4 border-t border-gray-200">
-            <div className="flex flex-col space-y-4">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-gradient-to-r from-blue-900 to-blue-800 shadow-lg pb-4">
+            <div className="container mx-auto px-4 py-2">
               {currentUser ? (
                 <>
-                  <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
-                      <span className="text-white font-medium text-sm">
-                        {(currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U').toUpperCase()}
+                  <div className="py-3 px-2 mb-3 flex items-center border-b border-blue-700">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                      <span className="text-blue-800 font-medium text-sm">
+                        {currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
                       </span>
                     </div>
-                    <span className={`ml-2 font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}>
+                    <span className="text-white font-medium">
                       {currentUser.displayName || currentUser.email || 'Utilisateur'}
                     </span>
                   </div>
-                  <Link
-                    to="/profile"
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <User className="w-4 h-4 mr-2" />
                     Profil
                   </Link>
                   <Link 
                     to="/dashboard" 
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <Home className="w-4 h-4 mr-2" />
                     <span>Tableau de bord</span>
                   </Link>
                   <Link 
+                    to="/applications" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Grid className="w-4 h-4 mr-2" />
+                    <span>Applications</span>
+                  </Link>
+                  <Link 
                     to="/resources" 
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     <span>Ressources</span>
                   </Link>
                   <Link 
                     to="/faq" 
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     <span>FAQ</span>
                   </Link>
                   <Link 
                     to="/tutorial" 
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <Book className="w-4 h-4 mr-2" />
                     <span>Tutoriel</span>
                   </Link>
                   <Link 
                     to="/help" 
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
                     <span>Aide</span>
@@ -274,7 +294,8 @@ const Header: React.FC = () => {
                   <SuperAdminCheck>
                     <Link 
                       to="/chat-ai" 
-                      className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                      className="flex items-center py-2 text-white"
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       <Bot className="w-4 h-4 mr-2" />
                       <span>Assistant IA</span>
@@ -284,6 +305,7 @@ const Header: React.FC = () => {
                     <Link 
                       to="/admin" 
                       className="flex items-center px-3 py-1.5 my-2 rounded-full bg-blue-700 hover:bg-blue-600 text-white transition-colors shadow-md"
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       <Shield className="w-4 h-4 mr-1.5" />
                       <span>Administration</span>
@@ -293,6 +315,7 @@ const Header: React.FC = () => {
                     <Link 
                       to="/editor" 
                       className="flex items-center px-3 py-1.5 my-2 rounded-full bg-green-700 hover:bg-green-600 text-white transition-colors shadow-md"
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       <Edit className="w-4 h-4 mr-1.5" />
                       <span>Edition</span>
@@ -300,7 +323,7 @@ const Header: React.FC = () => {
                   )}
                   <button 
                     onClick={handleLogout}
-                    className={`flex items-center py-2 ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="flex items-center py-2 text-white"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     <span>Déconnexion</span>
@@ -310,13 +333,15 @@ const Header: React.FC = () => {
                 <div className="flex flex-col space-y-4">
                   <Link 
                     to="/login" 
-                    className={`font-medium ${isScrolled ? 'text-blue-800' : 'text-white'}`}
+                    className="font-medium text-white"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Connexion
                   </Link>
                   <Link 
                     to="/register" 
                     className="bg-white text-blue-900 hover:bg-blue-50 px-4 py-2 rounded-md font-medium transition-colors duration-200 text-center"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Inscription
                   </Link>
