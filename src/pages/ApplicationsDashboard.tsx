@@ -6,8 +6,7 @@ import {
   BookOpen, 
   FileText, 
   HelpCircle, 
-  MessageSquare, 
-  FolderArchive,
+  MessageSquare,
   Users,
   BarChart2,
   Settings,
@@ -51,9 +50,9 @@ interface CategoryFeatures {
 }
 
 const ApplicationsDashboard: React.FC = () => {
-  const { currentUser, isAdmin, isEditor } = useAuth();
+  const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSuperAdminState, setIsSuperAdminState] = useState(false);
   const [activeCategory, setActiveCategory] = useState('main');
 
   // Vérifier si l'utilisateur est superadmin
@@ -62,7 +61,7 @@ const ApplicationsDashboard: React.FC = () => {
       if (currentUser) {
         try {
           const superAdminStatus = await isSuperAdmin();
-          setIsSuperAdmin(superAdminStatus);
+          setIsSuperAdminState(superAdminStatus);
         } catch (error) {
           console.error("Erreur lors de la vérification du statut superadmin:", error);
         }
@@ -248,7 +247,7 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Posez vos questions à notre assistant intelligent",
           link: "/chat-ai",
           roles: ["admin"],
-          disabled: !isSuperAdmin
+          disabled: !isSuperAdminState
         },
         {
           icon: <Download className="w-8 h-8 text-green-600" />,
