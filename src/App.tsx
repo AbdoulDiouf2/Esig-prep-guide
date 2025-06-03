@@ -32,6 +32,8 @@ import AdminDropboxManager from './pages/admin/AdminDropboxManager';
 import FutureFeatures from './pages/admin/FutureFeatures';
 import TestFirebase from './pages/TestFirebase';
 import FeedbackAdmin from './pages/admin/FeedbackAdmin';
+import AdminWebinarManager from './pages/admin/AdminWebinarManager';
+import AdminWorkshopProposals from './pages/admin/AdminWorkshopProposals';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
 import UserTutorial from './pages/UserTutorial';
@@ -41,6 +43,10 @@ import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
 import EditorDashboard from './pages/editor/EditorDashboard';
 import ApplicationsDashboard from './pages/ApplicationsDashboard';
+import Webinars from './pages/Webinars';
+import WebinarDetail from './pages/WebinarDetail';
+import ProposerAtelier from './pages/ProposerAtelier';
+import MesPropositions from './pages/MesPropositions';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -196,6 +202,16 @@ function App() {
                     <FeedbackAdmin />
                   </AdminRoute>
                 } />
+                <Route path="/admin/webinars" element={
+                  <AdminRoute>
+                    <AdminWebinarManager />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/workshop-proposals" element={
+                  <AdminRoute>
+                    <AdminWorkshopProposals />
+                  </AdminRoute>
+                } />
                 
                 {/* Editor Routes */}
                 <Route path="/editor" element={
@@ -238,7 +254,32 @@ function App() {
                     <AdminDropboxManager />
                   </EditorRoute>
                 } />
+                <Route path="/editor/webinars" element={
+                  <EditorRoute>
+                    <AdminWebinarManager />
+                  </EditorRoute>
+                } />
+                <Route path="/editor/workshop-proposals" element={
+                  <EditorRoute>
+                    <AdminWorkshopProposals />
+                  </EditorRoute>
+                } />
                 
+                {/* Webinars */}
+                <Route path="/webinars" element={<Webinars />} />
+                <Route path="/webinars/:id" element={<WebinarDetail />} />
+                <Route path="/proposer-atelier" element={
+                  <ProtectedRoute>
+                    <ProposerAtelier />
+                  </ProtectedRoute>
+                } />
+                <Route path="/mes-propositions" element={
+                  <ProtectedRoute>
+                    <MesPropositions />
+                  </ProtectedRoute>
+                } />
+                {/* <Route path="/webinars/:id/confirmation" element={<WebinarConfirmation />} /> */}
+
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

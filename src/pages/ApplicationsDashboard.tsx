@@ -103,6 +103,13 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Participez aux discussions avec les autres étudiants",
           link: "/forum",
           roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Video className="w-8 h-8 text-blue-500" />,
+          title: "Webinaires",
+          description: "Découvrez et inscrivez-vous aux webinaires à venir",
+          link: "/webinars",
+          roles: ["admin", "editor", "user"]
         }
       ]
     },
@@ -286,10 +293,8 @@ const ApplicationsDashboard: React.FC = () => {
           icon: <Video className="w-8 h-8 text-red-500" />,
           title: "Webinaires",
           description: "Participez à des webinaires et sessions d'information",
-          link: "#",
-          roles: ["admin", "editor", "user"],
-          disabled: true,
-          comingSoon: true
+          link: "/webinars",
+          roles: ["admin", "editor", "user"]
         },
         {
           icon: <Server className="w-8 h-8 text-purple-600" />,

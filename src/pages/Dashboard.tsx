@@ -507,7 +507,7 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-xl font-bold text-gray-900 mb-1">
                   {activePhase === 'post-cps' && 'Après votre CPS'}
                   {activePhase === 'during-process' && 'Pendant vos démarches administratives'}
-                  {activePhase === 'pre-arrival' && 'Avant votre arrivée en France'}
+                  {activePhase === 'pre-arrival' && 'Après votre arrivée en France'}
                 </h2>
                 <p className="text-gray-600">
                   {activePhase === 'post-cps' && 'Les étapes essentielles après la fin de votre classe préparatoire'}

@@ -22,10 +22,16 @@ import {
   FileText,
   Edit,
   ClipboardList,
+  Calendar,
   HelpCircle,
   Plus,
   Cloud,
-  Star
+  Star,
+  Video,
+  BookOpen,
+  Podcast,
+  Award,
+  BarChart
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 
@@ -589,6 +595,109 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Gestion du contenu avancé */}
+        <div className="container mx-auto px-4 py-6">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Gestion du contenu avancé</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              
+              {/* Carte de Webinaires */}
+              <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Video className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion des webinaires</h3>
+                    <p className="text-sm text-gray-600 mt-1">Créer, modifier et supprimer des webinaires</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {/* Carte Cours en ligne - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-green-100 rounded-lg mr-4">
+                    <BookOpen className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Cours en ligne</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des cours en ligne et e-learning</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Carte Podcasts - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-purple-100 rounded-lg mr-4">
+                    <Podcast className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Podcasts</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des podcasts et contenus audio</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Carte Événements - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-red-100 rounded-lg mr-4">
+                    <Calendar className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Événements</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des événements physiques et virtuels</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Carte Certificats - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Award className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Certificats</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des certificats et badges de compétence</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Carte Statistiques avancées - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-indigo-100 rounded-lg mr-4">
+                    <BarChart className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Statistiques avancées</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Analyse approfondie des données utilisateurs</p>
+                  </div>
+                </div>
+              </div>
+              
             </div>
           </div>
         </div>

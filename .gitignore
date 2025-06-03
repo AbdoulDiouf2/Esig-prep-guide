@@ -55,3 +55,4 @@ build
 .firebase
 # Local Netlify folder
 .netlify
+firebase.rules
