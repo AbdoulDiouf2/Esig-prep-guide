@@ -9,6 +9,7 @@ const ResourceLibrary: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showPhaseFilter, setShowPhaseFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'videos'>('all');
   
   // État pour la prévisualisation
   const [previewResource, setPreviewResource] = useState<ResourceDocument | null>(null);
@@ -39,6 +40,36 @@ const ResourceLibrary: React.FC = () => {
     return fileUrl;
   };
 
+  // Helper function to get embeddable video URLs
+  const getVideoEmbedUrl = (url: string): string => {
+    let embedUrl = url;
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+        const videoId = urlObj.hostname.includes('youtu.be') 
+          ? urlObj.pathname.substring(1).split('?')[0] // Ensure query params are not part of ID
+          : urlObj.searchParams.get('v');
+        if (videoId) {
+          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+      } else if (urlObj.hostname.includes('vimeo.com')) {
+        const pathParts = urlObj.pathname.split('/');
+        const videoId = pathParts.find(part => /^\d+$/.test(part)); // Find the numeric video ID in path
+        if (videoId) {
+          embedUrl = `https://player.vimeo.com/video/${videoId}`;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing video URL for embedding:", error);
+      // Return original URL if parsing fails, it might be a direct video link
+    }
+    // If it's a Dropbox link and not YouTube/Vimeo, use getPreviewUrl for potential raw link
+    if (url.includes('dropbox.com') && (embedUrl === url)) {
+      return getPreviewUrl(url);
+    }
+    return embedUrl;
+  };
+
   // Fonction pour obtenir une URL Google Docs Viewer pour les PDFs
   const getGoogleViewerUrl = (fileUrl: string) => {
     return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
@@ -51,6 +82,11 @@ const ResourceLibrary: React.FC = () => {
 
   // Filter resources
   const filteredResources = resources.filter(resource => {
+    // Filter by active tab first
+    if (activeTab === 'videos' && resource.fileType !== 'video') {
+      return false;
+    }
+    
     // Filter by phase
     if (selectedPhase !== 'all' && resource.phase !== selectedPhase) {
       return false;
@@ -105,6 +141,30 @@ const ResourceLibrary: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="p-6">
+            {/* Tabs Navigation */}
+            <div className="mb-6 flex border-b border-gray-200">
+              <button
+                className={`px-4 py-2 font-medium text-sm -mb-px border-b-2 focus:outline-none ${
+                  activeTab === 'all'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('all')}
+              >
+                Toutes les ressources
+              </button>
+              <button
+                className={`px-4 py-2 font-medium text-sm -mb-px border-b-2 focus:outline-none ${
+                  activeTab === 'videos'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('videos')}
+              >
+                Vidéos
+              </button>
+            </div>
+
             <form onSubmit={handleSearch}>
               <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex-grow">
@@ -333,59 +393,70 @@ const ResourceLibrary: React.FC = () => {
       {/* Modal de prévisualisation */}
       {showPreview && previewResource && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ease-in-out" 
           onClick={() => setShowPreview(false)}
         >
           <div 
-            className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] flex flex-col relative" 
-            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 rounded-lg shadow-xl w-full max-w-5xl h-auto max-h-[90vh] flex flex-col overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()} // Prevent click inside modal from closing it
           >
-            {/* Bouton fermer (X) dans le coin supérieur droit */}
-            <button
-              onClick={() => setShowPreview(false)}
-              className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
-              aria-label="Fermer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-700">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{previewResource.title}</h3>
-                <p className="text-sm text-gray-500">{previewResource.category}</p>
+                <h3 className="text-lg font-semibold text-slate-100">{previewResource.title}</h3>
+                <p className="text-sm text-slate-300">{previewResource.category}</p>
               </div>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto items-center">
                 <a 
                   href={previewResource.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center justify-center w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4 mr-1" />
+                  <ExternalLink className="w-4 h-4 mr-1.5" />
                   Ouvrir
                 </a>
                 <a 
                   href={previewResource.fileUrl}
                   download
-                  className="flex items-center justify-center w-full sm:w-auto bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center justify-center w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 >
-                  <Download className="w-4 h-4 mr-1" />
+                  <Download className="w-4 h-4 mr-1.5" />
                   Télécharger
                 </a>
+                <button 
+                  onClick={() => setShowPreview(false)} 
+                  className="p-1.5 ml-0 sm:ml-2 rounded-md hover:bg-slate-700 transition-colors text-slate-400 hover:text-slate-200"
+                  aria-label="Fermer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
-            <div className="p-4 flex-grow overflow-hidden">
+
+            {/* Modal Body */}
+            <div className="flex-grow overflow-auto"> 
               {/* Affichage différent selon le type de fichier */}
-              {previewResource.fileType === 'pdf' ? (
-                <div className="flex flex-col items-center h-full">
-                  {/* Option 1: utiliser object pour les PDFs */}
-                  <div className="h-full w-full">
+              {previewResource.fileType === 'video' ? (
+                <div className="p-1 sm:p-2 md:p-4 w-full"> {/* Responsive padding for video section */}
+                  <div className="relative w-full bg-black rounded-md" style={{ paddingTop: '56.25%' }}> {/* 16:9 Aspect Ratio */}
+                    <iframe
+                      src={getVideoEmbedUrl(previewResource.fileUrl)}
+                      className="absolute top-0 left-0 w-full h-full border-0 rounded-md"
+                      title={previewResource.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </div>
+              ) : previewResource.fileType === 'pdf' ? (
+                <div className="flex flex-col h-full bg-white"> {/* PDF main container, h-full, no internal padding here */}
+                  <div className="flex-grow p-4"> {/* PDF content area, grows, padding applied here */}
                     <object
                       data={getPreviewUrl(previewResource.fileUrl)}
                       type="application/pdf"
                       className="w-full h-full rounded-md"
                     >
-                      {/* Option 2: Utiliser Google Docs Viewer comme fallback */}
                       <iframe
                         src={getGoogleViewerUrl(previewResource.fileUrl)}
                         className="w-full h-full border-0 rounded-md"
@@ -394,13 +465,13 @@ const ResourceLibrary: React.FC = () => {
                       ></iframe>
                     </object>
                   </div>
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className="p-2 text-center text-sm text-gray-500 border-t border-gray-200"> {/* Fallback message area */}
                     Si le document ne s'affiche pas correctement, essayez de le 
                     <a 
                       href={previewResource.fileUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 mx-1 font-medium"
+                      className="text-blue-400 hover:text-blue-300 mx-1 font-medium"
                       onClick={(e) => e.stopPropagation()}
                     >
                       télécharger
@@ -410,29 +481,23 @@ const ResourceLibrary: React.FC = () => {
                       href={`https://docs.google.com/viewer?url=${encodeURIComponent(previewResource.fileUrl)}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 mx-1 font-medium"
+                      className="text-blue-400 hover:text-blue-300 mx-1 font-medium"
                       onClick={(e) => e.stopPropagation()}
                     >
                       ouvrir avec Google Docs
                     </a>
                   </div>
                 </div>
-              ) : previewResource.fileType === 'image' ? (
-                <div className="flex items-center justify-center h-full">
-                  <img 
-                    src={getPreviewUrl(previewResource.fileUrl)} 
-                    alt={previewResource.title}
-                    className="max-w-full max-h-full object-contain rounded-md" 
-                  />
-                </div>
               ) : (
-                <iframe
-                  src={getPreviewUrl(previewResource.fileUrl)}
-                  className="w-full h-full border-0 rounded-md"
-                  title={previewResource.title}
-                  allowFullScreen
-                  sandbox="allow-scripts allow-same-origin allow-popups"
-                ></iframe>
+                <div className="h-full bg-white"> {/* Generic iframe container, h-full, no padding here */}
+                  <iframe
+                    src={getPreviewUrl(previewResource.fileUrl)}
+                    className="w-full h-full border-0 rounded-md"
+                    title={previewResource.title}
+                    allowFullScreen
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                  ></iframe>
+                </div>
               )}
             </div>
           </div>
