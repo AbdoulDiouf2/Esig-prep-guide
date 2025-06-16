@@ -70,6 +70,25 @@ const UserProfile: React.FC = () => {
     );
   }
 
+  const handleStatusSave = async () => {
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    
+    try {
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, { status: userStatus });
+        setSuccess('Statut mis à jour !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      setError('Erreur lors de la mise à jour du statut.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -109,12 +128,6 @@ const UserProfile: React.FC = () => {
         await updateProfile(firebaseUser, { displayName: pendingProfile.displayName, photoURL: pendingProfile.photoURL });
         setDisplayName(pendingProfile.displayName);
         setPhotoURL(pendingProfile.photoURL);
-        
-        // Mettre à jour le statut utilisateur dans Firestore
-        if (currentUser) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          await updateDoc(userRef, { status: userStatus });
-        }
         
         setSuccess('Profil mis à jour !');
       } else if (pendingAction === 'password' && pendingPassword) {
@@ -223,6 +236,14 @@ const UserProfile: React.FC = () => {
                     </span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={handleStatusSave}
+                  className="mt-2 bg-green-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-green-700 transition disabled:opacity-50"
+                  disabled={saving || loadingStatus || userStatus === 'none'}
+                >
+                  Mettre à jour mon statut
+                </button>
               </div>
             </div>
             <button
