@@ -20,12 +20,17 @@ export interface ResourceDocument {
 // Types de sous-sections disponibles
 export type SubSectionType = 'bulletList' | 'checkList' | 'inputField';
 
+// Types de champs pour les sous-sections
+export type InputFieldType = 'text' | 'boolean' | 'date' | 'datetime' | 'number' | 'select' | 'email' | 'url' | 'airport' | 'longtext';
+
 // Interface pour les éléments de sous-section
 export interface SubSectionItem {
   id: string;
   content: string;
   checked?: boolean; // Pour les listes à cocher
   value?: string; // Pour les champs à remplir
+  fieldType?: InputFieldType; // Type du champ de saisie
+  options?: string[]; // Options pour les champs de type select
 }
 
 // Interface pour les sous-sections

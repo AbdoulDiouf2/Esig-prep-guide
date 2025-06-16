@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
-import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem } from '../../contexts/ContentContext';
+import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem, InputFieldType } from '../../contexts/ContentContext';
 import { 
   Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle,
   List, CheckSquare, Type, X, FileEdit
@@ -73,6 +73,8 @@ const AdminContentEditor: React.FC = () => {
   const [newSubSectionType, setNewSubSectionType] = useState<SubSectionType>('bulletList');
   const [newSubSectionItems, setNewSubSectionItems] = useState<SubSectionItem[]>([]);
   const [newItemContent, setNewItemContent] = useState('');
+  const [newItemFieldType, setNewItemFieldType] = useState<InputFieldType>('text');
+  const [newItemOptions, setNewItemOptions] = useState<string>('');
 
   // États FAQ
   const [question, setQuestion] = useState('');
@@ -374,14 +376,24 @@ const AdminContentEditor: React.FC = () => {
     if (newItemContent.trim() === '') return;
     
     const newItem: SubSectionItem = {
-      id: Date.now().toString(),
-      content: newItemContent,
-      checked: false,
-      value: ''
+      id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      content: newItemContent.trim(),
     };
+    
+    // Ajouter les informations de type pour les champs de saisie
+    if (newSubSectionType === 'inputField') {
+      newItem.fieldType = newItemFieldType;
+      
+      // Traiter les options pour le champ de type select
+      if (newItemFieldType === 'select' && newItemOptions.trim() !== '') {
+        newItem.options = newItemOptions.split(',').map(opt => opt.trim());
+      }
+    }
     
     setNewSubSectionItems([...newSubSectionItems, newItem]);
     setNewItemContent('');
+    setNewItemOptions('');
+    // Garde le même type pour le champ suivant par commodité
   };
   
   const removeItemFromSubSection = (itemId: string) => {
@@ -1194,6 +1206,7 @@ const AdminContentEditor: React.FC = () => {
                   </label>
                 </div>
                 
+                {/* Champ pour le libellé de l'élément */}
                 <div className="mb-4 flex">
                   <input
                     type="text"
@@ -1213,6 +1226,48 @@ const AdminContentEditor: React.FC = () => {
                   </button>
                 </div>
                 
+                {/* Options additionnelles pour les champs de saisie */}
+                {newSubSectionType === 'inputField' && (
+                  <div className="mb-4 space-y-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Type de champ
+                      </label>
+                      <select
+                        className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                        value={newItemFieldType}
+                        onChange={(e) => setNewItemFieldType(e.target.value as InputFieldType)}
+                      >
+                        <option value="text">Texte</option>
+                        <option value="email">Email</option>
+                        <option value="url">URL</option>
+                        <option value="number">Nombre</option>
+                        <option value="date">Date</option>
+                        <option value="datetime">Date et heure</option>
+                        <option value="boolean">Case à cocher (Oui/Non)</option>
+                        <option value="select">Liste déroulante</option>
+                        <option value="longtext">Texte long</option>
+                        <option value="airport">Aéroport</option>
+                      </select>
+                    </div>
+                    
+                    {newItemFieldType === 'select' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Options (séparées par des virgules)
+                        </label>
+                        <input
+                          type="text"
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                          value={newItemOptions}
+                          onChange={(e) => setNewItemOptions(e.target.value)}
+                          placeholder="Option 1, Option 2, Option 3"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {newSubSectionItems.length > 0 ? (
                   <ul className="bg-gray-50 rounded-md border border-gray-200 p-3 space-y-2 max-h-60 overflow-y-auto">
                     {newSubSectionItems.map((item) => (
@@ -1222,6 +1277,11 @@ const AdminContentEditor: React.FC = () => {
                           {newSubSectionType === 'checkList' && <CheckSquare className="w-4 h-4 mr-2 text-gray-400" />}
                           {newSubSectionType === 'inputField' && <Type className="w-4 h-4 mr-2 text-gray-400" />}
                           <span>{item.content}</span>
+                          {item.fieldType && (
+                            <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                              {item.fieldType}{item.options ? ` (${item.options.join(', ')})` : ''}
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"

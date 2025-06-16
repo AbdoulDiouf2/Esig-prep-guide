@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { Link } from 'react-router-dom';
+import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
 import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users } from 'lucide-react';
+import SubsectionForm from '../components/subsection/SubsectionForm';
 import SuperAdminCheck from '../components/routes/SuperAdminCheck';
-import { getUserSubsectionData, saveUserCheckItems, saveUserInputValues, cleanupSubsectionData } from '../services/subsectionDataService';
+import { 
+  getUserSubsectionData, 
+  saveUserCheckItems, 
+  saveUserInputValues,
+  saveUserTypedValues, 
+  cleanupSubsectionData, 
+  TypedValue 
+} from '../services/subsectionDataService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -26,6 +34,7 @@ const Dashboard: React.FC = () => {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   // État pour les champs de saisie des sous-sections
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [typedValues, setTypedValues] = useState<Record<string, TypedValue>>({});
   // État de chargement des données des sous-sections
   const [subsectionDataLoading, setSubsectionDataLoading] = useState<boolean>(true);
   const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -64,11 +73,16 @@ const Dashboard: React.FC = () => {
         .then((data) => {
           setCheckedItems(data.checkItems || {});
           setInputValues(data.inputValues || {});
+          // Initialiser les valeurs typées si elles existent
+          if (data.typedValues) {
+            setTypedValues(data.typedValues);
+          }
         })
+        .catch(error => console.error('Erreur lors du chargement des données de sous-section:', error))
         .finally(() => setSubsectionDataLoading(false));
     }
   }, [currentUser?.uid]);
-  
+
   // Extraire tous les IDs d'items de sous-sections valides actuellement
   const getAllValidSubsectionItemIds = useCallback(() => {
     const validItemIds: string[] = [];
@@ -97,15 +111,19 @@ const Dashboard: React.FC = () => {
       cleanupSubsectionData(currentUser.uid, validItemIds)
         .then(() => {
           // Actualiser les données locales après le nettoyage
-          return getUserSubsectionData(currentUser.uid);
+          return getUserSubsectionData(currentUser.uid)
+        .then(data => {
+          setCheckedItems(data.checkItems);
+          setInputValues(data.inputValues);
+          // Initialiser les valeurs typées si elles existent
+          if (data.typedValues) {
+            setTypedValues(data.typedValues);
+          }
         })
-        .then((data) => {
-          setCheckedItems(data.checkItems || {});
-          setInputValues(data.inputValues || {});
+        .catch(error => console.error('Erreur lors du chargement des données de sous-section:', error))
+        .finally(() => setSubsectionDataLoading(false));
         })
-        .catch(error => {
-          console.error("Erreur lors du nettoyage des données de sous-section:", error);
-        });
+        .catch(error => console.error("Erreur lors du nettoyage des données de sous-section:", error));
     }
   }, [currentUser?.uid, guideSections, getAllValidSubsectionItemIds, subsectionDataLoading]);
 
@@ -205,7 +223,7 @@ const Dashboard: React.FC = () => {
     }
   }, [checkedItems, currentUser?.uid]);
   
-  // Fonction pour mettre à jour les champs de saisie sans sauvegarde immédiate
+  // Fonction pour mettre à jour les champs de saisie et les sauvegarder
   const handleInputChange = useCallback((itemId: string, value: string) => {
     const updatedValues = {
       ...inputValues,
@@ -213,45 +231,43 @@ const Dashboard: React.FC = () => {
     };
     
     setInputValues(updatedValues);
-  }, [inputValues]);
-  
-  // Fonction pour valider et sauvegarder les champs de saisie
-  const validateAndSaveInput = useCallback(async (itemId: string) => {
+    
+    // Sauvegarder les changements dans Firestore
     if (currentUser?.uid) {
       try {
-        await saveUserInputValues(currentUser.uid, inputValues);
-        // Animation visuelle temporaire pour indiquer la sauvegarde réussie
-        const inputElement = document.getElementById(`input-${itemId}`);
-        if (inputElement) {
-          inputElement.classList.add('bg-green-50');
-          setTimeout(() => {
-            inputElement.classList.remove('bg-green-50');
-          }, 500);
-        }
+        saveUserInputValues(currentUser.uid, updatedValues);
       } catch (error) {
-        console.error('Erreur lors de la validation du champ de saisie:', error);
+        console.error('Erreur lors de la sauvegarde du champ de saisie:', error);
       }
     }
   }, [inputValues, currentUser?.uid]);
   
-  // Fonction pour effacer un champ de saisie
-  const clearInputField = useCallback(async (itemId: string) => {
+  // Fonction pour mettre à jour les valeurs typées sans sauvegarde immédiate
+  const handleTypedValueChange = useCallback((itemId: string, value: TypedValue) => {
     const updatedValues = {
-      ...inputValues,
-      [itemId]: ''
+      ...typedValues,
+      [itemId]: value
     };
     
-    setInputValues(updatedValues);
-    
+    setTypedValues(updatedValues);
+  }, [typedValues]);
+  
+  // Passer cette fonction au SubsectionForm pour mise à jour des valeurs typées
+  const handleTypedInput = useCallback((itemId: string, value: TypedValue) => {
+    handleTypedValueChange(itemId, value);
+    // Sauvegarder automatiquement après la mise à jour
     if (currentUser?.uid) {
-      try {
-        await saveUserInputValues(currentUser.uid, updatedValues);
-      } catch (error) {
-        console.error('Erreur lors de l\'effacement du champ de saisie:', error);
-      }
+      saveUserTypedValues(currentUser.uid, {
+        ...typedValues,
+        [itemId]: value
+      });
     }
-  }, [inputValues, currentUser?.uid]);
-
+  }, [currentUser?.uid, handleTypedValueChange, typedValues]);
+  
+  // Les fonctions validateAndSaveInput et clearInputField ont été supprimées car elles ne sont plus utilisées
+  // La fonctionnalité de validation et sauvegarde est désormais gérée directement par handleTypedInput
+  // et les composants SubsectionForm et TypedInputField
+  
   const phaseSections = getGuideSectionsByPhase ? getGuideSectionsByPhase(activePhase) : [];
   // const phaseResources = getResourcesByPhase ? getResourcesByPhase(activePhase) : [];
   
@@ -552,80 +568,15 @@ const Dashboard: React.FC = () => {
                                   </h4>
                                   
                                   <div className="ml-1">
-                                    {subSection.type === 'bulletList' && (
-                                      <ul className="list-disc pl-5 space-y-1">
-                                        {subSection.items.map(item => (
-                                          <li key={item.id} className="text-sm text-gray-700">{item.content}</li>
-                                        ))}
-                                      </ul>
-                                    )}
-                                    
-                                    {subSection.type === 'checkList' && (
-                                      <div className="space-y-2">
-                                        {subSection.items.map(item => (
-                                          <div key={item.id} className="flex items-start">
-                                            <input
-                                              type="checkbox"
-                                              id={`check-${item.id}`}
-                                              className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                              checked={checkedItems[item.id] || false}
-                                              onChange={() => handleCheckItemChange(item.id)}
-                                            />
-                                            <label htmlFor={`check-${item.id}`} className="ml-2 block text-sm text-gray-700">
-                                              {item.content}
-                                            </label>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    
-                                    {subSection.type === 'inputField' && (
-                                      <div className="space-y-2">
-                                        {subSection.items.map(item => (
-                                          <div key={item.id} className="group relative">
-                                            <div className="flex items-center bg-white overflow-hidden rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all shadow-sm hover:shadow">
-                                              <label 
-                                                htmlFor={`input-${item.id}`} 
-                                                className="flex-shrink-0 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 border-r border-gray-200 select-none">
-                                                {item.content}
-                                              </label>
-                                              <input
-                                                type="text"
-                                                id={`input-${item.id}`}
-                                                className="block w-full flex-1 px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 transition-colors duration-300"
-                                                placeholder="Entrez votre information"
-                                                value={inputValues[item.id] || ''}
-                                                onChange={(e) => handleInputChange(item.id, e.target.value)}
-                                              />
-                                              <div className="flex">
-                                                {inputValues[item.id] && (
-                                                  <>
-                                                    <button 
-                                                      className="p-2 text-green-500 hover:text-green-700 focus:outline-none" 
-                                                      onClick={() => validateAndSaveInput(item.id)}
-                                                      type="button"
-                                                      aria-label="Valider"
-                                                      title="Valider"
-                                                    >
-                                                      <Check className="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <button 
-                                                      className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none" 
-                                                      onClick={() => clearInputField(item.id)}
-                                                      type="button"
-                                                      aria-label="Effacer"
-                                                      title="Effacer"
-                                                    >
-                                                      <X className="h-3.5 w-3.5" />
-                                                    </button>
-                                                  </>
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
+                                    <SubsectionForm
+                                      subSection={subSection}
+                                      checkedItems={checkedItems}
+                                      inputValues={inputValues}
+                                      typedValues={typedValues}
+                                      onCheckChange={(itemId) => handleCheckItemChange(itemId)}
+                                      onInputChange={handleInputChange}
+                                      onTypedValueChange={handleTypedInput}
+                                    />
                                   </div>
                                 </div>
                               ))}
