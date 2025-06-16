@@ -35,6 +35,12 @@ async function fetchAllFirebaseAuthUsers(apiKey: string): Promise<FirebaseAuthUs
   return users;
 }
 
+// Type pour les timestamps Firestore
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
+
 interface UserDoc {
   uid: string;
   email: string;
@@ -44,6 +50,8 @@ interface UserDoc {
   isEditor?: boolean;     // Ajouté pour la gestion des éditeurs
   emailVerified: boolean;
   photoURL?: string;
+  status?: string;        // Statut de l'utilisateur (actif, suspendu, etc.)
+  createdAt?: string | FirestoreTimestamp | number;  // Date de création du profil (plusieurs formats possibles)
 }
 
 const AdminUserManager: React.FC = () => {
@@ -61,6 +69,14 @@ const AdminUserManager: React.FC = () => {
   const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
   const navigate = useNavigate();
   const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || '';
+  
+  // Filtres
+  const [roleFilter, setRoleFilter] = useState<'tous' | 'admin' | 'editor' | 'standard'>('tous');
+  const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 15;
 
   // Fonction fetchUsers accessible partout dans le composant
   const fetchUsers = async () => {
@@ -212,6 +228,15 @@ const AdminUserManager: React.FC = () => {
         isEditor: false,
         emailVerified: authUser.emailVerified || false,
         photoURL: authUser.photoUrl || '',
+        createdAt: new Date().toLocaleString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZoneName: 'short'
+        }).replace(',', ' à'), // Format: "16 juin 2025 à 20:21:00 UTC"
       });
       
       // Log de l'activité
@@ -249,6 +274,89 @@ const AdminUserManager: React.FC = () => {
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">
+        {/* Statistiques des utilisateurs */}
+        <div className="mb-6 bg-blue-50 px-4 py-3 rounded-lg shadow-sm border border-blue-200">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium text-blue-800 text-lg">Statistiques des utilisateurs</h3>
+            <span className="bg-blue-600 text-white py-1 px-4 rounded-full font-bold">
+              {loading ? '...' : `Total: ${users.length}`}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {/* ESIGELEC */}
+            <div className="flex justify-between items-center p-2 bg-blue-100 rounded border border-blue-200">
+              <span className="text-sm font-medium">ESIGELEC</span>
+              <span className="bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                {loading ? '...' : users.filter(user => user.status === 'esigelec').length}
+              </span>
+            </div>
+            
+            {/* CPS */}
+            <div className="flex justify-between items-center p-2 bg-purple-100 rounded border border-purple-200">
+              <span className="text-sm font-medium">CPS</span>
+              <span className="bg-purple-600 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                {loading ? '...' : users.filter(user => user.status === 'cps').length}
+              </span>
+            </div>
+            
+            {/* Alumni */}
+            <div className="flex justify-between items-center p-2 bg-green-100 rounded border border-green-200">
+              <span className="text-sm font-medium">Alumni</span>
+              <span className="bg-green-600 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                {loading ? '...' : users.filter(user => user.status === 'alumni').length}
+              </span>
+            </div>
+            
+            {/* Autres */}
+            <div className="flex justify-between items-center p-2 bg-gray-100 rounded border border-gray-200">
+              <span className="text-sm font-medium">Autres</span>
+              <span className="bg-gray-600 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                {loading ? '...' : users.filter(user => !user.status || user.status === 'autres').length}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Filtres */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label htmlFor="role-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par rôle</label>
+            <select
+              id="role-filter"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              value={roleFilter}
+              onChange={e => {
+                setRoleFilter(e.target.value as 'tous' | 'admin' | 'editor' | 'standard');
+                setCurrentPage(1); // Réinitialiser la pagination
+              }}
+            >
+              <option value="tous">Tous les rôles</option>
+              <option value="admin">Admin</option>
+              <option value="editor">Éditeur</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+          
+          <div className="flex-1">
+            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par statut</label>
+            <select
+              id="status-filter"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              value={statusFilter}
+              onChange={e => {
+                setStatusFilter(e.target.value as 'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres');
+                setCurrentPage(1); // Réinitialiser la pagination
+              }}
+            >
+              <option value="tous">Tous les statuts</option>
+              <option value="esigelec">ESIGELEC</option>
+              <option value="cps">CPS</option>
+              <option value="alumni">Alumni</option>
+              <option value="autres">Autres</option>
+            </select>
+          </div>
+        </div>
 
         {/* Utilisateurs Auth sans profil Firestore */}
         {loadingAuthUsers ? (
@@ -276,17 +384,86 @@ const AdminUserManager: React.FC = () => {
           <div className="text-red-600">{error}</div>
         ) : (
           <div className="overflow-x-auto">
+            <p className="text-sm text-gray-500 mb-2">
+              {(() => {
+                const filteredUsers = users
+                  .filter(user => {
+                    // Filtrage par rôle
+                    if (roleFilter === 'tous') return true;
+                    if (roleFilter === 'admin') return user.isAdmin;
+                    if (roleFilter === 'editor') return user.isEditor;
+                    if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
+                    return true;
+                  })
+                  .filter(user => {
+                    // Filtrage par statut
+                    if (statusFilter === 'tous') return true;
+                    if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                    return user.status === statusFilter;
+                  });
+                
+                return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${roleFilter !== 'tous' || statusFilter !== 'tous' ? ' (filtrés)' : ''}`;
+              })()}
+            </p>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de création</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
+                {users
+                  // Fonction pour convertir la date de création en timestamp pour comparaison
+                  .sort((a, b) => {
+                    // Fonction utilitaire pour convertir un createdAt en timestamp
+                    const getTimestamp = (user: UserDoc): number => {
+                      if (!user.createdAt) return 0; // Si pas de date, mettre en dernier
+                      
+                      // Si c'est un timestamp Firestore
+                      if (typeof user.createdAt === 'object' && 'seconds' in user.createdAt) {
+                        return (user.createdAt as FirestoreTimestamp).seconds * 1000;
+                      }
+                      
+                      // Si c'est un nombre (timestamp)
+                      if (typeof user.createdAt === 'number') {
+                        return user.createdAt;
+                      }
+                      
+                      // Si c'est une chaîne, essayer de la convertir en date
+                      if (typeof user.createdAt === 'string') {
+                        const date = new Date(user.createdAt);
+                        if (!isNaN(date.getTime())) {
+                          return date.getTime();
+                        }
+                      }
+                      
+                      return 0; // Valeur par défaut
+                    };
+                    
+                    // Tri décroissant (du plus récent au plus ancien)
+                    return getTimestamp(b) - getTimestamp(a);
+                  })
+                  .filter(user => {
+                    // Filtrage par rôle
+                    if (roleFilter === 'tous') return true;
+                    if (roleFilter === 'admin') return user.isAdmin;
+                    if (roleFilter === 'editor') return user.isEditor;
+                    if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
+                    return true;
+                  })
+                  .filter(user => {
+                    // Filtrage par statut
+                    if (statusFilter === 'tous') return true;
+                    if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                    return user.status === statusFilter;
+                  })
+                  .slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage)
+                  .map((user) => (
                   <tr key={user.uid} className="hover:bg-gray-50">
                     <td className="px-4 py-2 flex items-center cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/admin/users/${user.uid}`)}>
                       {user.photoURL ? (
@@ -305,6 +482,24 @@ const AdminUserManager: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
+                    <td className="px-4 py-2">
+                      {user.status ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
+                          user.status === 'esigelec' ? 'bg-blue-100 text-blue-800' : 
+                          user.status === 'cps' ? 'bg-purple-100 text-purple-800' : 
+                          user.status === 'alumni' ? 'bg-green-100 text-green-800' : 
+                          'bg-gray-100 text-gray-800'}`}>
+                          {user.status === 'esigelec' ? 'ESIGELEC' : 
+                           user.status === 'cps' ? 'CPS' : 
+                           user.status === 'alumni' ? 'Alumni' : 
+                           user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                          Autres
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-col space-y-1">
                         {user.isAdmin ? (
@@ -325,6 +520,104 @@ const AdminUserManager: React.FC = () => {
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className="text-sm text-gray-600">
+                        {(() => {
+                          // Définir une date actuelle pour les profils sans date
+                          if (!user.createdAt) {
+                            return <span className="text-xs text-gray-400 italic">Non disponible</span>;
+                          }
+                          
+                          try {
+                            // Afficher le type et la valeur pour déboguer
+                            // (Vous pouvez supprimer cette ligne une fois les problèmes corrigés)
+                            console.log(`createdAt pour ${user.email}:`, 
+                              typeof user.createdAt, 
+                              JSON.stringify(user.createdAt)
+                            );
+                            
+                            // Pour les objets Firestore Timestamp
+                            if (user.createdAt && 
+                                typeof user.createdAt === 'object' && 
+                                'seconds' in user.createdAt && 
+                                'nanoseconds' in user.createdAt) {
+                              // Conversion du timestamp Firestore en date
+                              const timestamp = user.createdAt as FirestoreTimestamp;
+                              const seconds = timestamp.seconds;
+                              const date = new Date(seconds * 1000);
+                              
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les chaînes au format "16 juin 2025 à 20:21:00 UTC"
+                            if (typeof user.createdAt === 'string') {
+                              if (user.createdAt.includes(' à ')) {
+                                const parts = user.createdAt.split(' à ');
+                                return (
+                                  <>
+                                    {parts[0]}
+                                    <br />
+                                    <span className="text-xs text-gray-500">
+                                      {parts[1]?.split(' ')[0] || ''}
+                                    </span>
+                                  </>
+                                );
+                              } else {
+                                // Essayer de convertir la chaîne en date
+                                const date = new Date(user.createdAt);
+                                if (!isNaN(date.getTime())) {
+                                  return (
+                                    <>
+                                      {date.toLocaleDateString('fr-FR')}
+                                      <br />
+                                      <span className="text-xs text-gray-500">
+                                        {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </>
+                                  );
+                                } else {
+                                  // Si la conversion échoue, on affiche la chaîne brute
+                                  return <span>{user.createdAt}</span>;
+                                }
+                              }
+                            }
+                            
+                            // Pour les timestamps numériques
+                            if (typeof user.createdAt === 'number') {
+                              const date = new Date(user.createdAt);
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Fallback avec affichage du type pour aider au débogage
+                            return <span className="text-xs">
+                              {typeof user.createdAt}: {String(user.createdAt)}
+                            </span>;
+                            
+                          } catch (error) {
+                            console.error("Erreur de format de date:", error);
+                            return <span className="text-xs text-red-500">
+                              Format invalide
+                            </span>;
+                          }
+                        })()}
+                      </span>
                     </td>
                     <td className="px-4 py-2">
                       {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
@@ -382,6 +675,77 @@ const AdminUserManager: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-4 px-2">
+              <div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded bg-gray-200 text-gray-700 mr-2 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                  &laquo; Précédent
+                </button>
+                <button
+                  onClick={() => {
+                    const filteredUsers = users
+                      .filter(user => {
+                        if (roleFilter === 'tous') return true;
+                        if (roleFilter === 'admin') return user.isAdmin;
+                        if (roleFilter === 'editor') return user.isEditor;
+                        if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
+                        return true;
+                      })
+                      .filter(user => {
+                        if (statusFilter === 'tous') return true;
+                        if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                        return user.status === statusFilter;
+                      });
+                    
+                    setCurrentPage(p => Math.min(Math.ceil(filteredUsers.length / usersPerPage), p + 1));
+                  }}
+                  disabled={
+                    (() => {
+                      const filteredUsers = users
+                        .filter(user => {
+                          if (roleFilter === 'tous') return true;
+                          if (roleFilter === 'admin') return user.isAdmin;
+                          if (roleFilter === 'editor') return user.isEditor;
+                          if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
+                          return true;
+                        })
+                        .filter(user => {
+                          if (statusFilter === 'tous') return true;
+                          if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                          return user.status === statusFilter;
+                        });
+                      
+                      return currentPage >= Math.ceil(filteredUsers.length / usersPerPage);
+                    })()
+                  }
+                  className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Suivant &raquo;
+                </button>
+              </div>
+              <div className="text-sm text-gray-500">
+                {(() => {
+                  const filteredUsers = users
+                    .filter(user => {
+                      if (roleFilter === 'tous') return true;
+                      if (roleFilter === 'admin') return user.isAdmin;
+                      if (roleFilter === 'editor') return user.isEditor;
+                      if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
+                      return true;
+                    })
+                    .filter(user => {
+                      if (statusFilter === 'tous') return true;
+                      if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                      return user.status === statusFilter;
+                    });
+                  
+                  return `Page ${currentPage} sur ${Math.ceil(filteredUsers.length / usersPerPage) || 1}`;
+                })()}
+              </div>
+            </div>
           </div>
         )}
       </div>
