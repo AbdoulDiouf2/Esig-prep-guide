@@ -171,21 +171,28 @@ const AdminActivityLogPage: React.FC = () => {
 
   // Helper to render target badge
   const renderTargetBadge = (target: string) => {
+    // Default style
     let bgColor = 'bg-gray-100 text-gray-800';
     
-    switch (target.toLowerCase()) {
-      case 'ressource':
-        bgColor = 'bg-purple-100 text-purple-800';
-        break;
-      case 'section':
-        bgColor = 'bg-indigo-100 text-indigo-800';
-        break;
-      case 'faq':
-        bgColor = 'bg-blue-100 text-blue-800';
-        break;
-      case 'utilisateur':
-        bgColor = 'bg-pink-100 text-pink-800';
-        break;
+    // Map target types to their corresponding styles
+    const targetStyles: Record<string, string> = {
+      'ressource': 'bg-purple-100 text-purple-800',
+      'section': 'bg-indigo-100 text-indigo-800',
+      'sous-section': 'bg-indigo-50 text-indigo-700',
+      'faq': 'bg-blue-100 text-blue-800',
+      'utilisateur': 'bg-pink-100 text-pink-800',
+      'webinaire': 'bg-teal-100 text-teal-800',
+      'forum': 'bg-amber-100 text-amber-800',
+      'profil': 'bg-cyan-100 text-cyan-800',
+      'paramètre': 'bg-gray-200 text-gray-800',
+      'document': 'bg-emerald-100 text-emerald-800',
+      'catégorie': 'bg-fuchsia-100 text-fuchsia-800'
+    };
+    
+    // Apply style if target exists, otherwise use default
+    const targetLower = target.toLowerCase();
+    if (targetStyles[targetLower]) {
+      bgColor = targetStyles[targetLower];
     }
     
     return (
@@ -255,8 +262,15 @@ const AdminActivityLogPage: React.FC = () => {
                   <option value="all">Toutes les cibles</option>
                   <option value="Ressource">Ressources</option>
                   <option value="Section">Sections</option>
+                  <option value="Sous-section">Sous-sections</option>
                   <option value="FAQ">FAQ</option>
                   <option value="Utilisateur">Utilisateurs</option>
+                  <option value="Webinaire">Webinaires</option>
+                  <option value="Forum">Forums</option>
+                  <option value="Profil">Profils</option>
+                  <option value="Paramètre">Paramètres</option>
+                  <option value="Document">Documents</option>
+                  <option value="Catégorie">Catégories</option>
                 </select>
               </div>
             </div>

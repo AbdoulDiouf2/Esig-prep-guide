@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
+import { logAdminActivity } from './adminActivityLog';
 
 // Typage strict de la réponse REST Firebase Auth
 export interface FirebaseAuthUser {
@@ -147,19 +148,48 @@ const AdminUserManager: React.FC = () => {
     }
     try {
       if (pendingUser.action === 'toggleAdmin') {
-        await updateDoc(doc(db, 'users', pendingUser.uid), { isAdmin: !targetUser?.isAdmin });
+        const newAdminStatus = !targetUser?.isAdmin;
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isAdmin: newAdminStatus });
         setUsers((prev) =>
           prev.map((user) =>
-            user.uid === pendingUser.uid ? { ...user, isAdmin: !user.isAdmin } : user
+            user.uid === pendingUser.uid ? { ...user, isAdmin: newAdminStatus } : user
           )
         );
+        
+        // Log de l'activité
+        await logAdminActivity({
+          type: newAdminStatus ? 'Ajout' : 'Suppression',
+          target: 'Utilisateur',
+          targetId: pendingUser.uid,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: { 
+            action: 'Changement de rôle administrateur',
+            userId: pendingUser.uid,
+            newStatus: newAdminStatus ? 'Administrateur' : 'Utilisateur standard'
+          }
+        });
+        
       } else if (pendingUser.action === 'toggleEditor') {
-        await updateDoc(doc(db, 'users', pendingUser.uid), { isEditor: !targetUser?.isEditor });
+        const newEditorStatus = !targetUser?.isEditor;
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isEditor: newEditorStatus });
         setUsers((prev) =>
           prev.map((user) =>
-            user.uid === pendingUser.uid ? { ...user, isEditor: !user.isEditor } : user
+            user.uid === pendingUser.uid ? { ...user, isEditor: newEditorStatus } : user
           )
         );
+        
+        // Log de l'activité
+        await logAdminActivity({
+          type: newEditorStatus ? 'Ajout' : 'Suppression',
+          target: 'Utilisateur',
+          targetId: pendingUser.uid,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: { 
+            action: 'Changement de rôle éditeur',
+            userId: pendingUser.uid,
+            newStatus: newEditorStatus ? 'Éditeur' : 'Utilisateur standard'
+          }
+        });
       }
       setModalOpen(false);
       setPendingUser(null);
@@ -183,8 +213,23 @@ const AdminUserManager: React.FC = () => {
         emailVerified: authUser.emailVerified || false,
         photoURL: authUser.photoUrl || '',
       });
+      
+      // Log de l'activité
+      await logAdminActivity({
+        type: 'Ajout',
+        target: 'Utilisateur',
+        targetId: authUser.localId,
+        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        details: { 
+          action: 'Création de profil Firestore',
+          userId: authUser.localId,
+          email: authUser.email
+        }
+      });
+      
       fetchUsers();
     } catch (e) {
+      console.error("Erreur lors de la création du profil Firestore:", e);
       alert("Erreur lors de la création du profil Firestore : " + (e as Error).message);
     }
   };

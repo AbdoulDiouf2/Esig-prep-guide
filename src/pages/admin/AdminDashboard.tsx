@@ -11,6 +11,7 @@ interface UserDoc {
   isSuperAdmin?: boolean;
   emailVerified: boolean;
   photoURL?: string;
+  status?: string;
 }
 
 import { Link } from 'react-router-dom';
@@ -168,7 +169,7 @@ const AdminDashboard: React.FC = () => {
         {/* KPI Progression */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-blue-700" /> Statistiques de progression des utilisateurs
+            <Users className="w-5 h-5 mr-2 text-blue-700" /> Statistiques de progression des étudiants CPS
           </h2>
           {loadingProgress ? (
             <div className="text-center text-gray-500">Chargement des statistiques...</div>
@@ -176,15 +177,23 @@ const AdminDashboard: React.FC = () => {
             <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
               <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-3xl font-bold text-blue-800 mb-1">{users.length}</div>
-                <div className="text-sm text-gray-600">Utilisateurs inscrits</div>
+                <div className="text-3xl font-bold text-blue-800 mb-1">{users.filter(user => user.status === 'cps').length}</div>
+                <div className="text-sm text-gray-600">Étudiants CPS inscrits</div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg">
                 <div className="text-3xl font-bold text-green-800 mb-1">
                   {(() => {
-                    const total = users.length;
-                    const full = userProgressions.filter(p => getUserGlobalProgress(p.completedSections) === 100).length;
-                    return total === 0 ? 0 : Math.round((full / total) * 100);
+                    const cpsUsers = users.filter(user => user.status === 'cps');
+                    const total = cpsUsers.length;
+                    if (total === 0) return 0;
+                    
+                    // Ne considérer que les progressions des utilisateurs CPS qui ont terminé à 100%
+                    const cpsUserIds = cpsUsers.map(user => user.uid);
+                    const full = userProgressions
+                      .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) === 100)
+                      .length;
+                      
+                    return Math.round((full / total) * 100);
                   })()}%
                 </div>
                 <div className="text-sm text-gray-600">ont terminé toutes les sections</div>
@@ -192,9 +201,14 @@ const AdminDashboard: React.FC = () => {
               <div className="p-4 bg-yellow-50 rounded-lg">
                 <div className="text-3xl font-bold text-yellow-800 mb-1">
                   {(() => {
-                    if (userProgressions.length === 0) return 0;
-                    const sum = userProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
-                    return Math.round(sum / userProgressions.length);
+                    const cpsUsers = users.filter(user => user.status === 'cps');
+                    if (cpsUsers.length === 0) return 0;
+                    const cpsProgressions = userProgressions.filter(p => 
+                      cpsUsers.some(user => user.uid === p.userId)
+                    );
+                    if (cpsProgressions.length === 0) return 0;
+                    const sum = cpsProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
+                    return Math.round(sum / cpsProgressions.length);
                   })()}%
                 </div>
                 <div className="text-sm text-gray-600">Progression moyenne</div>

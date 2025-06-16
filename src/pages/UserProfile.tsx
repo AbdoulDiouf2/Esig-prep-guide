@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { STATUS_OPTIONS, getStatusLabel } from '../constants/statusOptions';
+import { User, GraduationCap, MapPin } from 'lucide-react';
 import { Shield } from 'lucide-react';
 import PasswordConfirmModal from '../components/PasswordConfirmModal';
 
@@ -21,9 +24,42 @@ const UserProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [userStatus, setUserStatus] = useState<string>('none');
+  const [loadingStatus, setLoadingStatus] = useState(true);
 
   const [providerError, setProviderError] = useState<string | null>(null);
+  
+  // Charger le statut utilisateur depuis Firestore
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      if (currentUser) {
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.status) {
+              setUserStatus(userData.status);
+            }
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement du statut utilisateur:', error);
+        } finally {
+          setLoadingStatus(false);
+        }
+      }
+    };
 
+    fetchUserStatus();
+  }, [currentUser]);
+
+  // Vérifie si l'utilisateur a un mot de passe local (providerData.type === 'password')
+  const firebaseUser = auth.currentUser;
+  const hasPasswordProvider = firebaseUser?.providerData.some(
+    (provider) => provider.providerId === 'password'
+  );
+  
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
@@ -33,12 +69,6 @@ const UserProfile: React.FC = () => {
       </div>
     );
   }
-
-  // Vérifie si l'utilisateur a un mot de passe local (providerData.type === 'password')
-  const firebaseUser = auth.currentUser;
-  const hasPasswordProvider = firebaseUser?.providerData.some(
-    (provider) => provider.providerId === 'password'
-  );
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +109,13 @@ const UserProfile: React.FC = () => {
         await updateProfile(firebaseUser, { displayName: pendingProfile.displayName, photoURL: pendingProfile.photoURL });
         setDisplayName(pendingProfile.displayName);
         setPhotoURL(pendingProfile.photoURL);
+        
+        // Mettre à jour le statut utilisateur dans Firestore
+        if (currentUser) {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userRef, { status: userStatus });
+        }
+        
         setSuccess('Profil mis à jour !');
       } else if (pendingAction === 'password' && pendingPassword) {
         await updatePassword(firebaseUser, pendingPassword);
@@ -155,6 +192,37 @@ const UserProfile: React.FC = () => {
                   placeholder="URL de la photo"
                   disabled={saving}
                 />
+              </div>
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-gray-700 font-medium mb-1">Votre statut</label>
+                <div className="relative border-2 border-blue-100 rounded-lg">
+                  <select
+                    className="appearance-none w-full px-4 py-2 bg-transparent focus:outline-none"
+                    value={userStatus}
+                    onChange={e => setUserStatus(e.target.value)}
+                    disabled={saving || loadingStatus}
+                  >
+                    <option value="none">Sélectionnez votre statut</option>
+                    {STATUS_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+                {userStatus !== 'none' && (
+                  <div className="mt-2 flex items-center">
+                    <span className="mr-2">Statut actuel:</span>
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                      {userStatus === 'cps' && <MapPin className="w-4 h-4 text-blue-500" />}
+                      {userStatus === 'esigelec' && <GraduationCap className="w-4 h-4 text-green-500" />}
+                      {userStatus === 'alumni' && <User className="w-4 h-4 text-purple-500" />}
+                      {userStatus === 'other' && <User className="w-4 h-4 text-gray-500" />}
+                      {getStatusLabel(userStatus)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <button

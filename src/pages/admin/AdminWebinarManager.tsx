@@ -20,6 +20,7 @@ import {
   Download
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { logAdminActivity } from './adminActivityLog';
 
 // Définition du type Webinar
 interface Webinar {
@@ -257,10 +258,28 @@ const AdminWebinarManager: React.FC = () => {
     
     try {
       setError('');
+      // Récupérer les infos du webinaire avant suppression
+      const webinarToDelete = webinars.find(w => w.id === pendingDeletion);
+      
       await deleteDoc(doc(db, 'webinars', pendingDeletion));
       
       // Mettre à jour la liste des webinaires
       setWebinars(prevWebinars => prevWebinars.filter(webinar => webinar.id !== pendingDeletion));
+      
+      // Journalisation de l'activité
+      if (webinarToDelete) {
+        await logAdminActivity({
+          type: 'Suppression',
+          target: 'Webinaire',
+          targetId: pendingDeletion,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: { 
+            title: webinarToDelete.title,
+            action: 'Suppression du webinaire',
+            date: webinarToDelete.date
+          }
+        });
+      }
       
       // Afficher le modal de succès
       setModalMessage('Webinaire supprimé avec succès.');
@@ -318,6 +337,19 @@ const AdminWebinarManager: React.FC = () => {
         );
         setWebinars(updatedWebinars);
         
+        // Journalisation de l'activité
+        await logAdminActivity({
+          type: 'Modification',
+          target: 'Webinaire',
+          targetId: selectedWebinar.id,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: { 
+            title: webinarData.title || selectedWebinar.title,
+            action: 'Mise à jour du webinaire',
+            changes: Object.keys(webinarForFirestore).filter(key => key !== 'updatedAt')
+          }
+        });
+        
         // Afficher le modal de succès
         setModalMessage('Webinaire mis à jour avec succès');
         setShowSuccessModal(true);
@@ -341,6 +373,20 @@ const AdminWebinarManager: React.FC = () => {
         } as Webinar;
         
         setWebinars([...webinars, newWebinar]);
+        
+        // Journalisation de l'activité
+        await logAdminActivity({
+          type: 'Ajout',
+          target: 'Webinaire',
+          targetId: docRef.id,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: { 
+            title: newWebinar.title,
+            action: 'Création du webinaire',
+            date: newWebinar.date,
+            speaker: newWebinar.speaker?.name
+          }
+        });
         
         // Afficher le modal de succès
         setModalMessage('Webinaire créé avec succès');
@@ -491,6 +537,18 @@ const AdminWebinarManager: React.FC = () => {
     setShowRegistrationsModal(true);
     
     try {
+      // Journalisation de l'activité
+      await logAdminActivity({
+        type: 'Consultation',
+        target: 'Webinaire',
+        targetId: webinarId,
+        user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+        details: { 
+          title: title,
+          action: 'Consultation des inscriptions',
+          timestamp: new Date().toISOString()
+        }
+      });
       const registrationsQuery = query(
         collection(db, 'webinarRegistrations'),
         where('webinarId', '==', webinarId)
