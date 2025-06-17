@@ -384,7 +384,7 @@ const AdminUserManager: React.FC = () => {
           <div className="text-red-600">{error}</div>
         ) : (
           <div className="overflow-x-auto">
-            <p className="text-sm text-gray-500 mb-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
               {(() => {
                 const filteredUsers = users
                   .filter(user => {
@@ -405,8 +405,8 @@ const AdminUserManager: React.FC = () => {
                 return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${roleFilter !== 'tous' || statusFilter !== 'tous' ? ' (filtrés)' : ''}`;
               })()}
             </p>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
@@ -416,7 +416,7 @@ const AdminUserManager: React.FC = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {users
                   // Fonction pour convertir la date de création en timestamp pour comparaison
                   .sort((a, b) => {
@@ -464,13 +464,13 @@ const AdminUserManager: React.FC = () => {
                   })
                   .slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage)
                   .map((user) => (
-                  <tr key={user.uid} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 flex items-center cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/admin/users/${user.uid}`)}>
+                  <tr key={user.uid} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-2 flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300" onClick={() => navigate(`/admin/users/${user.uid}`)}>
                       {user.photoURL ? (
                         <img src={user.photoURL} alt={user.displayName || user.email} className="w-8 h-8 rounded-full mr-2 object-cover bg-gray-200" />
                       ) : (
-                        <span className="w-8 h-8 rounded-full mr-2 bg-gray-200 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A9 9 0 1112 21a8.963 8.963 0 01-6.879-3.196z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span className="w-8 h-8 rounded-full mr-2 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-400 dark:text-gray-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A9 9 0 1112 21a8.963 8.963 0 01-6.879-3.196z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </span>
                       )}
                       {user.displayName || user.email}
@@ -478,11 +478,11 @@ const AdminUserManager: React.FC = () => {
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
                       )}
                       {user.uid === currentUser?.uid && (
-                        <span className="ml-2 text-xs text-blue-600">(Moi)</span>
+                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Moi)</span>
                       )}
                     </td>
-                    <td className="px-4 py-2">{user.email}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 dark:text-gray-300">{user.email}</td>
+                    <td className="px-4 py-2 dark:text-gray-300">
                       {user.status ? (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
                           user.status === 'esigelec' ? 'bg-blue-100 text-blue-800' : 
@@ -500,7 +500,7 @@ const AdminUserManager: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 dark:text-gray-300">
                       <div className="flex flex-col space-y-1">
                         {user.isAdmin ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -521,7 +521,7 @@ const AdminUserManager: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 dark:text-gray-300">
                       <span className="text-sm text-gray-600">
                         {(() => {
                           // Définir une date actuelle pour les profils sans date
@@ -619,7 +619,7 @@ const AdminUserManager: React.FC = () => {
                         })()}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 dark:text-gray-300">
                       {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
                       <div className="flex flex-col sm:flex-row gap-2">
                         {user.uid !== currentUser?.uid && (
@@ -682,7 +682,7 @@ const AdminUserManager: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded bg-gray-200 text-gray-700 mr-2 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mr-2 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                   &laquo; Précédent
                 </button>
                 <button
@@ -722,11 +722,11 @@ const AdminUserManager: React.FC = () => {
                       return currentPage >= Math.ceil(filteredUsers.length / usersPerPage);
                     })()
                   }
-                  className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                   Suivant &raquo;
                 </button>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {(() => {
                   const filteredUsers = users
                     .filter(user => {
