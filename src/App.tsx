@@ -226,6 +226,27 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   return <ProtectedContent>{children}</ProtectedContent>;
 };
 
+// Composant pour rediriger vers le dashboard si déjà authentifié
+const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) => {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/dashboard";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (currentUser) {
+    return <Navigate to={from} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 
 
 // Composant principal de l'application
@@ -239,9 +260,9 @@ function App() {
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
+                <Route path="/register" element={<RedirectIfAuthenticated><Register /></RedirectIfAuthenticated>} />
+                <Route path="/reset-password" element={<RedirectIfAuthenticated><ResetPassword /></RedirectIfAuthenticated>} />
                 <Route path="/test-firebase" element={<TestFirebase />} />
                 
                 {/* Pages légales */}

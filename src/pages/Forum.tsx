@@ -114,7 +114,15 @@ const Forum: React.FC = () => {
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Forum ESIG</h1>
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-lg mb-8 shadow-md overflow-hidden">
+        <div className="px-6 py-12">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Forum ESIG</h1>
+          <p className="text-lg text-blue-100 mb-6">
+            Échangez avec la communauté, posez vos questions et partagez vos expériences.
+          </p>
+        </div>
+      </div>
       
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar des catégories */}
