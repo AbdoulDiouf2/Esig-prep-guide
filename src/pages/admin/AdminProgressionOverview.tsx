@@ -5,7 +5,8 @@ import { DocumentData } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { getUserSubsectionData } from '../../services/subsectionDataService';
 import { useContent } from '../../contexts/ContentContext';
-import { Users, Plane, Check, X, Calendar, MapPin, Bus } from 'lucide-react';
+import { Users, Plane, Check, X, Calendar, MapPin, Bus, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface UserDoc {
   uid: string;
@@ -35,6 +36,7 @@ const AdminProgressionOverview: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'progressions' | 'visa'>('progressions');
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
+  const [exporting, setExporting] = useState(false);
   
   // Déterminer le statut visa selon les sections complétées
   // Défini avec useCallback pour éviter les re-rendus inutiles
@@ -57,6 +59,71 @@ const AdminProgressionOverview: React.FC = () => {
     
     return null;
   }, [guideSections]); // Uniquement guideSections en dépendance
+
+  // Fonction pour exporter les données en Excel selon le statut visa (obtenu/refusé)
+  const exportToExcel = useCallback((visaStatus: 'obtained' | 'refused') => {
+    setExporting(true);
+    try {
+      // Filtrer les utilisateurs selon leur statut visa
+      const filteredUsers = users.filter(user => 
+        user.status === 'cps' && getUserVisaStatus(user.uid, userProgressions) === visaStatus
+      );
+
+      if (filteredUsers.length === 0) {
+        alert(`Aucun étudiant avec visa ${visaStatus === 'obtained' ? 'obtenu' : 'refusé'} à exporter.`);
+        setExporting(false);
+        return;
+      }
+
+      // Préparer les données à exporter
+      const exportData = filteredUsers.map(user => {
+        const basicInfo = {
+          'Nom': user.displayName || 'Non renseigné',
+          'Email': user.email || 'Non renseigné',
+          'Statut': user.status || 'Non renseigné',
+          'Statut Visa': visaStatus === 'obtained' ? 'Obtenu' : 'Refusé'
+        };
+
+        // Ajouter les informations d'arrivée pour les visas obtenus
+        if (visaStatus === 'obtained' && arrivalData[user.uid]) {
+          const arrivalInfo = arrivalData[user.uid];
+          return {
+            ...basicInfo,
+            'Billet d\'avion': arrivalInfo.hasTicket ? 'Oui' : 'Non',
+            'Date d\'arrivée': arrivalInfo.arrivalDate || 'Non renseignée',
+            'Heure d\'arrivée': arrivalInfo.arrivalTime || 'Non renseignée',
+            'Aéroport': arrivalInfo.airport || 'Non renseigné',
+            'Transport personnel': arrivalInfo.hasOwnTransportation ? 'Oui' : 'Non',
+            'Prise en charge commune': arrivalInfo.wantGroupTransport ? 'Oui' : 'Non'
+          };
+        }
+
+        return basicInfo;
+      });
+
+      // Créer une feuille de calcul Excel
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        workbook, 
+        worksheet, 
+        visaStatus === 'obtained' ? 'Visas Obtenus' : 'Visas Refusés'
+      );
+
+      // Générer le fichier Excel et le télécharger
+      const fileName = visaStatus === 'obtained' 
+        ? 'etudiants_visa_obtenus.xlsx' 
+        : 'etudiants_visa_refuses.xlsx';
+      
+      XLSX.writeFile(workbook, fileName);
+      console.log(`Données exportées pour les visas ${visaStatus}`);
+    } catch (error) {
+      console.error(`Erreur lors de l'exportation des données:`, error);
+      alert(`Une erreur est survenue lors de l'exportation. Veuillez réessayer.`);
+    } finally {
+      setExporting(false);
+    }
+  }, [users, userProgressions, arrivalData, getUserVisaStatus]);
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -90,13 +157,13 @@ const AdminProgressionOverview: React.FC = () => {
     const fetchArrivalData = async (usersList: UserDoc[], progressions: { userId: string, completedSections: string[] }[]) => {
       const arrivalInfo: Record<string, ArrivalInfo> = {};
       
-      // Récupérer les données d'arrivée uniquement pour les utilisateurs CPS ayant obtenu leur visa
-      const usersWithVisa = usersList.filter(user => 
+      // Récupérer les données d'arrivée pour les utilisateurs CPS ayant un statut visa (obtenu ou refusé)
+      const usersWithVisaStatus = usersList.filter(user => 
         user.status === 'cps' && 
-        getUserVisaStatus(user.uid, progressions) === 'obtained'
+        (getUserVisaStatus(user.uid, progressions) === 'obtained' || getUserVisaStatus(user.uid, progressions) === 'refused')
       );
       
-      for (const user of usersWithVisa) {
+      for (const user of usersWithVisaStatus) {
         try {
           // Récupérer les données de sous-sections pour l'utilisateur
           const subsectionData = await getUserSubsectionData(user.uid);
@@ -105,10 +172,22 @@ const AdminProgressionOverview: React.FC = () => {
           if (subsectionData && subsectionData.inputValues) {
             // Log pour debug
             console.log('Données de sous-section pour', user.displayName || user.uid);
-            console.log('Valeurs disponibles:', subsectionData.inputValues);
+            console.log('Valeurs disponibles (input values):', subsectionData.inputValues);
+            console.log('Valeurs disponibles (typed values):', subsectionData.typedValues);            
+            console.log('Statut visa:', getUserVisaStatus(user.uid, progressions));
             
             const values = subsectionData.inputValues;
-            const keys = Object.keys(values);
+            const valuesDate = subsectionData.typedValues;
+            const keys = Object.keys(values || {});
+            const keysDate = Object.keys(valuesDate || {});
+            
+            // Affichage DEBUG: toutes les valeurs avec leur clé pour diagnostiquer où se trouve la date
+            console.log('==== Début DEBUG détaillé des valeurs ====');
+            keys.forEach(key => {
+              const val = values[key];
+              console.log(`Clé: ${key} => Valeur: ${val} (Type: ${typeof val})`);
+            });
+            console.log('==== Fin DEBUG détaillé des valeurs ====')
             
             // Stratégie: chercher les clés par leurs valeurs ou patterns plutôt que par ID
             
@@ -122,30 +201,114 @@ const AdminProgressionOverview: React.FC = () => {
               wantGroupTransport: false
             };
             
-            // Identifier la clé pour le billet d'avion
-            const ticketKey = keys.find(k => values[k] === 'Oui' && k.includes('ticket') || 
-                                       values[k] === 'yes' && k.includes('ticket') ||
-                                       values[k] === 'Oui');
-            if (ticketKey) info.hasTicket = true;
+            // Identifier la clé pour le billet d'avion - spécifiquement item-1750091257560-828 d'après les logs
+            const ticketKey = keys.find(k => {
+                // Clefs spécifiques observées dans les logs
+                if (k === 'item-1750091257560-828' && values[k] === 'Oui') return true;
+                
+                // Recherche générique
+                return (values[k] === 'Oui' || values[k] === 'yes') && 
+                       (k.includes('ticket') || k.includes('billet'));
+            });
+            if (ticketKey) {
+                info.hasTicket = true;
+                console.log('Billet d\'avion détecté:', ticketKey, values[ticketKey]);
+            }
             
-            // Identifier la clé pour la date d'arrivée
-            const dateKey = keys.find(k => {
-              const val = values[k];
-              return typeof val === 'string' && 
-                    (val.includes('2025') || val.includes('Septembre') || 
-                     val.includes('/') || val.match(/\d{2}:\d{2}/));
+            // Identifier la clé pour la date d'arrivée - algorithme amélioré
+            const dateKey = keysDate.find(k => {
+              // S'assurer que valuesDate existe
+              if (!valuesDate) return false;
+              
+              const val = valuesDate[k];
+              
+              // Vérifier si c'est un objet Timestamp (Firebase)
+              if (val && typeof val === 'object' && 'seconds' in val) {
+                console.log('Timestamp trouvé dans la clé:', k, val);
+                return true;
+              }
+              
+              // Sinon, vérifier si la valeur est une chaîne
+              if (typeof val !== 'string') return false;
+              
+              // Rechercher les formats de date courants
+              // Formats: DD/MM/YYYY, YYYY/MM/DD, DD-MM-YYYY, dates avec mois textuels, etc.
+              const containsDateFormat = (
+                val.match(/\d{2}\/\d{2}\/\d{4}/) || // format 29/08/2025
+                val.match(/\d{4}\/\d{2}\/\d{2}/) || // format 2025/08/29
+                val.match(/\d{2}-\d{2}-\d{4}/) || // format avec tirets
+                val.match(/\d{2}:\d{2}/) || // format heure
+                val.includes('2025') || // année spécifique
+                val.includes('2024') || // autres années possibles
+                val.includes('Janvier') || val.includes('Février') || val.includes('Mars') ||
+                val.includes('Avril') || val.includes('Mai') || val.includes('Juin') ||
+                val.includes('Juillet') || val.includes('Août') || val.includes('Septembre') ||
+                val.includes('Octobre') || val.includes('Novembre') || val.includes('Décembre') ||
+                // Versions sans accents pour plus de robustesse
+                val.includes('Aout') || val.includes('Fevrier') || val.includes('Decembre')
+              );
+              
+              // Debug des valeurs trouvées pour diagnostic
+              if (containsDateFormat) {
+                console.log('Valeur de date potentielle trouvée:', val, 'dans la clé:', k);
+              }
+              
+              return containsDateFormat;
             });
             
             if (dateKey) {
-              const fullDate = values[dateKey];
+              // Récupérer la date depuis valuesDate et non values
+              const fullDate = valuesDate ? valuesDate[dateKey] : null;
+              console.log('Date trouvée:', fullDate);
+              
+              // Handle Firebase Timestamp object format
+              if (fullDate && typeof fullDate === 'object' && fullDate !== null) {
+                // Check if it's a Firebase Timestamp (has seconds property)
+                const timestampObj = fullDate as { seconds?: number; nanoseconds?: number };
+                
+                if (typeof timestampObj.seconds === 'number') {
+                  // Convert Firebase Timestamp to JavaScript Date
+                  const date = new Date(timestampObj.seconds * 1000);
+                  console.log('Date convertie:', date);
+                  
+                  // Format la date et l'heure pour l'objet info
+                  info.arrivalDate = date.toLocaleDateString('fr-FR'); // Format: DD/MM/YYYY
+                  info.arrivalTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); // Format: HH:MM
+                  
+                  console.log('Date formatée:', info.arrivalDate);
+                  console.log('Heure formatée:', info.arrivalTime);
+                }
+              }
+              
               // Séparer date et heure si possible
               if (typeof fullDate === 'string') {
-                const parts = fullDate.split(' à '); // Format "05 Septembre 2025 à 12:00"
+                // Gérer différents séparateurs possibles entre date et heure
+                let parts: string[] = [];
+                
+                // Format avec 'à' comme séparateur: "05 Septembre 2025 à 12:00"
+                if (fullDate.includes(' à ')) {
+                  parts = fullDate.split(' à ');
+                }
+                // Format avec espace comme séparateur: "29/08/2025 12:50"
+                else if (fullDate.match(/\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}/)) {
+                  const match = fullDate.match(/(.*)\s(\d{2}:\d{2})/);
+                  if (match && match.length >= 3) {
+                    parts = [match[1], match[2]];
+                  }
+                }
+                // Autres séparateurs potentiels
+                else if (fullDate.includes(' - ')) {
+                  parts = fullDate.split(' - ');
+                }
+                
+                // Appliquer le résultat du parsing
                 if (parts.length > 1) {
-                  info.arrivalDate = parts[0];
-                  info.arrivalTime = parts[1];
+                  info.arrivalDate = parts[0].trim();
+                  info.arrivalTime = parts[1].trim();
+                  console.log('Date parsée:', info.arrivalDate, 'Heure parsée:', info.arrivalTime);
                 } else {
                   info.arrivalDate = fullDate;
+                  console.log('Date non séparée:', info.arrivalDate);
                 }
               }
             }
@@ -160,27 +323,63 @@ const AdminProgressionOverview: React.FC = () => {
             
             if (airportKey) info.airport = values[airportKey];
             
-            // Identifier la clé pour le transport personnel
+            // Affichage DEBUG pour les options de transport
+            console.log('==== Début DEBUG options de transport ====');
+            keys.forEach(key => {
+              if (key.includes('transport') || values[key] === 'Oui' || values[key] === 'Non') {
+                console.log(`Option potentielle de transport - Clé: ${key} => Valeur: ${values[key]}`);
+              }
+            });
+            
+            // Identifier la clé pour le transport personnel - selon les logs
             const ownTransportKey = keys.find(k => {
-              return (values[k] === 'Oui' || values[k] === 'yes') && 
-                     (k.includes('own') || k.includes('personnel'));
+                // D'après les logs, il n'y a pas d'indication claire de transport personnel
+                // Mais on garde la logique générique au cas où
+                return (values[k] === 'Oui' || values[k] === 'yes') && 
+                       (k.includes('own') || k.includes('personnel') || k.includes('propre') || k.includes('autonome'));
             });
             
-            if (ownTransportKey) info.hasOwnTransportation = true;
+            if (ownTransportKey) {
+                info.hasOwnTransportation = true;
+                console.log('Transport personnel détecté:', ownTransportKey, values[ownTransportKey]);
+            }
             
-            // Identifier la clé pour la prise en charge commune
+            // Identifier la clé pour la prise en charge commune (transport groupé)
             const groupTransportKey = keys.find(k => {
-              return (values[k] === 'Oui' || values[k] === 'yes') && 
-                     (k.includes('group') || k.includes('commun'));
+                // Clé spécifique observée dans les logs
+                if (k === 'item-1750091349655-561' && values[k] === 'Oui') return true;
+                
+                // Recherche générique
+                return (values[k] === 'Oui' || values[k] === 'yes') && 
+                       (k.includes('group') || k.includes('commun') || k.includes('navette') || k.includes('transport'));
             });
             
-            if (groupTransportKey) info.wantGroupTransport = true;
+            if (groupTransportKey) {
+                info.wantGroupTransport = true;
+                console.log('Transport groupé détecté:', groupTransportKey, values[groupTransportKey]);
+            }
+            
+            // Vérification des valeurs négatives (si explicitement "Non")
+            const noGroupTransportKey = keys.find(k => {
+                // Clé spécifique observée dans les logs
+                if (k === 'item-1750091387480-385' && values[k] === 'Non') return true;
+                
+                // Recherche générique
+                return (values[k] === 'Non' || values[k] === 'no') && 
+                       (k.includes('group') || k.includes('commun') || k.includes('navette') || k.includes('transport'));
+            });
+            
+            if (noGroupTransportKey) {
+                info.wantGroupTransport = false;
+                console.log('Refus de transport groupé détecté:', noGroupTransportKey, values[noGroupTransportKey]);
+            }
             
             // Assigner les données trouvées
             arrivalInfo[user.uid] = info;
             
             // Log des données extraites
             console.log('Données d\'arrivée extraites:', arrivalInfo[user.uid]);
+            console.log('Statut visa associé:', getUserVisaStatus(user.uid, progressions));
           }
         } catch (error) {
           console.error(`Erreur lors de la récupération des données d'arrivée pour ${user.uid}:`, error);
@@ -191,7 +390,7 @@ const AdminProgressionOverview: React.FC = () => {
     };
     
     fetchProgressions();
-  }, [guideSections]); // Retiré getUserVisaStatus des dépendances pour éviter la boucle de rendu
+  }, [guideSections, getUserVisaStatus]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
 
   const getUserGlobalProgress = (completedSections: string[]) => {
     if (!guideSections || guideSections.length === 0) return 0;
@@ -363,10 +562,48 @@ const AdminProgressionOverview: React.FC = () => {
         ) : (
           // Onglet Statut visa & Arrivée
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="p-4 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 flex items-center justify-between shadow-sm">
               <h3 className="text-lg font-semibold text-blue-800 flex items-center">
                 <Plane className="w-5 h-5 mr-2" /> Statut visa & Informations d'arrivée
               </h3>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => exportToExcel('obtained')}
+                  disabled={exporting}
+                  className="group relative inline-flex items-center px-4 py-2 border border-green-500 text-sm font-medium rounded-md shadow-md bg-gradient-to-r from-green-400 to-green-600 text-white transition-all duration-200 transform hover:scale-102 hover:shadow-lg hover:translate-y-[-1px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-60 overflow-hidden"
+                >
+                  <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                  <Download className="h-4 w-4 mr-1.5 group-hover:animate-bounce" />
+                  {exporting ? 
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Exportation en cours...
+                    </span> : 
+                    'Visas obtenus'
+                  }
+                </button>
+                <button
+                  onClick={() => exportToExcel('refused')}
+                  disabled={exporting}
+                  className="group relative inline-flex items-center px-4 py-2 border border-red-500 text-sm font-medium rounded-md shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white transition-all duration-200 transform hover:scale-102 hover:shadow-lg hover:translate-y-[-1px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-60 overflow-hidden"
+                >
+                  <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                  <Download className="h-4 w-4 mr-1.5 group-hover:animate-bounce" />
+                  {exporting ? 
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Exportation en cours...
+                    </span> : 
+                    'Visas refusés'
+                  }
+                </button>
+              </div>
             </div>
             
             {usersWithVisaStatus.length === 0 ? (
@@ -375,6 +612,7 @@ const AdminProgressionOverview: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
+
                 <table className="w-full divide-y divide-gray-200">
                   <thead>
                     <tr className="bg-gray-50">
@@ -414,35 +652,47 @@ const AdminProgressionOverview: React.FC = () => {
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {arrivalData[user.uid]?.hasTicket ? (
-                            <div>
-                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 mb-1">Billet acheté</span>
-                              {arrivalData[user.uid]?.arrivalDate ? (
-                                <div className="flex items-center mt-1">
-                                  <Calendar className="h-4 w-4 mr-1 text-blue-500" /> 
-                                  {arrivalData[user.uid].arrivalDate}
-                                  {arrivalData[user.uid].arrivalTime && (
-                                    <span className="ml-2 text-gray-700">à {arrivalData[user.uid].arrivalTime}</span>
-                                  )}
-                                </div>
-                              ) : 'Date non renseignée'}
-                            </div>
+                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
+                            arrivalData[user.uid]?.hasTicket ? (
+                              <div>
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 mb-1">Billet acheté</span>
+                                {arrivalData[user.uid]?.arrivalDate ? (
+                                  <div className="flex items-center mt-1">
+                                    <Calendar className="h-4 w-4 mr-1 text-blue-500" /> 
+                                    {arrivalData[user.uid].arrivalDate}
+                                    {arrivalData[user.uid].arrivalTime && (
+                                      <span className="ml-2 text-gray-700">à {arrivalData[user.uid].arrivalTime}</span>
+                                    )}
+                                  </div>
+                                ) : 'Date non renseignée'}
+                              </div>
+                            ) : (
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pas encore de billet</span>
+                            )
+                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Visa refusé - Voyage annulé</span>
                           ) : (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pas encore de billet</span>
+                            <span className="text-gray-500">Statut visa indéterminé</span>
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {arrivalData[user.uid]?.airport ? (
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1 text-blue-500" /> 
-                              {arrivalData[user.uid].airport}
-                            </div>
+                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
+                            arrivalData[user.uid]?.airport ? (
+                              <div className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1 text-blue-500" /> 
+                                {arrivalData[user.uid].airport}
+                              </div>
+                            ) : (
+                              'Non renseigné'
+                            )
+                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
+                            <span className="text-gray-500">Non applicable</span>
                           ) : (
-                            'Non renseigné'
+                            <span className="text-gray-500">-</span>
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-center">
-                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' && (
+                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
                             <div className="flex flex-col space-y-2">
                               <div>
                                 {arrivalData[user.uid]?.hasOwnTransportation ? (
@@ -463,6 +713,10 @@ const AdminProgressionOverview: React.FC = () => {
                                 )}
                               </div>
                             </div>
+                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
+                            <span className="text-gray-500 italic">Voyage annulé</span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
                           )}
                         </td>
                       </tr>

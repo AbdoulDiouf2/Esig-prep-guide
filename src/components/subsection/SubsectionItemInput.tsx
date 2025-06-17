@@ -65,6 +65,7 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
         fieldType={item.fieldType}
         value={actualTypedValue}
         onChange={handleTypedChange}
+        onChangeTyped={onChangeTyped}
         fieldMetadata={{ options: item.options }}
       />
     );

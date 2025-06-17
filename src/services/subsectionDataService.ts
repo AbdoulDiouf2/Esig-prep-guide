@@ -210,7 +210,7 @@ export const convertStringToTypedValue = (value: string, type: InputFieldType): 
       case 'boolean': return false;
       case 'number': return 0;
       case 'date': 
-      case 'datetime': return new Date();
+      case 'datetime': return null; // Retourner null au lieu de la date du jour
       default: return '';
     }
   }
@@ -304,11 +304,35 @@ export const cleanupSubsectionData = async (
       }
     });
     
-    // Sauvegarder les données nettoyées
+    // Filtrer également les valeurs typées et les métadonnées des champs
+    const newTypedValues: Record<string, TypedValue> = {};
+    const newFieldMetadata: Record<string, FieldMetadata> = {};
+    
+    // Conserver les valeurs typées valides (surtout important pour les dates)
+    if (userData.typedValues) {
+      Object.keys(userData.typedValues).forEach(itemId => {
+        if (validItemIds.includes(itemId)) {
+          newTypedValues[itemId] = userData.typedValues![itemId];
+        }
+      });
+    }
+    
+    // Conserver les métadonnées des champs valides
+    if (userData.fieldMetadata) {
+      Object.keys(userData.fieldMetadata).forEach(itemId => {
+        if (validItemIds.includes(itemId)) {
+          newFieldMetadata[itemId] = userData.fieldMetadata![itemId];
+        }
+      });
+    }
+    
+    // Sauvegarder les données nettoyées, y compris les valeurs typées et métadonnées
     const userDocRef = doc(firestore, COLLECTION_NAME, userId);
     await setDoc(userDocRef, {
       checkItems: newCheckItems,
-      inputValues: newInputValues
+      inputValues: newInputValues,
+      typedValues: newTypedValues,
+      fieldMetadata: newFieldMetadata
     });
     
     console.log(`Données de sous-section nettoyées pour l'utilisateur ${userId}`);

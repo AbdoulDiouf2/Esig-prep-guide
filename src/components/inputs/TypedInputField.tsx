@@ -28,6 +28,7 @@ interface TypedInputFieldProps {
   label?: string;
   fieldType: InputFieldType;
   value: TypedValue | undefined;
+  onChangeTyped?: (id: string, value: TypedValue) => void;
   onChange: (id: string, value: TypedValue) => void;
   onBlur?: () => void;
   required?: boolean;
@@ -43,6 +44,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
   fieldType,
   value,
   onChange,
+  onChangeTyped,
   onBlur,
   required = false,
   fieldMetadata,
@@ -55,18 +57,45 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
 
   // Synchroniser l'état local avec la valeur externe
   useEffect(() => {
-    if (value !== undefined) {
-      if (fieldType === 'boolean') {
-        setBooleanValue(Boolean(value));
-      } else if (fieldType === 'date' && value instanceof Date) {
-        setDateValue(formatDateForInput(value));
-      } else if (fieldType === 'datetime' && value instanceof Date) {
-        setDateTimeValue(formatDateTimeForInput(value));
-      } else {
-        setLocalValue(String(value));
+    // Ne pas écraser les valeurs existantes avec des valeurs vides
+    if (value === undefined || value === null) {
+      if (fieldType === 'date') {
+        // Ne pas réinitialiser si nous avons déjà une date
+        if (dateValue === '') {
+          setDateValue('');
+        }
+      } else if (fieldType === 'datetime') {
+        // Ne pas réinitialiser si nous avons déjà une date
+        if (dateTimeValue === '') {
+          setDateTimeValue('');
+        }
+      } else if (fieldType === 'boolean') {
+        // Boolean peut être réinitialisé
+        setBooleanValue(false);
+      } else if (localValue === '') {
+        setLocalValue('');
       }
+      return;
     }
-  }, [value, fieldType]);
+
+    // Conversion des valeurs non nulles
+    if (fieldType === 'boolean') {
+      setBooleanValue(Boolean(value));
+    } else if (fieldType === 'date' && value instanceof Date) {
+      // Pour les dates, vérifier si c'est une date valide avant de l'utiliser
+      const formattedDate = formatDateForInput(value);
+      console.log(`Setting date value for ${id}:`, formattedDate, 'from date object:', value);
+      setDateValue(formattedDate);
+    } else if (fieldType === 'datetime' && value instanceof Date) {
+      // Pour les dates avec heure, vérifier si c'est une date valide avant de l'utiliser
+      const formattedDateTime = formatDateTimeForInput(value);
+      console.log(`Setting datetime value for ${id}:`, formattedDateTime, 'from date object:', value);
+      setDateTimeValue(formattedDateTime);
+    } else {
+      // Pour les autres types, convertir en string
+      setLocalValue(String(value));
+    }
+  }, [value, fieldType, id, dateValue, dateTimeValue, localValue]);
 
   const handleBooleanChange = (newValue: boolean) => {
     setBooleanValue(newValue); // Mettre à jour l'état local
@@ -75,19 +104,47 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
 
   const handleDateChange = (newValue: string) => {
     setDateValue(newValue);
+    
+    // Log pour debug
+    console.log(`Date modifiée dans le champ ${id}:`, newValue);
+    
     if (newValue === '') {
-      onChange(id, null); // Envoyer null si la date est effacée
+      // Envoyer null si la date est effacée
+      onChange(id, null);
+      console.log(`Date effacée dans le champ ${id}`);
     } else {
-      onChange(id, new Date(newValue));
+      try {
+        // Créer un objet Date avec la valeur (format YYYY-MM-DD)
+        const dateObj = new Date(newValue);
+        console.log(`Nouvel objet Date créé pour ${id}:`, dateObj.toISOString());
+        onChange(id, dateObj);
+      } catch (error) {
+        console.error(`Erreur lors de la création de l'objet Date pour ${id}:`, error);
+        // En cas d'erreur, ne pas modifier la valeur existante
+      }
     }
   };
 
   const handleDateTimeChange = (newValue: string) => {
     setDateTimeValue(newValue);
+    
+    // Log pour debug
+    console.log(`Date et heure modifiées dans le champ ${id}:`, newValue);
+    
     if (newValue === '') {
-      onChange(id, null); // Envoyer null si la date est effacée
+      // Envoyer null si la date est effacée
+      onChange(id, null);
+      console.log(`Date et heure effacées dans le champ ${id}`);
     } else {
-      onChange(id, new Date(newValue));
+      try {
+        // Créer un objet Date avec la valeur (format YYYY-MM-DDThh:mm)
+        const dateObj = new Date(newValue);
+        console.log(`Nouvel objet DateTime créé pour ${id}:`, dateObj.toISOString());
+        onChange(id, dateObj);
+      } catch (error) {
+        console.error(`Erreur lors de la création de l'objet DateTime pour ${id}:`, error);
+        // En cas d'erreur, ne pas modifier la valeur existante
+      }
     }
   };
 
@@ -258,6 +315,63 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
     }
   };
 
+  // Fonction de validation - confirme et sauvegarde la valeur actuelle
+  const handleValidate = () => {
+    // Appliquer les modifications locales d'abord
+    handleBlur();
+    
+    // Pour les types date et datetime, sauvegarde explicite comme valeur typée
+    if (fieldType === 'date' || fieldType === 'datetime') {
+      // Créer un objet Date valide pour Firestore
+      let dateObj = null;
+      
+      if (fieldType === 'date' && dateValue) {
+        dateObj = new Date(dateValue);
+      } else if (fieldType === 'datetime' && dateTimeValue) {
+        dateObj = new Date(dateTimeValue);
+      }
+      
+      if (dateObj && !isNaN(dateObj.getTime()) && onChangeTyped) {
+        // Si onChangeTyped est fourni, l'utiliser pour sauvegarder la date
+        onChangeTyped(id, dateObj);
+        console.log(`Valeur typée sauvegardée pour ${id}: ${dateObj.toISOString()}`); 
+      }
+    } else if (fieldType === 'boolean' && onChangeTyped) {
+      // Pour les booléens, sauvegarder comme valeur typée
+      onChangeTyped(id, booleanValue);
+    } else if (fieldType === 'number' && onChangeTyped) {
+      // Pour les nombres, convertir et sauvegarder comme valeur typée
+      const numValue = parseFloat(localValue);
+      if (!isNaN(numValue)) {
+        onChangeTyped(id, numValue);
+      }
+    }
+    
+    // Log de la validation
+    console.log(`Valeur validée pour ${id}: ${localValue || dateValue || dateTimeValue}`);
+  };
+
+  // Fonction de réinitialisation - efface la valeur actuelle
+  const handleClear = () => {
+    if (fieldType === 'boolean') {
+      setBooleanValue(false);
+      onChange(id, false);
+    } else if (fieldType === 'date') {
+      setDateValue('');
+      onChange(id, null);
+    } else if (fieldType === 'datetime') {
+      setDateTimeValue('');
+      onChange(id, null);
+    } else if (fieldType === 'number') {
+      setLocalValue('');
+      onChange(id, 0);
+    } else {
+      setLocalValue('');
+      onChange(id, '');
+    }
+    console.log(`Valeur effacée pour ${id}`);
+  };
+
   return (
     <div className="mb-4">
       {label && fieldType !== 'boolean' && (
@@ -265,7 +379,32 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
           {label}{required && <span className="text-red-500">*</span>}
         </label>
       )}
-      {renderField()}
+      <div className="flex items-center">
+        <div className="flex-grow">
+          {renderField()}
+        </div>
+        <div className="flex ml-2">
+          {/* Bouton de validation (V) - version discrète */}
+          <button 
+            type="button" 
+            onClick={handleValidate}
+            className="px-1 text-xs text-gray-600 hover:text-green-700 focus:outline-none mr-1"
+            title="Valider la valeur"
+          >
+            ✓
+          </button>
+          
+          {/* Bouton de suppression (X) - version discrète */}
+          <button 
+            type="button" 
+            onClick={handleClear}
+            className="px-1 text-xs text-gray-600 hover:text-red-700 focus:outline-none"
+            title="Effacer la valeur"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -14,7 +14,7 @@ const schoolLogos = [
   {
     id: 2,
     name: 'CPS Dakar',
-    logoUrl: 'https://medias.uxco.com/img/2020/03/17/esigelec-irseem-prepa-ingenieur.png',
+    logoUrl: '/public/logo_CPS.jpeg',
     alt: 'Logo CPS Dakar'
   },
   {

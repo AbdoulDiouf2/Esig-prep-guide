@@ -12,7 +12,7 @@ const schoolLogos = [
   {
     id: 2,
     name: 'CPS Dakar',
-    logoUrl: 'https://www.linkedin.com/dms/prv/image/v2/D5606AQElmOjZWkdvVQ/messaging-image-720/B56ZbuZEzhHgAg-/0/1747756287373?m=AQKVAjHWySZCJgAAAZbuZodpjb5LvuiQx9ZVPlT0orYGHXGSu06cbQo20w&ne=1&v=beta&t=aV_zWSMv5x9jCsPpEsc7DAEo1kBvCNvQWpufEYl-iEo',
+    logoUrl: '/public/logo_CPS.jpeg',
     alt: 'Logo CPS Dakar'
   },
   {

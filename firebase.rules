@@ -155,6 +155,93 @@ service cloud.firestore {
       allow delete: if isAdmin() || isEditor();
     }
     
+    // NOUVELLES RÈGLES POUR LES WEBINAIRES
+    
+    // Règles pour les webinaires
+    match /webinars/{webinarId} {
+      // Tout le monde peut lire les webinaires
+      allow read: if true;
+
+      // Les administrateurs et éditeurs peuvent créer/modifier/supprimer des webinaires
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // Règles pour les inscriptions aux webinaires
+    match /webinarRegistrations/{registrationId} {
+      // Les utilisateurs peuvent voir leurs propres inscriptions
+      // Les administrateurs et éditeurs peuvent voir toutes les inscriptions
+      allow read: if isAuthenticated() && (
+                    resource.data.userId == request.auth.uid || 
+                    isAdmin() || 
+                    isEditor()
+                  );
+
+      // Les utilisateurs authentifiés peuvent s'inscrire à un webinaire
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+
+      // Les utilisateurs peuvent annuler leur propre inscription
+      // Les administrateurs et éditeurs peuvent annuler n'importe quelle inscription
+      allow delete: if isAuthenticated() && (
+                      resource.data.userId == request.auth.uid || 
+                      isAdmin() || 
+                      isEditor()
+                    );
+
+      // Personne ne peut modifier une inscription après création
+      allow update: if false;
+    }
+    
+    // Règles pour les favoris de webinaires
+    match /webinarFavorites/{favoriteId} {
+      // Les utilisateurs peuvent lister leurs propres favoris et accéder aux documents individuels
+      allow read: if isAuthenticated() && (
+                    favoriteId.split('_')[0] == request.auth.uid || 
+                    request.query.limit <= 500 && 
+                    request.query.filters.size() == 1 && 
+                    request.query.filters[0].op == "==" && 
+                    request.query.filters[0].path == "userId" && 
+                    request.query.filters[0].value == request.auth.uid
+                  );
+      
+      // Les utilisateurs peuvent ajouter/supprimer leurs propres favoris
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      favoriteId == request.auth.uid + '_' + request.resource.data.webinarId;
+      
+      // Les utilisateurs peuvent supprimer leurs propres favoris
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Pas de mise à jour des favoris, seulement création/suppression
+      allow update: if false;
+    }
+    
+    // Règles pour les propositions d'ateliers
+    match /workshopProposals/{proposalId} {
+      // Les administrateurs et éditeurs peuvent voir toutes les propositions
+      // Les utilisateurs peuvent voir uniquement leurs propres propositions
+      allow read: if isAuthenticated() && (
+                    isAdmin() || 
+                    isEditor() || 
+                    resource.data.userId == request.auth.uid
+                  );
+      
+      // Les utilisateurs authentifiés peuvent soumettre des propositions
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.userEmail == request.auth.token.email;
+      
+      // Les administrateurs et éditeurs peuvent modifier le statut des propositions
+      // Les utilisateurs ne peuvent pas modifier leurs propositions après soumission
+      allow update: if (isAdmin() || isEditor()) && 
+                    request.resource.data.diff(resource.data).affectedKeys()
+                      .hasAny(['status', 'updatedAt', 'updatedBy']);
+      
+      // Les administrateurs et éditeurs peuvent supprimer des propositions
+      allow delete: if isAdmin() || isEditor();
+    }
+    
     // NOUVELLES RÈGLES POUR LE FORUM
     
     // Règles pour les catégories du forum
@@ -170,20 +257,23 @@ service cloud.firestore {
     match /forumThreads/{threadId} {
       // Tout utilisateur authentifié peut lire les discussions
       allow read: if isAuthenticated();
-      
+
       // Les utilisateurs authentifiés peuvent créer des discussions
       allow create: if isAuthenticated() && 
                      request.resource.data.authorId == request.auth.uid;
-      
+
       // Les propriétaires peuvent modifier le contenu de leurs discussions
-      allow update: if isAuthenticated() && 
-                     resource.data.authorId == request.auth.uid &&
+      // Les utilisateurs authentifiés peuvent mettre à jour uniquement repliesCount et updatedAt
+      allow update: if isAuthenticated() && (
+                     (resource.data.authorId == request.auth.uid &&
                      !request.resource.data.diff(resource.data).affectedKeys()
-                       .hasAny(['isPinned', 'isLocked']);
-      
+                       .hasAny(['isPinned', 'isLocked'])) ||
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['repliesCount', 'updatedAt'])
+                   );
+
       // Les administrateurs et éditeurs peuvent épingler ou verrouiller des discussions
       allow update: if isAdmin() || isEditor();
-      
+
       // Les propriétaires, administrateurs et éditeurs peuvent supprimer des discussions
       allow delete: if isAuthenticated() && 
                      (resource.data.authorId == request.auth.uid || isAdmin() || isEditor());
