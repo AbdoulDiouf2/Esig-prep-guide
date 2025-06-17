@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { FAQItem } from '../contexts/ContentContext';
+import { Webinar } from '../pages/Webinars'; // Import du type Webinar
 
 // Interface pour les données d'email
 interface EmailData {
@@ -11,7 +12,8 @@ interface EmailData {
   answer: string;
   app_name: string;
   faq_url: string;
-  [key: string]: string; // Pour les propriétés additionnelles qui pourraient être nécessaires
+  email_subject?: string; // Sujet personnalisé pour l'email
+  [key: string]: string | undefined; // Pour les propriétés additionnelles qui pourraient être nécessaires
 }
 
 /**
@@ -61,7 +63,8 @@ export const NotificationService = {
         question: questionText,
         answer: answerText,
         app_name: 'ESIG-prep-guide',
-        faq_url: `${window.location.origin}/Esig-prep-guide/faq`
+        faq_url: `${window.location.origin}/Esig-prep-guide/faq`,
+        email_subject: 'Votre question sur ESIG-prep-guide a été répondue'
       };
 
       // 5. Appel au service d'email existant
@@ -70,6 +73,105 @@ export const NotificationService = {
     } catch (error) {
       console.error('Error sending FAQ answer notification:', error);
       return false;
+    }
+  },
+
+  /**
+   * Envoie une notification par email à tous les étudiants lors de la création d'un webinaire
+   * @param webinar Le webinaire nouvellement créé
+   * @param userLimit Limite éventuelle du nombre d'utilisateurs à notifier (pour tests ou envois progressifs)
+   */
+  async sendWebinarCreationNotification(webinar: Webinar, userLimit?: number): Promise<{success: number, failed: number}> {
+    try {
+      console.log('Préparation de la notification pour la création du webinaire:', webinar.title);
+      
+      // 1. Récupérer la liste des utilisateurs à notifier
+      const usersRef = collection(db, 'users');
+      const usersQuery = query(usersRef);
+      const usersSnapshot = await getDocs(usersQuery);
+      
+      // Compteurs pour le suivi des résultats
+      let successCount = 0;
+      let failureCount = 0;
+      
+      // Limiter le nombre d'utilisateurs si spécifié (pour tests)
+      const usersList = userLimit ? usersSnapshot.docs.slice(0, userLimit) : usersSnapshot.docs;
+      
+      console.log(`Envoi de notifications à ${usersList.length} utilisateurs`);
+      
+      // 2. Pour chaque utilisateur, envoyer un email
+      const sendPromises = usersList.map(async (userDoc) => {
+        try {
+          const userData = userDoc.data();
+          if (!userData.email) {
+            console.warn(`Utilisateur sans email trouvé (ID: ${userDoc.id})`);
+            return false;
+          }
+          
+          // Formatage de la date et de l'heure pour une meilleure lisibilité
+          const webinarDate = webinar.date instanceof Date ? webinar.date : new Date(webinar.date);
+          const dateFormatted = webinarDate.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          });
+          const timeFormatted = webinarDate.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          // 3. Adapter les données au format du template existant
+          // Note: On utilise les champs existants mais de manière détournée
+          const emailData: EmailData = {
+            // to_email: userData.email,
+            to_email: "aad.mbacke691@gmail.com",
+            to_name: userData.displayName || 'Étudiant',
+            question: `Nouveau webinaire : ${webinar.title}`,
+            email_subject: `[ESIG-prep-guide] Nouveau webinaire : ${webinar.title}`,
+            answer: `
+              Bonjour ${userData.displayName || 'Étudiant'},
+
+              Un nouveau webinaire a été ajouté à la plateforme :
+
+              📌 ${webinar.title}
+              📝 ${webinar.description.substring(0, 150)}${webinar.description.length > 150 ? '...' : ''}
+              📅 ${dateFormatted} à ${timeFormatted}
+              ⏱ Durée: ${webinar.duration} minutes
+              👨‍🏫 Présenté par: ${webinar.speaker.name}, ${webinar.speaker.title}
+              📊 Niveau: ${webinar.level}
+
+              Pour vous inscrire, rendez-vous sur la page des webinaires.
+            `,
+            app_name: 'ESIG-prep-guide',
+            faq_url: `${window.location.origin}/Esig-prep-guide/webinars` // On redirige vers la page webinaires
+          };
+          
+          // 4. Envoi de l'email
+          const success = await sendEmailNotification(emailData);
+          
+          if (success) {
+            successCount++;
+            return true;
+          } else {
+            failureCount++;
+            return false;
+          }
+        } catch (error) {
+          console.error(`Erreur lors de l'envoi à un utilisateur:`, error);
+          failureCount++;
+          return false;
+        }
+      });
+      
+      // Attendre que tous les envois soient terminés
+      await Promise.all(sendPromises);
+      
+      console.log(`Notifications webinaire terminées - Succès: ${successCount}, Échecs: ${failureCount}`);
+      return { success: successCount, failed: failureCount };
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi des notifications webinaire:', error);
+      return { success: 0, failed: 0 };
     }
   }
 };
@@ -110,7 +212,8 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
       question: emailData.question,
       answer: emailData.answer,
       app_name: emailData.app_name,
-      faq_url: emailData.faq_url
+      faq_url: emailData.faq_url,
+      email_subject: emailData.email_subject || 'Notification ESIG-prep-guide'
     };
     
     // Envoyer l'email via EmailJS

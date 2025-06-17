@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, where } from 'firebase/firestore';
+import NotificationService from '../../services/NotificationService';
 import { 
   ArrowLeft, 
   Plus, 
@@ -388,8 +389,17 @@ const AdminWebinarManager: React.FC = () => {
           }
         });
         
-        // Afficher le modal de succès
-        setModalMessage('Webinaire créé avec succès');
+        // Envoi d'emails à tous les étudiants pour les notifier du nouveau webinaire
+        try {
+          const notificationResult = await NotificationService.sendWebinarCreationNotification(newWebinar);
+          console.log(`Notifications envoyées - Succès: ${notificationResult.success}, Échecs: ${notificationResult.failed}`);
+          // Afficher le modal de succès avec les informations sur les notifications
+          setModalMessage(`Webinaire créé avec succès. Notifications envoyées à ${notificationResult.success} utilisateur(s).`);
+        } catch (error) {
+          console.error('Erreur lors de l\'envoi des notifications:', error);
+          // Afficher le modal de succès mais mentionner l'erreur de notification
+          setModalMessage('Webinaire créé avec succès, mais l\'envoi des notifications a échoué.');
+        }
         setShowSuccessModal(true);
       }
       
