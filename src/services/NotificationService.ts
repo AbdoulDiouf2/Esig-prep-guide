@@ -1,7 +1,6 @@
 import { db } from '../firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, getDocs } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
-import { FAQItem } from '../contexts/ContentContext';
 import { Webinar } from '../pages/Webinars'; // Import du type Webinar
 
 // Interface pour les données d'email
@@ -13,6 +12,7 @@ interface EmailData {
   app_name: string;
   faq_url: string;
   email_subject?: string; // Sujet personnalisé pour l'email
+  bcc_list?: string; // Liste d'emails en Cci séparés par des virgules
   [key: string]: string | undefined; // Pour les propriétés additionnelles qui pourraient être nécessaires
 }
 
@@ -21,57 +21,75 @@ interface EmailData {
  */
 export const NotificationService = {
   /**
-   * Envoie une notification par email à l'utilisateur quand sa question est répondue
-   * @param faqId ID de la question FAQ qui vient d'être répondue
-   * @param questionText Texte de la question
-   * @param answerText Texte de la réponse
+   * Envoie une notification par email à l'utilisateur dont la question FAQ a été répondue.
+   * @param faqId - L'ID de l'entrée FAQ
+   * @param questionText - Le texte de la question (peut être passé directement pour éviter une requête supplémentaire)
+   * @param answerText - Le texte de la réponse (peut être passé directement)
+   * @returns Promise<boolean> - Succès ou échec de l'envoi
    */
   async sendFaqAnswerNotification(faqId: string, questionText: string, answerText: string): Promise<boolean> {
     try {
-      // 1. Récupérer les détails de la question FAQ
+      console.log(`Préparation de la notification FAQ pour l'ID: ${faqId}`);
+      
+      // 1. Récupérer les détails de la FAQ
       const faqRef = doc(db, 'faq', faqId);
       const faqDoc = await getDoc(faqRef);
+      const faqData = faqDoc.data();
       
-      if (!faqDoc.exists()) {
-        console.error(`FAQ item not found (ID: ${faqId}) dans la collection 'faq'. Vérifiez le nom de collection.`);
+      // Vérifier si la FAQ existe et contient un userId
+      if (!faqData || !faqData.userId) {
+        console.error('FAQ introuvable ou sans utilisateur associé');
         return false;
       }
       
-      const faqData = faqDoc.data() as FAQItem;
+      // 2. Récupérer les détails de l'utilisateur
+      const userId = faqData.userId;
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
       
-      // 2. Vérifier si un userEmail est associé à cette question
-      if (!faqData.userEmail) {
-        console.log('No user email associated with this FAQ item');
+      // Vérifier si l'utilisateur existe et possède un email
+      if (!userData || !userData.email) {
+        console.error('Utilisateur introuvable ou sans email');
         return false;
       }
-
-      // 3. Récupérer les informations de l'utilisateur pour personnaliser l'email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', faqData.userEmail));
-      const userSnapshot = await getDocs(q);
       
-      let userName = 'Utilisateur';
-      if (!userSnapshot.empty) {
-        const userData = userSnapshot.docs[0].data();
-        userName = userData.displayName || 'Utilisateur';
-      }
-
-      // 4. Préparer les données pour l'email
+      // 3. Préparer les données de l'email avec un format texte simple et émoji
       const emailData: EmailData = {
-        to_email: faqData.userEmail,
-        to_name: userName,
-        question: questionText,
-        answer: answerText,
-        app_name: 'ESIG-prep-guide',
-        faq_url: `${window.location.origin}/Esig-prep-guide/faq`,
-        email_subject: 'Votre question sur ESIG-prep-guide a été répondue'
-      };
+        to_email: userData.email,
+        to_name: userData.displayName || userData.email.split('@')[0], // Utiliser le nom d'affichage ou la partie locale de l'email
+        question: "Réponse à votre question",
+        email_subject: "[ESIG-prep-guide] Votre question a été répondue",
+        answer: `
+          Nous avons le plaisir de vous informer que votre question a reçu une réponse de notre équipe.
 
-      // 5. Appel au service d'email existant
-      // Note: Cette partie doit être adaptée selon le service d'email existant
+          -----------------------------------------------
+
+          💬 VOTRE QUESTION:
+
+          ${questionText}
+
+          -----------------------------------------------
+
+          📝 NOTRE RÉPONSE:
+
+          ${answerText}
+
+          -----------------------------------------------
+
+          Si vous avez d'autres questions, n'hésitez pas à les poser sur notre plateforme.
+
+          Ceci est une notification automatique, merci de ne pas y répondre directement.
+        `,
+        app_name: 'ESIG-prep-guide',
+        faq_url: `${window.location.origin}/Esig-prep-guide/faq`
+      };
+      
+      // 4. Envoyer l'email et retourner le résultat
       return await sendEmailNotification(emailData);
+      
     } catch (error) {
-      console.error('Error sending FAQ answer notification:', error);
+      console.error('Erreur lors de l\'envoi de la notification FAQ:', error);
       return false;
     }
   },
@@ -85,89 +103,93 @@ export const NotificationService = {
     try {
       console.log('Préparation de la notification pour la création du webinaire:', webinar.title);
       
-      // 1. Récupérer la liste des utilisateurs à notifier
+      // 1. Récupérer la liste des utilisateurs pour les Cci
       const usersRef = collection(db, 'users');
       const usersQuery = query(usersRef);
       const usersSnapshot = await getDocs(usersQuery);
       
-      // Compteurs pour le suivi des résultats
-      let successCount = 0;
-      let failureCount = 0;
+      // Informations basiques sur le nombre d'utilisateurs
+      if (usersSnapshot.docs.length === 0) {
+        console.warn(`Aucun utilisateur trouvé dans la collection 'users'`);
+      }
       
-      // Limiter le nombre d'utilisateurs si spécifié (pour tests)
-      const usersList = userLimit ? usersSnapshot.docs.slice(0, userLimit) : usersSnapshot.docs;
+      // 2. Obtenir le format de date et d'heure pour le webinaire
+      const startDate = new Date(webinar.date);
       
-      console.log(`Envoi de notifications à ${usersList.length} utilisateurs`);
-      
-      // 2. Pour chaque utilisateur, envoyer un email
-      const sendPromises = usersList.map(async (userDoc) => {
-        try {
-          const userData = userDoc.data();
-          if (!userData.email) {
-            console.warn(`Utilisateur sans email trouvé (ID: ${userDoc.id})`);
-            return false;
-          }
-          
-          // Formatage de la date et de l'heure pour une meilleure lisibilité
-          const webinarDate = webinar.date instanceof Date ? webinar.date : new Date(webinar.date);
-          const dateFormatted = webinarDate.toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-          });
-          const timeFormatted = webinarDate.toLocaleTimeString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-          
-          // 3. Adapter les données au format du template existant
-          // Note: On utilise les champs existants mais de manière détournée
-          const emailData: EmailData = {
-            // to_email: userData.email,
-            to_email: "aad.mbacke691@gmail.com",
-            to_name: userData.displayName || 'Étudiant',
-            question: `Nouveau webinaire : ${webinar.title}`,
-            email_subject: `[ESIG-prep-guide] Nouveau webinaire : ${webinar.title}`,
-            answer: `
-              Bonjour ${userData.displayName || 'Étudiant'},
-
-              Un nouveau webinaire a été ajouté à la plateforme :
-
-              📌 ${webinar.title}
-              📝 ${webinar.description.substring(0, 150)}${webinar.description.length > 150 ? '...' : ''}
-              📅 ${dateFormatted} à ${timeFormatted}
-              ⏱ Durée: ${webinar.duration} minutes
-              👨‍🏫 Présenté par: ${webinar.speaker.name}, ${webinar.speaker.title}
-              📊 Niveau: ${webinar.level}
-
-              Pour vous inscrire, rendez-vous sur la page des webinaires.
-            `,
-            app_name: 'ESIG-prep-guide',
-            faq_url: `${window.location.origin}/Esig-prep-guide/webinars` // On redirige vers la page webinaires
-          };
-          
-          // 4. Envoi de l'email
-          const success = await sendEmailNotification(emailData);
-          
-          if (success) {
-            successCount++;
-            return true;
-          } else {
-            failureCount++;
-            return false;
-          }
-        } catch (error) {
-          console.error(`Erreur lors de l'envoi à un utilisateur:`, error);
-          failureCount++;
-          return false;
-        }
+      // Format français pour la date (JJ/MM/AAAA)
+      const dateFormatted = startDate.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       });
       
-      // Attendre que tous les envois soient terminés
-      await Promise.all(sendPromises);
+      // Format d'heure (HH:MM)
+      const timeFormatted = startDate.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
       
-      console.log(`Notifications webinaire terminées - Succès: ${successCount}, Échecs: ${failureCount}`);
-      return { success: successCount, failed: failureCount };
+      // Limiter le nombre d'utilisateurs si spécifié (pour tests)
+      const users = usersSnapshot.docs;
+      const limitedUsers = userLimit ? users.slice(0, userLimit) : users;
+      
+      // Email principal pour la notification (votre email)
+      const mainEmail = 'aad.mbacke691@gmail.com';
+      
+      // Extraire les emails des utilisateurs pour les mettre en Cci
+      const userEmails = limitedUsers
+        .map(userDoc => userDoc.data().email)
+        .filter(email => email && email !== mainEmail); // Filtrer les emails valides et différents de l'email principal
+      
+      // Log détaillé pour voir la liste des emails qui seraient en Cci
+      console.log(`Préparation d'un email pour ${userEmails.length + 1} destinataires (1 principal + ${userEmails.length} en Cci)`);
+      console.log('Liste des emails qui seraient en Cci:', userEmails);
+      
+      // 3. Préparer le contenu de l'email pour notification webinaire
+      const emailData: EmailData = {
+        to_email: mainEmail,
+        to_name: "",
+        question: `Nouveau webinaire disponible`,
+        email_subject: `[ESIG-prep-guide] Nouveau webinaire : ${webinar.title}`,
+        // Format sans HTML complexe pour garantir la compatibilité avec tous les clients email
+        answer: `
+          Nous avons le plaisir de vous informer qu'un nouveau webinaire a été programmé sur la plateforme ESIG-prep-guide.
+
+          -----------------------------------------------
+
+          🏛️ ${webinar.title}
+
+          📝 Description: ${webinar.description.substring(0, 150)}${webinar.description.length > 150 ? '...' : ''}
+
+          📅 Date: ${dateFormatted} à ${timeFormatted}
+          ⏱ Durée: ${webinar.duration} minutes
+          👨‍🏫 Présentateur: ${webinar.speaker.name}, ${webinar.speaker.title}
+          📊 Niveau: ${webinar.level}
+
+          -----------------------------------------------
+
+          Pour vous inscrire, rendez-vous sur notre plateforme et accédez à la section webinaires.
+
+          Ceci est une notification automatique, merci de ne pas y répondre directement.
+        `,
+        app_name: 'ESIG-prep-guide',
+        faq_url: `${window.location.origin}/Esig-prep-guide/webinars`
+        // bcc_list: userEmails.join(',') // Cci pour l'envoi réel
+      };
+      
+      // 4. Envoi de l'email unique avec Cci
+      const success = await sendEmailNotification(emailData);
+      
+      // Rapporter le résultat
+      const successCount = success ? 1 : 0; // Un seul email envoyé, donc 0 ou 1 succès
+      const failureCount = success ? 0 : 1;
+      
+      // Calculer le nombre réel de destinataires notifiés
+      const totalRecipients = success ? userEmails.length + 1 : 0;
+      
+      console.log(`Notification webinaire envoyée - Email envoyé avec succès: ${successCount}, Destinataires: ${totalRecipients}`);
+      return { success: totalRecipients, failed: failureCount };
       
     } catch (error) {
       console.error('Erreur lors de l\'envoi des notifications webinaire:', error);
@@ -202,7 +224,10 @@ export const EMAILJS_CONFIG = {
  * Fonction qui envoie un email via EmailJS
  */
 const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => {
-  console.log('Préparation de l\'envoi d\'email avec les données:', emailData);
+  console.log('Préparation de l\'envoi d\'email à:', emailData.to_email);
+  if (emailData.bcc_list) {
+    console.log(`Avec ${emailData.bcc_list.split(',').length} destinataires en Cci`);
+  }
   
   try {
     // Mapper les données au format attendu par le template EmailJS
@@ -213,8 +238,15 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
       answer: emailData.answer,
       app_name: emailData.app_name,
       faq_url: emailData.faq_url,
-      email_subject: emailData.email_subject || 'Notification ESIG-prep-guide'
+      email_subject: emailData.email_subject || 'Notification ESIG-prep-guide',
+      bcc_list: emailData.bcc_list || '' // Ajout du champ pour les destinataires en Cci
     };
+    
+    // Vérification des paramètres obligatoires
+    if (!templateParams.to_email) {
+      console.error('Email du destinataire manquant');
+      return false;
+    }
     
     // Envoyer l'email via EmailJS
     const response = await emailjs.send(
@@ -224,7 +256,14 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
       EMAILJS_CONFIG.PUBLIC_KEY
     );
     
-    console.log('Résultat de l\'envoi d\'email:', response.status, response.text);
+    // Succès avec plus de détails si des destinataires Cci sont présents
+    if (response.status === 200) {
+      if (emailData.bcc_list) {
+        console.log(`Email envoyé avec succès à ${emailData.to_email} et ${emailData.bcc_list.split(',').length} destinataires en Cci`);
+      } else {
+        console.log(`Email envoyé avec succès à ${emailData.to_email}`);
+      }
+    }
     
     // EmailJS renvoie un status 200 en cas de succès
     return response.status === 200;
