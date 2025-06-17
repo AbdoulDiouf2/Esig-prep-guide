@@ -215,9 +215,15 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="p-4 bg-purple-50 rounded-lg">
                 <div className="text-3xl font-bold text-purple-800 mb-1">
-                  {userProgressions.filter(p => getUserGlobalProgress(p.completedSections) >= 50).length}
+                  {(() => {
+                    const cpsUsers = users.filter(user => user.status === 'cps');
+                    const cpsUserIds = cpsUsers.map(user => user.uid);
+                    return userProgressions
+                      .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) >= 50)
+                      .length;
+                  })()}
                 </div>
-                <div className="text-sm text-gray-600">utilisateurs à plus de 50%</div>
+                <div className="text-sm text-gray-600">étudiants CPS à plus de 50%</div>
               </div>
             </div>
             {/* KPI par phase */}
@@ -226,13 +232,19 @@ const AdminDashboard: React.FC = () => {
                 const phaseSections = guideSections.filter(s => s.phase === phase);
                 const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
                 const color = phase === 'pre-arrival' ? 'blue' : phase === 'during-process' ? 'green' : 'purple';
-                // Moyenne progression phase
-                const avg = userProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
-                  userProgressions.reduce((acc, p) => acc + Math.round((p.completedSections.filter(id => phaseSections.some(s => s.id === id)).length / phaseSections.length) * 100), 0) / userProgressions.length
+                // Filtrer pour n'avoir que les utilisateurs CPS
+                const cpsUsers = users.filter(user => user.status === 'cps');
+                const cpsUserIds = cpsUsers.map(user => user.uid);
+                const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
+                
+                // Moyenne progression phase pour les étudiants CPS
+                const avg = cpsProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
+                  cpsProgressions.reduce((acc, p) => acc + Math.round((p.completedSections.filter(id => phaseSections.some(s => s.id === id)).length / phaseSections.length) * 100), 0) / cpsProgressions.length
                 );
-                // % users ayant validé toute la phase
-                const full = userProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
-                  userProgressions.filter(p => phaseSections.every(s => p.completedSections.includes(s.id))).length / userProgressions.length * 100
+                
+                // % étudiants CPS ayant validé toute la phase
+                const full = cpsUsers.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
+                  cpsProgressions.filter(p => phaseSections.every(s => p.completedSections.includes(s.id))).length / cpsUsers.length * 100
                 );
                 return (
                   <div className={`p-4 bg-${color}-50 rounded-lg`} key={phase}>

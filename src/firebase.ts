@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
@@ -18,7 +18,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialiser les services
-const db = getFirestore(app);
+// Utiliser initializeFirestore au lieu de getFirestore pour configurer le cache
+const db = initializeFirestore(app, {
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED // Permet un cache de taille illimitée pour de meilleures performances
+});
+
+// Activer la persistance des données (mise en cache offline)
+enableIndexedDbPersistence(db)
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      // Plusieurs onglets ouverts, la persistance est activée uniquement dans le premier
+      console.warn("La mise en cache offline n'est disponible que dans un seul onglet à la fois");
+    } else if (err.code === 'unimplemented') {
+      // Le navigateur ne supporte pas IndexedDB
+      console.warn("Votre navigateur ne supporte pas la mise en cache offline");
+    }
+  });
+
 const auth = getAuth(app);
 
 // Initialiser Analytics de manière conditionnelle (uniquement côté client)

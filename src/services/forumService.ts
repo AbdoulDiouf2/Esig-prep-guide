@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, getDocs, getDoc, doc, addDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ForumCategory, ForumThread, ForumPost } from '../types/forum';
 
@@ -182,6 +182,92 @@ export const updateForumPost = async (postId: string, content: string): Promise<
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour du message:', error);
+    throw error;
+  }
+};
+
+// Supprimer un message/réponse du forum
+export const deleteForumPost = async (postId: string, threadId: string): Promise<void> => {
+  try {
+    // Supprimer le message
+    const postRef = doc(db, POSTS_COLLECTION, postId);
+    await deleteDoc(postRef);
+    
+    // Mettre à jour le nombre de réponses dans la discussion
+    const threadRef = doc(db, THREADS_COLLECTION, threadId);
+    const threadDoc = await getDoc(threadRef);
+    
+    if (threadDoc.exists()) {
+      const currentRepliesCount = threadDoc.data().repliesCount || 0;
+      
+      // Ne pas permettre un nombre négatif de réponses
+      const newRepliesCount = Math.max(0, currentRepliesCount - 1);
+      
+      await updateDoc(threadRef, {
+        repliesCount: newRepliesCount,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Si c'était la dernière réponse, on peut mettre à jour lastReplyAt et lastReplyAuthor
+      // mais il faudrait une requête supplémentaire pour trouver la réponse la plus récente
+      // Cela pourrait être implémenté si nécessaire
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression du message:', error);
+    throw error;
+  }
+};
+
+// Supprimer une discussion du forum (et tous ses messages)
+export const deleteForumThread = async (threadId: string): Promise<void> => {
+  try {
+    // D'abord, supprimer tous les messages associés à cette discussion
+    const postsQuery = query(
+      collection(db, POSTS_COLLECTION),
+      where('threadId', '==', threadId)
+    );
+    
+    const querySnapshot = await getDocs(postsQuery);
+    
+    // Supprimer tous les messages un par un
+    const deletePromises = querySnapshot.docs.map(doc => 
+      deleteDoc(doc.ref)
+    );
+    
+    // Attendre que tous les messages soient supprimés
+    await Promise.all(deletePromises);
+    
+    // Ensuite, supprimer la discussion elle-même
+    const threadRef = doc(db, THREADS_COLLECTION, threadId);
+    await deleteDoc(threadRef);
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la discussion:', error);
+    throw error;
+  }
+};
+
+// Mettre à jour le compteur de réponses d'une discussion avec le nombre réel de messages
+export const updateThreadRepliesCount = async (threadId: string): Promise<number> => {
+  try {
+    // Compter le nombre réel de messages dans la discussion
+    const postsQuery = query(
+      collection(db, POSTS_COLLECTION),
+      where('threadId', '==', threadId)
+    );
+    
+    const querySnapshot = await getDocs(postsQuery);
+    const actualCount = querySnapshot.size;
+    
+    // Mettre à jour le compteur dans la discussion
+    const threadRef = doc(db, THREADS_COLLECTION, threadId);
+    await updateDoc(threadRef, {
+      repliesCount: actualCount,
+      updatedAt: serverTimestamp()
+    });
+    
+    return actualCount;
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du compteur de réponses:', error);
     throw error;
   }
 };

@@ -282,33 +282,25 @@ function App() {
                   </AuthWrapper>
                 } />
                 
-                {/* Forum Routes - Restreint au SuperAdmin uniquement */}
+                {/* Forum Routes - Accessible à tous les utilisateurs authentifiés */}
                 <Route path="/forum" element={
                   <AuthWrapper>
-                    <SuperAdminRoute>
-                      <Forum />
-                    </SuperAdminRoute>
+                    <Forum />
                   </AuthWrapper>
                 } />
                 <Route path="/forum/category/:categoryId" element={
                   <AuthWrapper>
-                    <SuperAdminRoute>
-                      <Forum />
-                    </SuperAdminRoute>
+                    <Forum />
                   </AuthWrapper>
                 } />
                 <Route path="/forum/thread/:threadId" element={
                   <AuthWrapper>
-                    <SuperAdminRoute>
-                      <ThreadView />
-                    </SuperAdminRoute>
+                    <ThreadView />
                   </AuthWrapper>
                 } />
                 <Route path="/forum/new-thread" element={
                   <AuthWrapper>
-                    <SuperAdminRoute>
-                      <NewThread />
-                    </SuperAdminRoute>
+                    <NewThread />
                   </AuthWrapper>
                 } />
                 <Route path="/profile" element={

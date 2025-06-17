@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getForumThread, getForumPosts, addForumPost } from '../services/forumService';
+import { getForumThread, getForumPosts, addForumPost, deleteForumPost, deleteForumThread, updateThreadRepliesCount } from '../services/forumService';
 import { ForumThread, ForumPost } from '../types/forum';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, MessageSquare, Clock, User, Send } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, User, Send, Trash2, AlertCircle, X, Loader } from 'lucide-react';
 
 const ThreadView: React.FC = () => {
   const { threadId } = useParams<{ threadId: string }>();
@@ -16,6 +16,10 @@ const ThreadView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [deletingType, setDeletingType] = useState<'post' | 'thread' | null>(null);
+  const [deletingInProgress, setDeletingInProgress] = useState<boolean>(false);
   
   // Charger le thread et les posts
   useEffect(() => {
@@ -27,27 +31,27 @@ const ThreadView: React.FC = () => {
         
         // Charger le thread
         const threadData = await getForumThread(threadId);
-        if (!threadData) {
-          setError('Cette discussion n\'existe pas ou a été supprimée.');
-          setLoading(false);
-          return;
-        }
-        
         setThread(threadData);
         
-        // Charger les posts
         const postsData = await getForumPosts(threadId);
         setPosts(postsData);
         
-      } catch (err) {
-        console.error('Erreur lors du chargement de la discussion:', err);
-        setError('Impossible de charger la discussion. Veuillez réessayer plus tard.');
+        // Vérifier et mettre à jour le compteur de réponses si nécessaire
+        // Si le nombre de posts ne correspond pas au repliesCount stocké
+        if (threadData && postsData.length !== threadData.repliesCount) {
+          await updateThreadRepliesCount(threadId);
+        }
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue lors du chargement de la discussion';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
     
-    loadThreadAndPosts();
+    if (threadId) {
+      loadThreadAndPosts();
+    }
   }, [threadId]);
   
   // Gérer l'envoi d'une réponse
@@ -58,29 +62,44 @@ const ThreadView: React.FC = () => {
       return;
     }
     
+    setSubmitting(true);
+    
     try {
-      setSubmitting(true);
-      
-      const newPost: Omit<ForumPost, 'id' | 'createdAt' | 'updatedAt' | 'isEdited'> = {
+      // Créer le nouveau message
+      const newPost = {
         threadId,
-        content: replyContent,
         authorId: currentUser.uid,
         authorName: currentUser.displayName || 'Utilisateur',
-        authorEmail: currentUser.email || undefined
+        content: replyContent,
+        createdAt: new Date(),
+        isEdited: false
       };
       
+      // Ajouter la réponse
       await addForumPost(newPost);
       
-      // Recharger les posts
+      // Vider le formulaire
+      setReplyContent('');
+      
+      // Mettre à jour le compteur de réponses avec le nombre exact
+      const actualCount = await updateThreadRepliesCount(threadId);
+      
+      // Recharger la liste des messages pour inclure le nouveau message
       const updatedPosts = await getForumPosts(threadId);
       setPosts(updatedPosts);
       
-      // Réinitialiser le formulaire
-      setReplyContent('');
+      // Mettre à jour le thread local avec le nouveau compteur de réponses
+      if (thread) {
+        setThread({...thread, repliesCount: actualCount});
+      }
       
-    } catch (err) {
-      console.error('Erreur lors de l\'envoi de la réponse:', err);
-      alert('Impossible d\'envoyer votre réponse. Veuillez réessayer.');
+      // Faire défiler jusqu'au bas pour voir la nouvelle réponse
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth'
+      });
+    } catch (error) {
+      alert('Erreur lors de l\'envoi de la réponse: ' + error);
     } finally {
       setSubmitting(false);
     }
@@ -96,6 +115,76 @@ const ThreadView: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+  
+  // Vérifier si l'utilisateur est l'auteur d'un élément (message ou discussion) ou un administrateur/super-administrateur
+  const isAuthor = (authorId: string | undefined): boolean => {
+    // Permettre à l'auteur du contenu de le supprimer
+    const isContentAuthor = !!currentUser && !!authorId && currentUser.uid === authorId;
+    
+    // Permettre aux administrateurs et super-administrateurs de supprimer n'importe quel contenu
+    const isAdminUser = !!currentUser && (currentUser.isAdmin === true || currentUser.isSuperAdmin === true);
+    
+    // Retourne vrai si l'utilisateur est l'auteur ou un administrateur
+    return isContentAuthor || isAdminUser;
+  };
+  
+  // Ouvrir la modale de confirmation de suppression
+  const confirmDelete = (id: string, type: 'post' | 'thread') => {
+    setDeletingItemId(id);
+    setDeletingType(type);
+    setShowDeleteModal(true);
+  };
+  
+  // Fermer la modale de confirmation
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeletingItemId(null);
+    setDeletingType(null);
+  };
+  
+  // Exécuter la suppression
+  const handleDelete = async () => {
+    if (!deletingItemId || !deletingType || !threadId) {
+      return;
+    }
+    
+    setDeletingInProgress(true);
+    
+    try {
+      if (deletingType === 'post') {
+        // Supprimer le message
+        await deleteForumPost(deletingItemId, threadId);
+        
+        // Mettre à jour le compteur de réponses avec le nombre exact
+        const actualCount = await updateThreadRepliesCount(threadId);
+        
+        // Mettre à jour la liste des posts
+        const updatedPosts = posts.filter(post => post.id !== deletingItemId);
+        setPosts(updatedPosts);
+        
+        // Mettre à jour le thread local avec le nouveau compteur
+        if (thread) {
+          setThread({...thread, repliesCount: actualCount});
+        }
+      } else if (deletingType === 'thread') {
+        await deleteForumThread(deletingItemId);
+        
+        // Rediriger vers la page du forum
+        navigate('/forum');
+        return; // Sortir de la fonction car on a redirigé
+      }
+      
+      // Fermer la modale
+      setShowDeleteModal(false);
+      setDeletingItemId(null);
+      setDeletingType(null);
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Une erreur est survenue lors de la suppression. Veuillez réessayer.');
+    } finally {
+      setDeletingInProgress(false);
+    }
   };
   
   if (loading) {
@@ -138,22 +227,45 @@ const ThreadView: React.FC = () => {
       <div className="mb-4">
         <Link 
           to={thread.categoryId ? `/forum/category/${thread.categoryId}` : '/forum'} 
-          className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          className="text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-4"
         >
           <ArrowLeft className="w-4 h-4" /> Retour aux discussions
         </Link>
       </div>
       
       {/* En-tête de la discussion */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">{thread.title}</h1>
+          
+          <div className="flex items-center text-sm text-gray-500 gap-4">
+            <div className="flex items-center">
+              <User className="mr-1" size={14} />
+              {thread.authorName}
+            </div>
+            <div className="flex items-center">
+              <Clock className="mr-1" size={14} />
+              {formatDate(thread.createdAt)}
+            </div>
+          </div>
+        </div>
+        
+        {/* Bouton de suppression de la discussion (visible uniquement par l'auteur) */}
+        {isAuthor(thread.authorId) && (
+          <button 
+            className="flex items-center px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+            onClick={() => confirmDelete(thread.id, 'thread')}
+          >
+            <Trash2 className="mr-1" size={14} />
+            Supprimer la discussion
+          </button>
+        )}
+      </div>
+      
+      {/* Contenu de la discussion */}
       <div className="bg-white rounded-lg shadow mb-6 overflow-hidden">
         <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">{thread.title}</h1>
-          <div className="flex items-center text-gray-500 text-sm">
-            <User className="w-4 h-4 mr-1" />
-            <span className="mr-4">{thread.authorName}</span>
-            <Clock className="w-4 h-4 mr-1" />
-            <span>{formatDate(thread.createdAt)}</span>
-          </div>
+          <h2 className="text-xl font-bold mb-2">Contenu de la discussion</h2>
         </div>
         
         <div className="p-6">
@@ -182,10 +294,23 @@ const ThreadView: React.FC = () => {
                     <User className="w-4 h-4 mr-1" />
                     <span className="font-medium">{post.authorName}</span>
                   </div>
-                  <div className="text-sm text-gray-500 flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{formatDate(post.createdAt)}</span>
-                    {post.isEdited && <span className="ml-2 text-xs">(modifié)</span>}
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-gray-500 flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span>{formatDate(post.createdAt)}</span>
+                      {post.isEdited && <span className="ml-2 text-xs">(modifié)</span>}
+                    </div>
+                    
+                    {/* Bouton de suppression pour les messages (visible uniquement par l'auteur) */}
+                    {isAuthor(post.authorId) && (
+                      <button
+                        className="flex items-center text-red-500 hover:text-red-700 text-sm"
+                        onClick={() => confirmDelete(post.id, 'post')}
+                        title="Supprimer ce message"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 
@@ -258,6 +383,70 @@ const ThreadView: React.FC = () => {
       ) : (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-700">
           <p>Cette discussion est verrouillée et n'accepte plus de nouvelles réponses.</p>
+        </div>
+      )}
+      
+      {/* Modale de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full overflow-hidden">
+            <div className="bg-gray-100 px-4 py-3 flex justify-between items-center border-b">
+              <h3 className="text-lg font-medium text-gray-800 flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2 text-red-500" />
+                Confirmer la suppression
+              </h3>
+              <button 
+                onClick={cancelDelete}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="mb-4">
+                {deletingType === 'thread' 
+                  ? `Êtes-vous sûr de vouloir supprimer cette discussion ? Cette action supprimera également tous les messages associés et ne peut pas être annulée.` 
+                  : `Êtes-vous sûr de vouloir supprimer ce message ? Cette action ne peut pas être annulée.`}
+              </p>
+              
+              {/* Message spécial pour les administrateurs */}
+              {currentUser && (currentUser.isAdmin === true || currentUser.isSuperAdmin === true) && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
+                  <p className="font-medium">Action administrative</p>
+                  <p>En tant qu'administrateur, vous pouvez supprimer n'importe quel contenu du forum.</p>
+                  <p>Utilisez cette capacité avec discernement et uniquement pour le contenu inapproprié ou qui enfreint les règles du forum.</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  disabled={deletingInProgress}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={deletingInProgress}
+                >
+                  {deletingInProgress ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Suppression...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Supprimer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
