@@ -12,7 +12,7 @@ const schoolLogos = [
   {
     id: 2,
     name: 'CPS Dakar',
-    logoUrl: '/public/logo_CPS.jpeg',
+    logoUrl: '/logo_CPS.jpeg',
     alt: 'Logo CPS Dakar'
   },
   {
