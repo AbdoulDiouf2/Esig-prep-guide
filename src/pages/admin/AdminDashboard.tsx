@@ -17,6 +17,7 @@ interface UserDoc {
 import { Link } from 'react-router-dom';
 import { useContent } from '../../contexts/ContentContext';
 import { useAuth } from '../../contexts/AuthContext';
+import adminChatService from '../../services/adminChatService';
 import {
   Users,
   MessageSquare,
@@ -74,6 +75,7 @@ const AdminDashboard: React.FC = () => {
   const [userProgressions, setUserProgressions] = useState<{ userId: string, completedSections: string[] }[]>([]);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(true);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -92,6 +94,29 @@ const AdminDashboard: React.FC = () => {
     };
     fetchProgressions();
   }, []);
+
+  // Vérifier les messages non lus au chargement et s'abonner aux mises à jour
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    // Vérifier les messages non lus au chargement
+    const checkUnreadMessages = async () => {
+      const hasUnread = await adminChatService.hasUnreadMessages(currentUser.uid);
+      setHasUnreadMessages(hasUnread);
+    };
+
+    checkUnreadMessages();
+
+    // S'abonner aux changements de messages non lus
+    const unsubscribe = adminChatService.subscribeToUnreadMessages(
+      currentUser.uid,
+      (hasUnread) => {
+        setHasUnreadMessages(hasUnread);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser?.uid]);
 
   // Calcul progression globale
   const getUserGlobalProgress = (completedSections: string[]) => {
@@ -666,8 +691,11 @@ const AdminDashboard: React.FC = () => {
               {/* Carte Chat Administrateur */}
               <Link 
                 to="/admin/chat-interface" 
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
               >
+                {hasUnreadMessages && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
                 <div className="flex items-start">
                   <div className="p-2 bg-green-100 rounded-lg mr-4">
                     <MessageSquare className="w-6 h-6 text-green-600" />
@@ -795,4 +823,5 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 };
+
 export default AdminDashboard;

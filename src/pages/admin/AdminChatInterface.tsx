@@ -177,24 +177,37 @@ const AdminChatInterface: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser, selectedUserId]);
 
+  // Charger les messages d'une conversation
+  const loadMessages = async (userId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      setLoading(true);
+      const userMessages = await chatService.getMessages(userId, currentUser.uid);
+      setMessages(userMessages);
+      
+      // Marquer les messages comme lus
+      await adminChatService.markAllMessagesAsRead(userId);
+      
+      // Mettre à jour la liste des conversations pour refléter la lecture
+      const updatedConversations = conversations.map(conv => 
+        conv.userId === userId 
+          ? { ...conv, unreadCount: 0 } 
+          : conv
+      );
+      setConversations(updatedConversations);
+    } catch (error) {
+      console.error('Erreur lors du chargement des messages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Charger les messages lorsqu'un utilisateur est sélectionné
   useEffect(() => {
     if (!currentUser || !selectedUserId) return;
     
-    const loadMessages = async () => {
-      try {
-        // Charger les messages entre l'admin et l'utilisateur sélectionné
-        const userMessages = await chatService.getMessages(selectedUserId, currentUser.uid);
-        setMessages(userMessages);
-        
-        // Marquer tous les messages non lus comme lus
-        await adminChatService.markAllMessagesAsRead(selectedUserId);
-      } catch (error) {
-        console.error('Erreur lors du chargement des messages:', error);
-      }
-    };
-    
-    loadMessages();
+    loadMessages(selectedUserId);
     
     // S'abonner aux mises à jour des messages en temps réel
     const unsubscribe = chatService.subscribeToMessages(

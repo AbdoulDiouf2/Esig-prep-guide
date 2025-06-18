@@ -16,7 +16,8 @@ import {
   deleteDoc,
   writeBatch,
   or,
-  and
+  and,
+  Unsubscribe
 } from 'firebase/firestore';
 // import { ChatMessage } from './chatService';
 
@@ -282,6 +283,50 @@ const adminChatService = {
       console.error('Erreur lors de la suppression de la conversation:', error);
       throw error;
     }
+  },
+  
+  /**
+   * Vérifie si l'admin a des messages non lus
+   * @param adminId ID de l'administrateur
+   * @returns Promise<boolean> true si des messages non lus existent
+   */
+  async hasUnreadMessages(adminId: string): Promise<boolean> {
+    try {
+      const messagesRef = collection(db, 'messages');
+      const q = query(
+        messagesRef,
+        where('receiverId', '==', adminId),
+        where('read', '==', false)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Erreur lors de la vérification des messages non lus:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * S'abonne aux changements de messages non lus pour l'admin
+   * @param adminId ID de l'administrateur
+   * @param callback Fonction appelée à chaque changement
+   * @returns Fonction de désabonnement
+   */
+  subscribeToUnreadMessages(
+    adminId: string, 
+    callback: (hasUnread: boolean) => void
+  ): Unsubscribe {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('receiverId', '==', adminId),
+      where('read', '==', false)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      callback(!snapshot.empty);
+    });
   }
 };
 
