@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
 import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare } from 'lucide-react';
 import SubsectionForm from '../components/subsection/SubsectionForm';
-// import SuperAdminCheck from '../components/routes/SuperAdminCheck';
 import { 
   getUserSubsectionData, 
   saveUserCheckItems, 
@@ -14,6 +13,7 @@ import {
   cleanupSubsectionData, 
   TypedValue 
 } from '../services/subsectionDataService';
+import { ChatNotificationService } from '../services/chatNotificationService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -28,6 +28,8 @@ const Dashboard: React.FC = () => {
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   
   const [activePhase, setActivePhase] = useState<GuidePhase>('post-cps');
+  // État pour les notifications de chat non lues
+  const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
   // Progress tracking (would be stored in user profile in a real app)
   const [completedSections, setCompletedSections] = useState<string[]>([]);
   // État pour les cases à cocher des sous-sections
@@ -374,7 +376,28 @@ const Dashboard: React.FC = () => {
     return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
 
+  // Effet pour vérifier les messages non lus
+  useEffect(() => {
+    if (!currentUser?.uid) return;
 
+    // Vérifier les messages non lus au chargement
+    const checkUnread = async () => {
+      const hasUnread = await ChatNotificationService.checkUnreadMessages(currentUser.uid);
+      setHasUnreadMessages(hasUnread);
+    };
+
+    checkUnread();
+
+    // S'abonner aux changements de messages non lus
+    const unsubscribe = ChatNotificationService.subscribeToUnreadMessages(
+      currentUser.uid,
+      (hasUnread) => {
+        setHasUnreadMessages(hasUnread);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser?.uid]);
 
   // Affichage de chargement si les données ne sont pas encore chargées
   if (!resources || !faqItems || !guideSections || progressLoading || subsectionDataLoading) {
@@ -460,7 +483,10 @@ const Dashboard: React.FC = () => {
                   <span className="text-blue-600 text-sm font-medium">Accéder →</span>
                 </Link>
                 
-                <Link to="/user-chat" className="flex items-center justify-between bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 transition-colors">
+                <Link to="/user-chat" className="flex items-center justify-between bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 transition-colors relative">
+                  {hasUnreadMessages && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="bg-green-600 rounded-full p-2">
                       <MessageSquare className="w-5 h-5 text-white" />
