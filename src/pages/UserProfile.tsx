@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext';
-import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { STATUS_OPTIONS, getStatusLabel } from '../constants/statusOptions';
 import { User, GraduationCap, MapPin } from 'lucide-react';
 import { Shield } from 'lucide-react';
@@ -16,7 +16,8 @@ const UserProfile: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<'profile' | 'password' | null>(null);
   const [pendingProfile, setPendingProfile] = useState<{displayName: string, photoURL: string} | null>(null);
   const [pendingPassword, setPendingPassword] = useState<string>('');
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [photoURL, setPhotoURL] = useState(currentUser?.photoURL || '');
   const [email] = useState(currentUser?.email || '');
@@ -128,7 +129,6 @@ const UserProfile: React.FC = () => {
         await updateProfile(firebaseUser, { displayName: pendingProfile.displayName, photoURL: pendingProfile.photoURL });
         setDisplayName(pendingProfile.displayName);
         setPhotoURL(pendingProfile.photoURL);
-        
         setSuccess('Profil mis à jour !');
       } else if (pendingAction === 'password' && pendingPassword) {
         await updatePassword(firebaseUser, pendingPassword);
@@ -143,6 +143,66 @@ const UserProfile: React.FC = () => {
       setModalError('Mot de passe incorrect.');
     } finally {
       setModalLoading(false);
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer définitivement votre compte ? Cette action est irréversible et toutes vos données seront perdues.')) {
+      return;
+    }
+
+    // Demander à l'utilisateur de confirmer en tapant la phrase exacte
+    const confirmationText = 'je veux supprimer mon compte';
+    const userInput = prompt(`Pour confirmer la suppression, veuillez taper exactement : "${confirmationText}"`);
+    
+    if (userInput !== confirmationText) {
+      setError('Suppression annulée. La phrase de confirmation ne correspond pas.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error('Aucun utilisateur connecté');
+      }
+
+      // Pour les utilisateurs avec mot de passe, demander la réauthentification
+      if (hasPasswordProvider) {
+        const password = prompt('Pour confirmer la suppression de votre compte, veuillez entrer votre mot de passe :');
+        if (!password) {
+          setSaving(false);
+          return;
+        }
+        const credential = EmailAuthProvider.credential(firebaseUser.email || '', password);
+        await reauthenticateWithCredential(firebaseUser, credential);
+      }
+      // Pour les utilisateurs Google/GitHub, on fait confiance à leur session
+      // car ils sont déjà authentifiés via leur fournisseur d'identité
+
+      // Supprimer les données utilisateur de Firestore
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      await deleteDoc(userRef);
+
+      // Déconnecter l'utilisateur
+      await logout();
+
+      // Supprimer le compte utilisateur
+      await deleteUser(firebaseUser);
+
+      // Rediriger vers la page d'accueil
+      navigate('/');
+      
+      // Afficher un message de confirmation
+      alert('Votre compte a été supprimé avec succès.');
+    } catch (error) {
+      console.error('Erreur lors de la suppression du compte :', error);
+      setError(error instanceof Error ? error.message : 'Une erreur est survenue lors de la suppression du compte.');
+    } finally {
       setSaving(false);
     }
   };
@@ -319,6 +379,32 @@ const UserProfile: React.FC = () => {
           {providerError && (
             <div className="mt-6 text-center text-sm font-medium text-orange-600">{providerError}</div>
           )}
+
+          {/* Section de suppression de compte */}
+          <div className="w-full border-t border-red-100 my-6 pt-6">
+            <h3 className="text-lg font-semibold text-red-700 mb-3">Zone dangereuse</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              La suppression de votre compte est irréversible. Toutes vos données seront définitivement supprimées.
+              {hasPasswordProvider && ' Un mot de passe sera également demandé.'}
+            </p>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={saving}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Suppression en cours...
+                </>
+              ) : (
+                'Supprimer définitivement mon compte'
+              )}
+            </button>
+          </div>
         <PasswordConfirmModal
           open={modalOpen}
           onClose={() => { setModalOpen(false); setModalError(null); setPendingAction(null); }}

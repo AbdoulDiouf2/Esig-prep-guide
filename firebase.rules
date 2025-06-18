@@ -41,7 +41,7 @@ service cloud.firestore {
                     );
       
       // Permet aux super admins de supprimer n'importe quel utilisateur
-      allow delete: if isSuperAdmin();
+      allow delete: if isOwner(userId) || isSuperAdmin();
       
       // Création autorisée lors de l'inscription
       // Règle modifiée pour éviter la dépendance circulaire
