@@ -235,11 +235,8 @@ const AdminChatInterface: React.FC = () => {
       // N'effectuer le défilement que si on est près du bas OU si c'est notre propre message
       if (isNearBottom || isOwnMessage) {
         // Utiliser setTimeout pour s'assurer que le DOM a été mis à jour avant de défiler
-        // mais seulement pour le conteneur des messages, pas la page entière
         const timeoutId = setTimeout(() => {
-          // Utiliser scrollIntoView uniquement sur le conteneur de messages
-          // et pas sur la page entière
-          if (messagesEndRef.current && messagesContainerRef.current) {
+          if (messagesContainerRef.current) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
           }
         }, 100);
@@ -248,7 +245,7 @@ const AdminChatInterface: React.FC = () => {
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [messages, currentUser?.uid]);
+  }, [messages, currentUser?.uid, messagesEndRef, messagesContainerRef]);
 
   // Gérer l'envoi d'un message
   const handleSendMessage = async (e: React.FormEvent) => {
