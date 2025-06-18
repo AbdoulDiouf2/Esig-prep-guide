@@ -24,6 +24,13 @@ export type AppUser = {
   isEditor?: boolean;
   createdAt?: Date;
   photoURL?: string;
+  providerData?: Array<{
+    providerId: string;
+    uid: string;
+    displayName: string | null;
+    email: string | null;
+    photoURL: string | null;
+  }>;
 };
 
 type AuthContextType = {
@@ -67,7 +74,14 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     isSuperAdmin: userData?.isSuperAdmin || false,
     isEditor: userData?.isEditor || false,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
-    createdAt: userData?.createdAt?.toDate()
+    createdAt: userData?.createdAt?.toDate(),
+    providerData: firebaseUser.providerData.map(provider => ({
+      providerId: provider.providerId,
+      uid: provider.uid,
+      displayName: provider.displayName,
+      email: provider.email,
+      photoURL: provider.photoURL
+    }))
   };
 };
 

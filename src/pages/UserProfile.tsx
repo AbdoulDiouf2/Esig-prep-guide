@@ -29,7 +29,24 @@ const UserProfile: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState(true);
 
   const [providerError, setProviderError] = useState<string | null>(null);
+
+  // Détecter le fournisseur d'authentification
+  console.log('Provider data:', currentUser?.providerData);
   
+  const isSocialLogin = currentUser?.providerData?.some(provider => {
+    const isSocial = provider?.providerId === 'google.com' || provider?.providerId === 'github.com';
+    console.log('Provider:', provider?.providerId, 'isSocial:', isSocial);
+    return isSocial;
+  }) || false;
+  
+  const isGoogleUser = currentUser?.providerData?.some(provider => {
+    const isGoogle = provider?.providerId === 'google.com';
+    console.log('Provider:', provider?.providerId, 'isGoogle:', isGoogle);
+    return isGoogle;
+  }) || false;
+  
+  console.log('isSocialLogin:', isSocialLogin, 'isGoogleUser:', isGoogleUser);
+
   // Charger le statut utilisateur depuis Firestore
   useEffect(() => {
     const fetchUserStatus = async () => {
@@ -315,7 +332,7 @@ const UserProfile: React.FC = () => {
             </button>
           </form>
           <div className="w-full border-t border-blue-100 my-6"></div>
-          {hasPasswordProvider ? (
+          {hasPasswordProvider && (
             <>
               <form onSubmit={handlePasswordChange} className="w-full flex flex-col gap-4 animate-fadeInUp">
                 <label className="block text-gray-700 font-medium mb-1">Changer le mot de passe</label>
@@ -352,25 +369,23 @@ const UserProfile: React.FC = () => {
                 Réinitialiser mon mot de passe
               </button>
             </>
-          ) : (
-            <div className="w-full flex flex-col gap-4 animate-fadeInUp">
-              <div className="text-orange-600 text-sm mb-2">Vous avez créé votre compte avec Google. Vous ne pouvez pas définir ou changer de mot de passe ici.</div>
-              <button
-                type="button"
-                className="underline text-blue-700 hover:text-blue-900 text-sm"
-                onClick={async () => {
-                  setError(null);
-                  setSuccess(null);
-                  try {
-                    await sendPasswordResetEmail(auth, email);
-                    setSuccess('Un email de réinitialisation a été envoyé à votre adresse.');
-                  } catch {
-                    setError('Erreur lors de l’envoi de l’email de réinitialisation.');
-                  }
-                }}
-              >
-                Réinitialiser mon mot de passe
-              </button>
+          )}
+          {!hasPasswordProvider && isSocialLogin && (
+            <div className="w-full border-t border-blue-100 my-6 pt-6">
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h2a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      Vous utilisez la connexion avec {isGoogleUser ? 'Google' : 'GitHub'}. Pour modifier votre mot de passe, veuillez vous connecter directement sur votre compte {isGoogleUser ? 'Google' : 'GitHub'}.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {(error || success) && (
