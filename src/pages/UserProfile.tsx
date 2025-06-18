@@ -31,21 +31,13 @@ const UserProfile: React.FC = () => {
   const [providerError, setProviderError] = useState<string | null>(null);
 
   // Détecter le fournisseur d'authentification
-  console.log('Provider data:', currentUser?.providerData);
+  const isSocialLogin = currentUser?.providerData?.some(provider => 
+    provider?.providerId === 'google.com' || provider?.providerId === 'github.com'
+  ) || false;
   
-  const isSocialLogin = currentUser?.providerData?.some(provider => {
-    const isSocial = provider?.providerId === 'google.com' || provider?.providerId === 'github.com';
-    console.log('Provider:', provider?.providerId, 'isSocial:', isSocial);
-    return isSocial;
-  }) || false;
-  
-  const isGoogleUser = currentUser?.providerData?.some(provider => {
-    const isGoogle = provider?.providerId === 'google.com';
-    console.log('Provider:', provider?.providerId, 'isGoogle:', isGoogle);
-    return isGoogle;
-  }) || false;
-  
-  console.log('isSocialLogin:', isSocialLogin, 'isGoogleUser:', isGoogleUser);
+  const isGoogleUser = currentUser?.providerData?.some(provider => 
+    provider?.providerId === 'google.com'
+  ) || false;
 
   // Charger le statut utilisateur depuis Firestore
   useEffect(() => {
