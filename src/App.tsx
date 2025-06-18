@@ -31,6 +31,7 @@ import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
 import AdminTutorial from './pages/admin/AdminTutorial';
 import AdminProgressionOverview from './pages/admin/AdminProgressionOverview';
 import AdminDropboxManager from './pages/admin/AdminDropboxManager';
+import AdminChatInterface from './pages/admin/AdminChatInterface';
 // FutureFeatures n'est plus utilisé mais conservé pour référence
 // import FutureFeatures from './pages/admin/FutureFeatures';
 import TestFirebase from './pages/TestFirebase';
@@ -50,6 +51,7 @@ import Webinars from './pages/Webinars';
 import WebinarDetail from './pages/WebinarDetail';
 import ProposerAtelier from './pages/ProposerAtelier';
 import MesPropositions from './pages/MesPropositions';
+import UserChat from './pages/UserChat';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -346,6 +348,11 @@ function App() {
                     </SuperAdminRoute>
                   </AuthWrapper>
                 } />
+                <Route path="/user-chat" element={
+                  <AuthWrapper>
+                    <UserChat />
+                  </AuthWrapper>
+                } />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={
@@ -429,6 +436,13 @@ function App() {
                   <AuthWrapper>
                     <AdminRoute>
                       <AdminWorkshopProposals />
+                    </AdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/chat-interface" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AdminChatInterface />
                     </AdminRoute>
                   </AuthWrapper>
                 } />

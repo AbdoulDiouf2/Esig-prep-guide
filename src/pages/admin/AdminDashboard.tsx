@@ -628,11 +628,75 @@ const AdminDashboard: React.FC = () => {
         {/* Gestion du contenu avancé */}
         <div className="container mx-auto px-4 py-6">
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Gestion du contenu avancé</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Fonctionnalités principales</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               
-              {/* Carte de Webinaires */}
-              <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
+              {/* Carte Contenu */}
+              <Link 
+                to="/admin/content" 
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Edit className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion du contenu</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les sections, ressources et questions FAQ</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {/* Carte Utilisateurs */}
+              <Link 
+                to="/admin/users" 
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion des utilisateurs</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les utilisateurs et leurs rôles</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {/* Carte Chat Administrateur */}
+              <Link 
+                to="/admin/chat-interface" 
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-green-100 rounded-lg mr-4">
+                    <MessageSquare className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Chat Utilisateurs</h3>
+                    <p className="text-sm text-gray-600 mt-1">Répondre aux messages des utilisateurs</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {/* Carte FAQ */}
+              <Link 
+                to="/admin/content?faq=moderate" 
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <MessageSquare className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Modérer la FAQ</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les questions et réponses de la FAQ</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {/* Carte Webinaires */}
+              <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
                 <div className="flex items-start">
                   <div className="p-2 bg-blue-100 rounded-lg mr-4">
                     <Video className="w-6 h-6 text-blue-600" />

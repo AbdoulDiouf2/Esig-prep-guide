@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users } from 'lucide-react';
+import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare } from 'lucide-react';
 import SubsectionForm from '../components/subsection/SubsectionForm';
 // import SuperAdminCheck from '../components/routes/SuperAdminCheck';
 import { 
@@ -444,9 +444,9 @@ const Dashboard: React.FC = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Forum Button */}
+          {/* Forum and Admin Chat Buttons */}
           <div className="mb-4 lg:col-span-2">
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link to="/forum" className="flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="bg-blue-600 rounded-full p-2">
@@ -459,8 +459,20 @@ const Dashboard: React.FC = () => {
                   </div>
                   <span className="text-blue-600 text-sm font-medium">Accéder →</span>
                 </Link>
+                
+                <Link to="/user-chat" className="flex items-center justify-between bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-600 rounded-full p-2">
+                      <MessageSquare className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-green-800">Discuter avec l'admin</h3>
+                      <p className="text-xs text-green-600">Support et assistance</p>
+                    </div>
+                  </div>
+                  <span className="text-green-600 text-sm font-medium">Discuter →</span>
+                </Link>
               </div>
-
           </div>
           
           {/* Main content */}

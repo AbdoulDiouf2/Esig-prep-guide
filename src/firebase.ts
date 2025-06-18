@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { initializeFirestore, CACHE_SIZE_UNLIMITED, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getStorage } from 'firebase/storage';
 
 // Configuration Firebase à partir des variables d'environnement
 const firebaseConfig = {
@@ -43,6 +44,9 @@ enableIndexedDbPersistence(db)
 
 const auth = getAuth(app);
 
+// Initialiser Firebase Storage pour les téléchargements de fichiers
+const storage = getStorage(app);
+
 // Initialiser Analytics de manière conditionnelle (uniquement côté client)
 let analytics;
 if (typeof window !== 'undefined') {
@@ -53,4 +57,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { db, auth, app, analytics };
+export { db, auth, app, analytics, storage };

@@ -311,6 +311,58 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    // Règles pour la collection messages (chat)
+    match /messages/{messageId} {
+      // Fonction pour vérifier si l'utilisateur est impliqué dans la conversation
+      function isParticipant() {
+        return isAuthenticated() && (
+          resource.data.senderId == request.auth.uid || 
+          resource.data.receiverId == request.auth.uid
+        );
+      }
+
+      // Fonction pour vérifier si l'utilisateur est admin
+      function isUserAdmin() {
+        return isAuthenticated() && 
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      }
+
+      // Fonction pour vérifier si l'utilisateur est super admin
+      function isUserSuperAdmin() {
+        return isAuthenticated() && 
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin == true;
+      }
+
+      // Les participants à la conversation peuvent lire les messages individuels
+      allow get: if isParticipant() || isUserAdmin() || isUserSuperAdmin();
+      
+      // Pour les requêtes de liste (query/onSnapshot), autoriser tous les utilisateurs authentifiés
+      allow list: if isAuthenticated();
+
+      // Les utilisateurs authentifiés peuvent créer des messages où ils sont l'expéditeur
+      allow create: if isAuthenticated() && 
+                     request.resource.data.senderId == request.auth.uid;
+
+      // Les participants à la conversation peuvent marquer un message comme lu
+      allow update: if isAuthenticated() && (
+                      (isParticipant() && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])) ||
+                      isUserAdmin() ||
+                      isUserSuperAdmin()
+                    );
+
+      // Règles de suppression simplifiées
+      allow delete: if isAuthenticated() && (
+        // L'utilisateur est l'expéditeur du message
+        resource.data.senderId == request.auth.uid ||
+        // OU l'utilisateur est un administrateur ou super admin
+        isUserAdmin() ||
+        isUserSuperAdmin()
+      );
+    }
+    
     // Règle par défaut - bloquer tout autre accès
     match /{document=**} {
       allow read, write: if false;

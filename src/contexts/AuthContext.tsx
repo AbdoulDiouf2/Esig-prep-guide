@@ -198,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Vérifier si l'utilisateur est administrateur
   const isAdmin = () => {
-    return Boolean(currentUser && currentUser.isAdmin);
+    return Boolean(currentUser && (currentUser.isAdmin || currentUser.isSuperAdmin));
   };
 
   // Vérifier si l'utilisateur est éditeur
