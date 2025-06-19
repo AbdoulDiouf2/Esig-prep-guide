@@ -152,7 +152,7 @@ const ModerationCharter: React.FC = () => {
                 <Clock className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-blue-800 font-medium">Règles de la communauté</p>
-                  <p className="text-sm text-blue-700 mt-1">Cette charte de modération vise à maintenir un environnement d'échanges respectueux et constructif. En utilisant notre plateforme, vous vous engagez à respecter ces règles pour le bénéfice de tous les utilisateurs.</p>
+                  <p className="text-sm text-blue-700 mt-1">Cette charte de modération vise à maintenir un environnement d'échanges respectueux et constructif. En utilisant notre plateforme, vous vous engagez à respecter ces règles pour le bénéfice de tous les utilisateurs. Les signalements de contenu sont traités dans les meilleurs délais par notre équipe de modération, avec l'aide d'outils automatisés fournis par Firebase pour détecter les comportements inappropriés.</p>
                 </div>
               </div>
               <p className="text-sm text-gray-500 mt-6 text-center">

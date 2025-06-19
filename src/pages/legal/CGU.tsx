@@ -141,7 +141,7 @@ const CGU: React.FC = () => {
                 <Shield className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-blue-800 font-medium">Document légal important</p>
-                  <p className="text-sm text-blue-700 mt-1">Ces conditions générales d'utilisation constituent un contrat juridiquement contraignant entre vous et notre service. En utilisant notre plateforme, vous acceptez ces conditions.</p>
+                  <p className="text-sm text-blue-700 mt-1">Ces conditions générales d'utilisation constituent un contrat juridiquement contraignant entre vous et notre service. En utilisant notre plateforme, vous acceptez ces conditions. Cette plateforme utilise les services Firebase de Google pour son fonctionnement, notamment pour l'authentification, la base de données et l'hébergement.</p>
                 </div>
               </div>
               <p className="text-sm text-gray-500 mt-6 text-center">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Lock, Database, Shield, Users, ServerCrash, BookOpen, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { SECURITY_MEASURES } from './constants';
 
 const RGPDRegistry: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
@@ -113,26 +114,26 @@ const RGPDRegistry: React.FC = () => {
                       <span className="font-semibold text-gray-700 mr-2 w-24 flex-shrink-0">Nom :</span>
                       <span>Abdoul Ahad Mbacké Diouf</span>
                     </p>
-                    <p className="flex items-start mt-3">
+                    <p className="flex items-start">
                       <span className="font-semibold text-gray-700 mr-2 w-24 flex-shrink-0">Adresse :</span>
-                      <span>[Votre adresse postale]</span>
+                      <span>76800; Saint-Etienne-Du-Rouvray, France</span>
                     </p>
                   </div>
                   <div>
                     <p className="flex items-start">
                       <span className="font-semibold text-gray-700 mr-2 w-24 flex-shrink-0">Email :</span>
-                      <span>[Votre adresse email]</span>
+                      <span>aad.mbacke691@gmail.com</span>
                     </p>
                     <p className="flex items-start mt-3">
                       <span className="font-semibold text-gray-700 mr-2 w-24 flex-shrink-0">Téléphone :</span>
-                      <span>[Votre numéro de téléphone]</span>
+                      <span>+33 7 49 05 18 79</span>
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="flex items-start">
                     <span className="font-semibold text-gray-700 mr-2">Délégué à la protection des données :</span>
-                    <span>[Nom du DPO ou "Non désigné"]</span>
+                    <span>Abdoul Ahad Mbacké Diouf (responsable auto-désigné)</span>
                   </p>
                 </div>
               </div>
@@ -201,12 +202,21 @@ const RGPDRegistry: React.FC = () => {
                   <tr>
                     <td className="border border-gray-300 p-3 font-medium">Mesures de sécurité</td>
                     <td className="border border-gray-300 p-3">
+                      <p className="font-medium mb-2">Mesures organisationnelles :</p>
                       <ul className="list-disc pl-5 space-y-1">
-                        <li>Authentification sécurisée (Firebase Auth)</li>
-                        <li>Mots de passe hashés</li>
-                        <li>Accès restreint aux données administrateur</li>
-                        <li>Transmission des données via HTTPS</li>
+                        {SECURITY_MEASURES.organizational.map((item: string, index: number) => (
+                          <li key={`org-${index}`}>{item}</li>
+                        ))}
                       </ul>
+                      <p className="font-medium mt-4 mb-2">Mesures techniques :</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {SECURITY_MEASURES.technical.map((item: string, index: number) => (
+                          <li key={`tech-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-sm text-gray-600">
+                        Les mesures de sécurité mises en œuvre par nos sous-traitants (notamment Firebase) sont conformes aux normes industrielles et aux exigences du RGPD.
+                      </p>
                     </td>
                   </tr>
                   <tr className="bg-gray-50">

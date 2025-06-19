@@ -199,6 +199,40 @@ const PrivacyPolicy: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 m-0">11. Sécurité des données</h2>
             </div>
             <p>
+              Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles appropriées pour protéger vos données personnelles contre la perte, l'utilisation abusive, l'accès non autorisé, la divulgation, l'altération ou la destruction. Parmi ces mesures :
+            </p>
+            <ul>
+              <li>Chiffrement des données en transit (HTTPS/TLS)</li>
+              <li>Authentification forte pour l'accès aux comptes</li>
+              <li>Stockage sécurisé des mots de passe (hachage avec algorithme robuste)</li>
+              <li>Accès restreint aux données personnelles aux seules personnes autorisées</li>
+              <li>Surveillance régulière de nos systèmes pour détecter les vulnérabilités potentielles</li>
+            </ul>
+            <p>
+              Nous utilisons les services de Firebase (Google Cloud Platform) pour l'hébergement et le traitement des données, qui mettent en œuvre des mesures de sécurité de haut niveau conformes aux normes industrielles.
+            </p>
+
+            <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-4 mt-8">
+              <Server className="w-6 h-6 text-blue-600" />
+              <h2 className="text-2xl font-bold text-gray-800 m-0">12. Sous-traitants</h2>
+            </div>
+            <p>
+              Nous faisons appel aux sous-traitants suivants pour l'hébergement et le traitement des données :
+            </p>
+            <ul>
+              <li>
+                <strong>Firebase (Google Cloud Platform)</strong> : hébergement, base de données, authentification et stockage des fichiers
+                <ul className="list-disc pl-5 mt-1">
+                  <li>Politique de confidentialité : <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://firebase.google.com/support/privacy</a></li>
+                  <li>Pays de localisation : France (région europe-west1 - Belgique) et États-Unis</li>
+                  <li>Garanties : Clauses contractuelles types de la Commission européenne</li>
+                </ul>
+              </li>
+            </ul>
+            <p className="mt-4">
+              Ces sous-traitants sont tenus par contrat de respecter la confidentialité de vos données et de ne pas les utiliser à d'autres fins que celles pour lesquelles nous les leur communiquons.
+            </p>
+            <p>
               Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos données personnelles contre tout traitement non autorisé ou illégal et contre toute perte, destruction ou dommage accidentels.
             </p>
 

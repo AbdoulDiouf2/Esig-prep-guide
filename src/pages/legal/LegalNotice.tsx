@@ -40,9 +40,9 @@ const LegalNotice: React.FC = () => {
             </p>
             <p>
               <strong>Nom :</strong> Abdoul Ahad Mbacké Diouf<br />
-              <strong>Adresse :</strong> [Votre adresse postale]<br />
-              <strong>Email :</strong> [Votre adresse email]<br />
-              <strong>Téléphone :</strong> [Votre numéro de téléphone]
+              <strong>Adresse :</strong> 76800; Saint-Etienne-Du-Rouvray<br />
+              <strong>Email :</strong> aad.mbacke691@gmail.com<br />
+              <strong>Téléphone :</strong> +33 7 49 05 18 79
             </p>
             <p>
               <strong>Directeur de la publication :</strong> Abdoul Ahad Mbacké Diouf
@@ -56,9 +56,9 @@ const LegalNotice: React.FC = () => {
               Le Site est hébergé par :
             </p>
             <p>
-              <strong>Société :</strong> GitHub Pages (GitHub Inc.)<br />
-              <strong>Adresse :</strong> 88 Colin P Kelly Jr St, San Francisco, CA 94107, États-Unis<br />
-              <strong>Site web :</strong> <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">https://pages.github.com/</a>
+              <strong>Société :</strong> Vercel Inc.<br />
+              <strong>Adresse :</strong> 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis<br />
+              <strong>Site web :</strong> <a href="https://vercel.com/" target="_blank" rel="noopener noreferrer">https://vercel.com/</a>
             </p>
 
             <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-4 mt-8">
@@ -137,7 +137,7 @@ const LegalNotice: React.FC = () => {
                 <Landmark className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-blue-800 font-medium">Informations obligatoires</p>
-                  <p className="text-sm text-blue-700 mt-1">Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique, il est précisé aux utilisateurs du site ESIG-prep-guide l'identité des différents intervenants dans le cadre de sa réalisation et de son suivi.</p>
+                  <p className="text-sm text-blue-700 mt-1">Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique, il est précisé aux utilisateurs du site ESIG-prep-guide l'identité des différents intervenants dans le cadre de sa réalisation et de son suivi. Ce site utilise les services de Firebase (Google Cloud Platform) pour l'hébergement, l'authentification et la gestion des données.</p>
                 </div>
               </div>
               <p className="text-sm text-gray-500 mt-6 text-center">
