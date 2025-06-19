@@ -441,9 +441,9 @@ function App() {
                 } />
                 <Route path="/admin/chat-interface" element={
                   <AuthWrapper>
-                    <AdminRoute>
+                    <SuperAdminRoute>
                       <AdminChatInterface />
-                    </AdminRoute>
+                    </SuperAdminRoute>
                   </AuthWrapper>
                 } />
                 

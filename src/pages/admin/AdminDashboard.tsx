@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
 import { DocumentData } from 'firebase/firestore';
+import SuperAdminCheck from '../../components/routes/SuperAdminCheck';
 
 interface UserDoc {
   uid: string;
@@ -689,23 +690,25 @@ const AdminDashboard: React.FC = () => {
               </Link>
               
               {/* Carte Chat Administrateur */}
-              <Link 
-                to="/admin/chat-interface" 
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
-              >
-                {hasUnreadMessages && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                )}
-                <div className="flex items-start">
-                  <div className="p-2 bg-green-100 rounded-lg mr-4">
-                    <MessageSquare className="w-6 h-6 text-green-600" />
+              <SuperAdminCheck>
+                <Link 
+                  to="/admin/chat-interface" 
+                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
+                >
+                  {hasUnreadMessages && (
+                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
+                  <div className="flex items-start">
+                    <div className="p-2 bg-green-100 rounded-lg mr-4">
+                      <MessageSquare className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900">Chat Utilisateurs</h3>
+                      <p className="text-sm text-gray-600 mt-1">Répondre aux messages des utilisateurs</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Chat Utilisateurs</h3>
-                    <p className="text-sm text-gray-600 mt-1">Répondre aux messages des utilisateurs</p>
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </SuperAdminCheck>
               
               {/* Carte FAQ */}
               <Link 
