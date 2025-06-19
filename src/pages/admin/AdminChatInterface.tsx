@@ -114,6 +114,9 @@ const ConversationItem = ({
             {conversation.lastMessageTime?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
+        {conversation.userEmail && (
+          <p className="text-xs text-gray-500 truncate">{conversation.userEmail}</p>
+        )}
         <p className="text-sm text-gray-500 truncate">{conversation.lastMessage}</p>
       </div>
     </div>
@@ -476,7 +479,12 @@ const AdminChatInterface: React.FC = () => {
                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
                         {selectedUserName.charAt(0).toUpperCase()}
                       </div>
-                      <h2 className="font-semibold text-gray-900">{selectedUserName}</h2>
+                      <div>
+                        <h2 className="font-semibold text-gray-900">{selectedUserName}</h2>
+                        {conversations.find(c => c.userId === selectedUserId)?.userEmail && (
+                          <p className="text-sm text-gray-500">{conversations.find(c => c.userId === selectedUserId)?.userEmail}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
