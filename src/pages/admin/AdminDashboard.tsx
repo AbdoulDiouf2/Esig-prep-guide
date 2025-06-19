@@ -821,6 +821,32 @@ const AdminDashboard: React.FC = () => {
               
             </div>
           </div>
+          
+          {/* Outils Super Admin */}
+          <SuperAdminCheck>
+            <div className="bg-white rounded-lg shadow p-6 mt-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Outils Super Admin</h2>
+              <p className="text-sm text-gray-600 mb-4">Outils avancés réservés aux super administrateurs</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Link
+                  to="/admin/email-broadcast"
+                  className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="p-2 rounded-md bg-purple-100 text-purple-800 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium">Diffusion d'emails</p>
+                    <p className="text-xs text-gray-500">Envoyer des emails en masse aux utilisateurs</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </SuperAdminCheck>
         </div>
       </div>
     </div>

@@ -38,6 +38,7 @@ import TestFirebase from './pages/TestFirebase';
 import FeedbackAdmin from './pages/admin/FeedbackAdmin';
 import AdminWebinarManager from './pages/admin/AdminWebinarManager';
 import AdminWorkshopProposals from './pages/admin/AdminWorkshopProposals';
+import AdminEmailBroadcast from './components/AdminEmailBroadcast';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
 import UserTutorial from './pages/UserTutorial';
@@ -437,6 +438,13 @@ function App() {
                     <AdminRoute>
                       <AdminWorkshopProposals />
                     </AdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/email-broadcast" element={
+                  <AuthWrapper>
+                    <SuperAdminRoute>
+                      <AdminEmailBroadcast />
+                    </SuperAdminRoute>
                   </AuthWrapper>
                 } />
                 <Route path="/admin/chat-interface" element={

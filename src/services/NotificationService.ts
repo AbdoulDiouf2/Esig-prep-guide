@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, collection, query, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, getDocs, where } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { Webinar } from '../pages/Webinars'; // Import du type Webinar
 
@@ -7,18 +7,30 @@ import { Webinar } from '../pages/Webinars'; // Import du type Webinar
 interface EmailData {
   to_email: string;
   to_name: string;
-  question: string;
-  answer: string;
-  app_name: string;
-  faq_url: string;
+  question?: string;
+  answer?: string;
+  app_name?: string;
+  faq_url?: string;
   email_subject?: string; // Sujet personnalisé pour l'email
-  bcc_list?: string; // Liste d'emails en Cci séparés par des virgules
-  [key: string]: string | undefined; // Pour les propriétés additionnelles qui pourraient être nécessaires
+  cc_list?: string; // Liste d'emails en copie (CC) séparés par des virgules
+  bcc_list?: string; // Liste d'emails en copie cachée (CCI) séparés par des virgules
+  message?: string; // Contenu du message pour les emails personnalisés
+  is_test?: boolean; // Indique s'il s'agit d'un email de test
+  [key: string]: string | boolean | undefined; // Pour les propriétés additionnelles qui pourraient être nécessaires
 }
 
 /**
  * Service pour gérer les notifications utilisateurs, notamment lors des réponses FAQ
  */
+// Interface pour le suivi de la progression de l'envoi
+interface EmailProgress {
+  total: number;
+  success: number;
+  failed: number;
+  processed: number;
+  errors: Array<{email: string, error: string}>;
+}
+
 export const NotificationService = {
   /**
    * Envoie une notification par email à l'utilisateur dont la question FAQ a été répondue.
@@ -195,6 +207,180 @@ export const NotificationService = {
       console.error('Erreur lors de l\'envoi des notifications webinaire:', error);
       return { success: 0, failed: 0 };
     }
+  },
+
+  /**
+   * Envoie un email personnalisé à un utilisateur
+   * @param toEmail Email du destinataire
+   * @param subject Sujet de l'email
+   * @param message Contenu du message (peut inclure du HTML)
+   * @param toName Nom du destinataire (optionnel)
+   * @param isTest Indique s'il s'agit d'un email de test
+   * @param ccList Liste des adresses en copie (CC) (optionnel)
+   * @param bccList Liste des adresses en copie cachée (CCI) (optionnel)
+   */
+  async sendCustomEmail(
+    toEmail: string, 
+    subject: string, 
+    message: string, 
+    toName?: string, 
+    isTest = false,
+    ccList?: string[],
+    bccList?: string[]
+  ): Promise<boolean> {
+    try {
+      // Préparer les données de l'email
+      const emailData: EmailData = {
+        to_email: toEmail,
+        to_name: "",
+        email_subject: isTest ? `[TEST] ${subject}` : subject,
+        message: message,
+        is_test: isTest,
+        app_name: 'ESIG-prep-guide',
+        question: 'Message',
+        answer: message // Pour assurer la compatibilité avec le template existant
+      };
+      
+      console.log('Contenu du message à envoyer:', message);
+
+      // Ajouter les CC si fournis
+      if (ccList && ccList.length > 0) {
+        emailData.cc_list = ccList.join(',');
+      }
+
+      // Ajouter les CCI si fournis
+      if (bccList && bccList.length > 0) {
+        emailData.bcc_list = bccList.join(',');
+      }
+
+      // Envoyer l'email via EmailJS
+      return await sendEmailNotification(emailData);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'email personnalisé:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Récupère la liste des emails des utilisateurs filtrés par statut
+   * @param status Statut des utilisateurs à filtrer ('tous', 'esigelec', 'cps', 'alumni', 'autres')
+   */
+  async getUsersByStatus(status: string = 'tous'): Promise<Array<{email: string, displayName: string}>> {
+    try {
+      let usersQuery = query(collection(db, 'users'));
+      
+      // Appliquer le filtre de statut si spécifié et différent de 'tous'
+      if (status !== 'tous') {
+        usersQuery = query(usersQuery, where('status', '==', status));
+      }
+      
+      const usersSnapshot = await getDocs(usersQuery);
+      const users: Array<{email: string, displayName: string}> = [];
+      
+      usersSnapshot.forEach(doc => {
+        const userData = doc.data();
+        if (userData.email) {
+          users.push({
+            email: userData.email,
+            displayName: userData.displayName || userData.email.split('@')[0]
+          });
+        }
+      });
+      
+      return users;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Envoie un email en masse à un groupe d'utilisateurs
+   * @param users Liste des utilisateurs à qui envoyer l'email
+   * @param subject Sujet de l'email
+   * @param message Contenu du message (peut inclure du HTML)
+   * @param batchSize Nombre d'emails à envoyer par lot (par défaut: 5)
+   * @param progressCallback Fonction de rappel pour suivre la progression
+   * @param ccList Liste optionnelle d'adresses email en copie carbone (CC)
+   */
+  async sendBulkEmail(
+    users: Array<{email: string, displayName: string}>,
+    subject: string,
+    message: string,
+    batchSize: number = 5,
+    progressCallback?: (progress: EmailProgress) => void,
+    ccList?: string[]
+  ): Promise<EmailProgress> {
+    const result: EmailProgress = {
+      total: users.length,
+      success: 0,
+      failed: 0,
+      processed: 0,
+      errors: []
+    };
+
+    // Si aucun utilisateur, retourner immédiatement
+    if (users.length === 0) {
+      return result;
+    }
+
+
+    // Envoyer les emails par lots
+    for (let i = 0; i < users.length; i += batchSize) {
+      const batch = users.slice(i, i + batchSize);
+      const batchPromises = batch.map(user => 
+        this.sendCustomEmail(
+          user.email, 
+          subject, 
+          message, 
+          user.displayName, 
+          false,
+          ccList
+        )
+        .then(success => ({
+          email: user.email,
+          success,
+          error: success ? undefined : 'Erreur inconnue'
+        }))
+        .catch(error => ({
+          email: user.email,
+          success: false,
+          error: error.message || 'Erreur inconnue'
+        }))
+      );
+
+      // Attendre que tous les emails du lot soient envoyés
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Mettre à jour les résultats
+      batchResults.forEach(r => {
+        if (r.success) {
+          result.success++;
+        } else {
+          result.failed++;
+          if (r.error) {
+            result.errors.push({
+              email: r.email,
+              error: r.error
+            });
+          }
+        }
+        result.processed++;
+      });
+
+      // Appeler le callback de progression si fourni
+      if (progressCallback) {
+        progressCallback({...result});
+      }
+
+      // Petite pause entre les lots pour éviter de surcharger le serveur
+      if (i + batchSize < users.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+
+    return result;
   }
 };
 
@@ -211,10 +397,10 @@ export const NotificationService = {
  */
 export const EMAILJS_CONFIG = {
   // ID du service email (sous "Email Services")
-  SERVICE_ID: import.meta.env.VITE_EMAILJS_SERVICE_ID, // TODO: Remplacer par votre ID de service
+  SERVICE_ID: import.meta.env.VITE_EMAILJS_SERVICE_ID,
   
   // ID du template d'email (sous "Email Templates")
-  TEMPLATE_ID: import.meta.env.VITE_EMAILJS_TEMPLATE_ID, // TODO: Remplacer par votre ID de template
+  TEMPLATE_ID: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
   
   // Clé publique API (sous "Account > API Keys")
   PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
@@ -225,26 +411,51 @@ export const EMAILJS_CONFIG = {
  */
 const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => {
   console.log('Préparation de l\'envoi d\'email à:', emailData.to_email);
+  console.log('Sujet:', emailData.email_subject);
+  console.log('Contenu du message:', emailData.message);
   if (emailData.bcc_list) {
     console.log(`Avec ${emailData.bcc_list.split(',').length} destinataires en Cci`);
   }
   
   try {
     // Mapper les données au format attendu par le template EmailJS
-    const templateParams = {
+    const templateParams: {
+      to_email: string;
+      to_name: string;
+      email_subject: string;
+      question?: string;
+      answer?: string;
+      message?: string;
+      app_name?: string;
+      faq_url?: string;
+      cc_list?: string;
+      bcc_list?: string;
+      is_test?: boolean;
+    } = {
       to_email: emailData.to_email,
-      to_name: emailData.to_name || 'Utilisateur',
-      question: emailData.question,
-      answer: emailData.answer,
-      app_name: emailData.app_name,
-      faq_url: emailData.faq_url,
-      email_subject: emailData.email_subject || 'Notification ESIG-prep-guide',
-      bcc_list: emailData.bcc_list || '' // Ajout du champ pour les destinataires en Cci
+      to_name: '',
+      email_subject: emailData.email_subject || 'Notification ESIG-prep-guide'
     };
+
+    // Ajouter les champs optionnels s'ils sont définis
+    if (emailData.question) templateParams.question = emailData.question;
+    if (emailData.answer) templateParams.answer = emailData.answer;
+    if (emailData.message) templateParams.message = emailData.message;
+    if (emailData.app_name) templateParams.app_name = emailData.app_name;
+    if (emailData.faq_url) templateParams.faq_url = emailData.faq_url;
+    if (emailData.cc_list) templateParams.cc_list = emailData.cc_list;
+    if (emailData.bcc_list) templateParams.bcc_list = emailData.bcc_list;
+    if (emailData.is_test !== undefined) templateParams.is_test = emailData.is_test;
     
     // Vérification des paramètres obligatoires
     if (!templateParams.to_email) {
       console.error('Email du destinataire manquant');
+      return false;
+    }
+    
+    // Vérifier la configuration EmailJS
+    if (!EMAILJS_CONFIG.SERVICE_ID || !EMAILJS_CONFIG.TEMPLATE_ID || !EMAILJS_CONFIG.PUBLIC_KEY) {
+      console.error('Configuration EmailJS manquante');
       return false;
     }
     
@@ -256,13 +467,21 @@ const sendEmailNotification = async (emailData: EmailData): Promise<boolean> => 
       EMAILJS_CONFIG.PUBLIC_KEY
     );
     
-    // Succès avec plus de détails si des destinataires Cci sont présents
+    // Succès avec plus de détails sur les destinataires
     if (response.status === 200) {
-      if (emailData.bcc_list) {
-        console.log(`Email envoyé avec succès à ${emailData.to_email} et ${emailData.bcc_list.split(',').length} destinataires en Cci`);
-      } else {
-        console.log(`Email envoyé avec succès à ${emailData.to_email}`);
+      let logMessage = `Email envoyé avec succès à ${emailData.to_email}`;
+      
+      if (emailData.cc_list) {
+        const ccCount = emailData.cc_list.split(',').filter(Boolean).length;
+        logMessage += `, ${ccCount} destinataire(s) en CC`;
       }
+      
+      if (emailData.bcc_list) {
+        const bccCount = emailData.bcc_list.split(',').filter(Boolean).length;
+        logMessage += `, ${bccCount} destinataire(s) en CCI`;
+      }
+      
+      console.log(logMessage);
     }
     
     // EmailJS renvoie un status 200 en cas de succès
