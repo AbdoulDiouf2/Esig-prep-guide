@@ -1,11 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/e-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ESIGELEC Prep Guide | Accompagnement CPS vers l'ESIGELEC</title>
+    <meta name="theme-color" content="#000000" />
     <meta name="description" content="Plateforme d'accompagnement des étudiants CPS de Dakar pour leur intégration à l'ESIGELEC de Rouen. Guides, ressources et communauté.">
+    
+    <!-- Google Analytics avec gestion du consentement -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VOTRE_ID_ANALYTICS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      
+      // Désactiver par défaut
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied',
+        'wait_for_update': 500
+      });
+      
+      // Initialiser avec les paramètres de base
+      gtag('js', new Date());
+      gtag('config', 'G-VOTRE_ID_ANALYTICS', { 
+        'anonymize_ip': true,
+        'allow_google_signals': false,
+        'allow_ad_personalization_signals': false
+      });
+    </script>
+    
+    <title>ESIGELEC Prep Guide | Accompagnement CPS vers l'ESIGELEC</title>
   </head>
   <body>
     <div id="root"></div>
