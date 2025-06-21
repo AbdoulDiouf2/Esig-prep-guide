@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 // Types
 export type GuidePhase = 'post-cps' | 'during-process' | 'pre-arrival';
@@ -223,7 +224,7 @@ const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     searchResources
   };
 
-  if (loading) return <div className="p-8 text-center">Chargement du contenu...</div>;
+  if (loading) return <LoadingSpinner message="Jërejëf ci xel yi ngeen nangu... / Merci de patienter..." />;
 
   return (
     <ContentContext.Provider value={value}>
@@ -233,4 +234,3 @@ const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 }
 
 export { ContentProvider };
-
