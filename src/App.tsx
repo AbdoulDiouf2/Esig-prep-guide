@@ -11,6 +11,7 @@ import ScrollToTop from './components/ScrollToTop';
 import React, { useEffect, useState } from 'react';
 import UserStatusModal from './components/auth/UserStatusModal';
 import { AlertTriangle, X, CheckCircle } from 'lucide-react';
+import { Analytics } from './components/analytics/VercelAnalytics';
 
 // Pages
 import Home from './pages/Home';
@@ -255,10 +256,11 @@ const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) =>
 // Composant principal de l'application
 function App() {
   return (
-    <AuthProvider>
-      <ContentProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen bg-gray-50">
+    <Router>
+      <AuthProvider>
+        <ContentProvider>
+          <ScrollToTop />
+          <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-grow">
               <Routes>
@@ -553,14 +555,15 @@ function App() {
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <Analytics />
+              <ConsentBanner />
+              <UserStatusModal />
             </main>
             <Footer />
-            <ConsentBanner />
-            <ScrollToTop />
           </div>
-        </Router>
-      </ContentProvider>
-    </AuthProvider>
+        </ContentProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
