@@ -159,62 +159,51 @@ service cloud.firestore {
     
     // Règles pour les webinaires
     match /webinars/{webinarId} {
-      // Tout le monde peut lire les webinaires
-      allow read: if true;
-
-      // Les administrateurs et éditeurs peuvent créer/modifier/supprimer des webinaires
-      allow create, update, delete: if isAdmin() || isEditor();
+      // Tous les utilisateurs authentifiés peuvent lire les webinaires
+      allow read: if isAuthenticated();
+      
+      // Seuls les admins et éditeurs peuvent créer, mettre à jour ou supprimer des webinaires
+      allow create: if isAdmin() || isEditor() || isSuperAdmin();
+      allow update: if isAdmin() || isEditor() || isSuperAdmin();
+      allow delete: if isAdmin() || isSuperAdmin();
     }
 
     // Règles pour les inscriptions aux webinaires
     match /webinarRegistrations/{registrationId} {
-      // Les utilisateurs peuvent voir leurs propres inscriptions
-      // Les administrateurs et éditeurs peuvent voir toutes les inscriptions
+      // L'utilisateur peut voir ses propres inscriptions
+      // Les admins peuvent voir toutes les inscriptions
       allow read: if isAuthenticated() && (
-                    resource.data.userId == request.auth.uid || 
-                    isAdmin() || 
-                    isEditor()
-                  );
-
-      // Les utilisateurs authentifiés peuvent s'inscrire à un webinaire
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin()
+      );
+      
+      // L'utilisateur peut créer ses propres inscriptions
       allow create: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid;
-
-      // Les utilisateurs peuvent annuler leur propre inscription
-      // Les administrateurs et éditeurs peuvent annuler n'importe quelle inscription
-      allow delete: if isAuthenticated() && (
-                      resource.data.userId == request.auth.uid || 
-                      isAdmin() || 
-                      isEditor()
-                    );
-
-      // Personne ne peut modifier une inscription après création
-      allow update: if false;
+                   request.resource.data.userId == request.auth.uid &&
+                   request.resource.data.webinarId is string;
+                   
+      // L'utilisateur peut supprimer ses propres inscriptions
+      // Les admins peuvent supprimer n'importe quelle inscription
+      allow delete: if isOwner(resource.data.userId) || isAdmin() || isSuperAdmin();
     }
     
     // Règles pour les favoris de webinaires
     match /webinarFavorites/{favoriteId} {
-      // Les utilisateurs peuvent lister leurs propres favoris et accéder aux documents individuels
+      // L'utilisateur peut voir ses propres favoris
+      // Les admins peuvent voir tous les favoris
       allow read: if isAuthenticated() && (
-                    favoriteId.split('_')[0] == request.auth.uid || 
-                    request.query.limit <= 500 && 
-                    request.query.filters.size() == 1 && 
-                    request.query.filters[0].op == "==" && 
-                    request.query.filters[0].path == "userId" && 
-                    request.query.filters[0].value == request.auth.uid
-                  );
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin()
+      );
       
-      // Les utilisateurs peuvent ajouter/supprimer leurs propres favoris
+      // L'utilisateur peut créer/supprimer ses propres favoris
       allow create: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid &&
-                      favoriteId == request.auth.uid + '_' + request.resource.data.webinarId;
-      
-      // Les utilisateurs peuvent supprimer leurs propres favoris
-      allow delete: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      
-      // Pas de mise à jour des favoris, seulement création/suppression
-      allow update: if false;
+                   request.resource.data.userId == request.auth.uid &&
+                   request.resource.data.webinarId is string;
+                   
+      allow delete: if isOwner(resource.data.userId) || isAdmin() || isSuperAdmin();
     }
     
     // Règles pour les propositions d'ateliers

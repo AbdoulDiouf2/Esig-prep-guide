@@ -34,10 +34,9 @@ const WebinarDetail: React.FC = () => {
 
   // Vérifier si l'utilisateur est déjà inscrit au webinaire - avec useCallback
   const checkIfRegistered = useCallback(async (webinarId: string) => {
-    if (!currentUser) return;
+    if (!currentUser?.uid) return false;
     
     try {
-      // Requête pour trouver une inscription pour cet utilisateur et ce webinaire
       const registrationsQuery = query(
         collection(db, 'webinarRegistrations'),
         where('userId', '==', currentUser.uid),
@@ -45,31 +44,28 @@ const WebinarDetail: React.FC = () => {
       );
       
       const registrationsSnapshot = await getDocs(registrationsQuery);
-      
-      // Si au moins un document est trouvé, l'utilisateur est inscrit
-      setIsRegistered(!registrationsSnapshot.empty);
+      return !registrationsSnapshot.empty;
     } catch (error) {
       console.error('Erreur lors de la vérification de l\'inscription:', error);
-      // En cas d'erreur, on suppose que l'utilisateur n'est pas inscrit
-      setIsRegistered(false);
+      return false;
     }
-  }, [currentUser]);
+  }, [currentUser?.uid]);
 
   // Vérifier si un webinaire est dans les favoris - avec useCallback
   const checkIfFavorite = useCallback(async (webinarId: string) => {
-    if (!currentUser) return;
+    if (!currentUser?.uid) return false;
     
     try {
-      // Vérifier dans la collection webinarFavorites
       const favoriteRef = doc(db, 'webinarFavorites', `${currentUser.uid}_${webinarId}`);
       const favoriteSnap = await getDoc(favoriteRef);
-      
-      setIsFavorite(favoriteSnap.exists());
+      return favoriteSnap.exists();
     } catch (error) {
       console.error('Erreur lors de la vérification des favoris:', error);
+      return false;
     }
-  }, [currentUser]);
+  }, [currentUser?.uid]);
 
+  // Charger les données du webinaire
   useEffect(() => {
     const loadWebinar = async () => {
       if (!id) return;
@@ -83,7 +79,6 @@ const WebinarDetail: React.FC = () => {
         
         if (webinarSnap.exists()) {
           const data = webinarSnap.data();
-          // Convertir les dates Firestore en objets Date JavaScript
           const webinarData: Webinar = {
             id: webinarSnap.id,
             title: data.title,
@@ -108,30 +103,15 @@ const WebinarDetail: React.FC = () => {
           
           setWebinar(webinarData);
           
-          // Déterminer si le webinaire est en direct aujourd'hui
-          const now = new Date();
-          const webinarDate = webinarData.date;
-          
-          // Obtenir la durée en minutes (gestion des types string ou number)
-          const webinarDurationMinutes = typeof webinarData.duration === 'string' 
-            ? parseInt(webinarData.duration) || 60 
-            : webinarData.duration || 60;
-          
-          const webinarEndTime = new Date(webinarDate);
-          webinarEndTime.setMinutes(webinarEndTime.getMinutes() + webinarDurationMinutes);
-          
-          const isTimeInRange = now >= webinarDate && now <= webinarEndTime;
-          const isSameDay = 
-            now.getFullYear() === webinarDate.getFullYear() &&
-            now.getMonth() === webinarDate.getMonth() &&
-            now.getDate() === webinarDate.getDate();
-            
-          setIsLiveNow(isSameDay && isTimeInRange);
-          
           // Vérifier si l'utilisateur est inscrit à ce webinaire
           if (currentUser) {
-            checkIfRegistered(webinarSnap.id);
-            checkIfFavorite(webinarSnap.id);
+            const [isRegistered, isFavorited] = await Promise.all([
+              checkIfRegistered(webinarSnap.id),
+              checkIfFavorite(webinarSnap.id)
+            ]);
+            
+            setIsRegistered(isRegistered);
+            setIsFavorite(isFavorited);
           }
           
           setError(null);
@@ -147,32 +127,42 @@ const WebinarDetail: React.FC = () => {
     };
     
     loadWebinar();
-    
-    // Mise à jour du statut "en direct" toutes les minutes
-    const intervalId = setInterval(() => {
-      if (webinar) {
-        const now = new Date();
-        const webinarDate = webinar.date;
+  }, [id, currentUser, checkIfRegistered, checkIfFavorite]);
+
+  // Gérer le statut "en direct"
+  useEffect(() => {
+    if (!webinar) return;
+
+    const updateLiveStatus = () => {
+      const now = new Date();
+      const webinarDate = webinar.date;
+      
+      // Obtenir la durée en minutes
+      const webinarDurationMinutes = typeof webinar.duration === 'string' 
+        ? parseInt(webinar.duration) || 60 
+        : webinar.duration || 60;
+      
+      const webinarEndTime = new Date(webinarDate);
+      webinarEndTime.setMinutes(webinarEndTime.getMinutes() + webinarDurationMinutes);
+      
+      const isSameDay = 
+        now.getFullYear() === webinarDate.getFullYear() &&
+        now.getMonth() === webinarDate.getMonth() &&
+        now.getDate() === webinarDate.getDate();
         
-        const isSameDay = 
-          now.getFullYear() === webinarDate.getFullYear() &&
-          now.getMonth() === webinarDate.getMonth() &&
-          now.getDate() === webinarDate.getDate();
-          
-        const webinarEndTime = new Date(webinarDate);
-        const webinarDurationMinutes = typeof webinar.duration === 'string' 
-          ? parseInt(webinar.duration) || 60 
-          : webinar.duration || 60;
-        webinarEndTime.setMinutes(webinarEndTime.getMinutes() + webinarDurationMinutes);
-        
-        const isTimeInRange = now >= webinarDate && now <= webinarEndTime;
-        
-        setIsLiveNow(isSameDay && isTimeInRange);
-      }
-    }, 60000); // Vérifier toutes les minutes
+      const isTimeInRange = now >= webinarDate && now <= webinarEndTime;
+      
+      setIsLiveNow(isSameDay && isTimeInRange);
+    };
+
+    // Mettre à jour immédiatement
+    updateLiveStatus();
+
+    // Puis toutes les minutes
+    const intervalId = setInterval(updateLiveStatus, 60000);
     
     return () => clearInterval(intervalId);
-  }, [id, currentUser, webinar, checkIfFavorite, checkIfRegistered]);
+  }, [webinar]);
 
   const handleRegisterClick = () => {
     if (!currentUser) {
