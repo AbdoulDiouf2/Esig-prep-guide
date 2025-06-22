@@ -19,6 +19,7 @@ import WebinarRegistrationForm from '../components/webinars/WebinarRegistrationF
 import { Webinar } from '../components/webinars/WebinarCard';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { WebinarService } from '../services/WebinarService';
 
 const WebinarDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -133,7 +134,7 @@ const WebinarDetail: React.FC = () => {
   useEffect(() => {
     if (!webinar) return;
 
-    const updateLiveStatus = () => {
+    const updateLiveStatus = async () => {
       const now = new Date();
       const webinarDate = webinar.date;
       
@@ -152,7 +153,22 @@ const WebinarDetail: React.FC = () => {
         
       const isTimeInRange = now >= webinarDate && now <= webinarEndTime;
       
-      setIsLiveNow(isSameDay && isTimeInRange);
+      // Mettre à jour l'état local
+      const newIsLiveNow = isSameDay && isTimeInRange;
+      setIsLiveNow(newIsLiveNow);
+      
+      // Mettre à jour Firestore si nécessaire
+      if (newIsLiveNow !== webinar.isLive) {
+        try {
+          await WebinarService.updateWebinarStatus(webinar.id, {
+            isLive: newIsLiveNow,
+            isUpcoming: !newIsLiveNow,
+            isCompleted: now > webinarEndTime
+          });
+        } catch (error) {
+          console.error('Erreur lors de la mise à jour du statut du webinaire:', error);
+        }
+      }
     };
 
     // Mettre à jour immédiatement
