@@ -272,6 +272,31 @@ export const updateThreadRepliesCount = async (threadId: string): Promise<number
   }
 };
 
+// Obtenir le nombre de discussions par catégorie
+export const getThreadsCountByCategory = async (): Promise<Record<string, number>> => {
+  try {
+    // Récupérer tous les threads
+    const threadsSnapshot = await getDocs(collection(db, THREADS_COLLECTION));
+    
+    // Compter les threads par catégorie
+    const counts: Record<string, number> = {};
+    
+    threadsSnapshot.forEach((doc) => {
+      const thread = doc.data() as ForumThread;
+      const categoryId = thread.categoryId;
+      
+      if (categoryId) {
+        counts[categoryId] = (counts[categoryId] || 0) + 1;
+      }
+    });
+    
+    return counts;
+  } catch (error) {
+    console.error('Erreur lors du comptage des discussions par catégorie:', error);
+    return {};
+  }
+};
+
 // Initialisation des catégories par défaut (à utiliser lors de la première configuration)
 export const initializeDefaultCategories = async (): Promise<void> => {
   const defaultCategories: Omit<ForumCategory, 'id'>[] = [

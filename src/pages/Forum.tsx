@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getForumCategories, getForumThreads, initializeDefaultCategories } from '../services/forumService';
+import { getForumCategories, getForumThreads, initializeDefaultCategories, getThreadsCountByCategory } from '../services/forumService';
 import { ForumCategory, ForumThread } from '../types/forum';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageSquare, Plus, ChevronRight } from 'lucide-react';
+import { MessageSquare, Plus, ChevronRight, ArrowLeft } from 'lucide-react';
 
 const Forum: React.FC = () => {
   const { currentUser } = useAuth();
@@ -15,6 +15,7 @@ const Forum: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<ForumCategory | null>(null);
+  const [threadsCount, setThreadsCount] = useState<Record<string, number>>({});
   
   // Charger les catégories au chargement de la page
   useEffect(() => {
@@ -27,6 +28,10 @@ const Forum: React.FC = () => {
         // Charger les catégories
         const categoriesData = await getForumCategories();
         setCategories(categoriesData);
+        
+        // Charger le nombre de discussions par catégorie
+        const counts = await getThreadsCountByCategory();
+        setThreadsCount(counts);
         
         // Si un categoryId est spécifié dans l'URL, le définir comme actif
         if (categoryId) {
@@ -114,6 +119,15 @@ const Forum: React.FC = () => {
   
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Bouton de retour */}
+      <button 
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5 mr-2" />
+        <span>Retour</span>
+      </button>
+      
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-lg mb-8 shadow-md overflow-hidden">
         <div className="px-6 py-12">
@@ -150,7 +164,12 @@ const Forum: React.FC = () => {
                     >
                       <div className="flex justify-between items-center">
                         <span>{category.name}</span>
-                        <ChevronRight className="w-4 h-4" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">
+                            {threadsCount[category.id] || 0}
+                          </span>
+                          <ChevronRight className="w-4 h-4" />
+                        </div>
                       </div>
                     </button>
                   </li>

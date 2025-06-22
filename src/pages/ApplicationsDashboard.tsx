@@ -110,6 +110,15 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Découvrez et inscrivez-vous aux webinaires à venir",
           link: "/webinars",
           roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Plane className="w-8 h-8 text-indigo-500" />,
+          title: "Réservation de billets d'avion",
+          description: "Trouvez et réservez vos billets d'avion au meilleur prix",
+          link: "https://touba-aviation-group.com/#/demande-vol",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
         }
       ]
     },

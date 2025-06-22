@@ -51,7 +51,7 @@ interface UserDoc {
   emailVerified: boolean;
   photoURL?: string;
   status?: string;        // Statut de l'utilisateur (actif, suspendu, etc.)
-  createdAt?: string | FirestoreTimestamp | number;  // Date de création du profil (plusieurs formats possibles)
+  createdAt?: string | FirestoreTimestamp | number | Date;  // Date de création du profil (plusieurs formats possibles)
 }
 
 const AdminUserManager: React.FC = () => {
@@ -259,6 +259,81 @@ const AdminUserManager: React.FC = () => {
     }
   };
 
+  // Fonction pour exporter les utilisateurs CPS au format CSV
+  const exportCpsUsersToCsv = () => {
+    // Filtrer les utilisateurs avec le statut 'cps'
+    const cpsUsers = users.filter(user => user.status === 'cps');
+    
+    if (cpsUsers.length === 0) {
+      alert("Aucun utilisateur avec le statut CPS trouvé à exporter.");
+      return;
+    }
+
+    // En-têtes CSV
+    const headers = [
+      'ID',
+      'Email',
+      'Nom d\'affichage',
+      'Administrateur',
+      'Éditeur',
+      'Email vérifié',
+      'Date de création'
+    ];
+
+    // Données des utilisateurs
+    const csvContent = [
+      headers.join(','), // En-têtes en première ligne
+      ...cpsUsers.map(user => {
+        let createdAt = 'Inconnue';
+        
+        // Vérifier le type de createdAt
+        if (user.createdAt) {
+          if (typeof user.createdAt === 'object' && user.createdAt !== null) {
+            // Si c'est un timestamp Firestore avec toDate()
+            if ('toDate' in user.createdAt && typeof user.createdAt.toDate === 'function') {
+              createdAt = user.createdAt.toDate().toISOString();
+            } 
+            // Si c'est un objet avec seconds (timestamp Firestore brut)
+            else if ('seconds' in user.createdAt && typeof user.createdAt.seconds === 'number') {
+              const timestamp = user.createdAt as FirestoreTimestamp;
+              createdAt = new Date(timestamp.seconds * 1000).toISOString();
+            }
+          } 
+          // Si c'est une chaîne ou un nombre
+          else if (typeof user.createdAt === 'string' || typeof user.createdAt === 'number') {
+            createdAt = new Date(user.createdAt).toISOString();
+          }
+        }
+        
+        return [
+          `"${user.uid}"`,
+          `"${user.email}"`,
+          `"${user.displayName || ''}"`,
+          `"${user.isAdmin ? 'Oui' : 'Non'}"`,
+          `"${user.isEditor ? 'Oui' : 'Non'}"`,
+          `"${user.emailVerified ? 'Oui' : 'Non'}"`,
+          `"${createdAt}"`
+        ].join(',');
+      })
+    ].join('\n');
+
+    // Créer un objet Blob avec le contenu CSV
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Créer un lien de téléchargement
+    const link = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `utilisateurs_cps_${date}.csv`);
+    link.style.visibility = 'hidden';
+    
+    // Ajouter le lien au DOM, cliquer dessus, puis le supprimer
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
@@ -356,6 +431,15 @@ const AdminUserManager: React.FC = () => {
               <option value="autres">Autres</option>
             </select>
           </div>
+          <button
+            onClick={exportCpsUsersToCsv}
+            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 whitespace-nowrap"
+          >
+            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exporter CPS
+          </button>
         </div>
 
         {/* Utilisateurs Auth sans profil Firestore */}
@@ -425,8 +509,14 @@ const AdminUserManager: React.FC = () => {
                       if (!user.createdAt) return 0; // Si pas de date, mettre en dernier
                       
                       // Si c'est un timestamp Firestore
-                      if (typeof user.createdAt === 'object' && 'seconds' in user.createdAt) {
-                        return (user.createdAt as FirestoreTimestamp).seconds * 1000;
+                      if (user.createdAt && 
+                          typeof user.createdAt === 'object' && 
+                          'toDate' in user.createdAt && 
+                          typeof user.createdAt.toDate === 'function') {
+                        // Conversion du timestamp Firestore en date
+                        const date = user.createdAt.toDate();
+                        
+                        return date.getTime();
                       }
                       
                       // Si c'est un nombre (timestamp)
@@ -540,6 +630,25 @@ const AdminUserManager: React.FC = () => {
                             // Pour les objets Firestore Timestamp
                             if (user.createdAt && 
                                 typeof user.createdAt === 'object' && 
+                                'toDate' in user.createdAt && 
+                                typeof user.createdAt.toDate === 'function') {
+                              // Conversion du timestamp Firestore en date
+                              const date = user.createdAt.toDate();
+                              
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les objets avec seconds (timestamp Firestore brut)
+                            if (user.createdAt && 
+                                typeof user.createdAt === 'object' && 
                                 'seconds' in user.createdAt && 
                                 'nanoseconds' in user.createdAt) {
                               // Conversion du timestamp Firestore en date
@@ -594,6 +703,20 @@ const AdminUserManager: React.FC = () => {
                             // Pour les timestamps numériques
                             if (typeof user.createdAt === 'number') {
                               const date = new Date(user.createdAt);
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les dates
+                            if (user.createdAt instanceof Date) {
+                              const date = user.createdAt;
                               return (
                                 <>
                                   {date.toLocaleDateString('fr-FR')}
