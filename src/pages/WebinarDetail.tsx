@@ -13,7 +13,6 @@ import {
   ExternalLink,
   XCircle,
   UserCheck,
-  User
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import WebinarRegistrationForm from '../components/webinars/WebinarRegistrationForm';
@@ -374,35 +373,38 @@ const WebinarDetail: React.FC = () => {
             {/* Détails & actions */}
             <div className="px-4 py-6 sm:px-8">
               {/* Intervenant(s) */}
-              <div className="flex items-start space-x-3">
-                <UserCheck className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Intervenant(s)</h3>
-                  <div className="mt-1 space-y-2">
-                    {webinar.speakers.map((speaker, index) => (
-                      <div key={index} className="flex items-start">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Intervenant(s)</h3>
+                <div className="space-y-4">
+                  {webinar.speakers.map((speaker, index) => (
+                    <div key={index} className="flex items-start group">
+                      <div className="relative">
                         {speaker.avatar ? (
                           <img 
                             src={speaker.avatar} 
                             alt={speaker.name} 
-                            className="h-10 w-10 rounded-full mr-3 object-cover"
+                            className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm"
                             onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/100?text=Avatar';
+                              e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(speaker.name) + '&background=random&size=128';
                             }}
                           />
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-3">
-                            <User className="h-5 w-5" />
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-indigo-500 text-lg font-medium shadow-sm">
+                            {speaker.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                           </div>
                         )}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{speaker.name}</p>
-                          <p className="text-sm text-gray-500">{speaker.title}</p>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="ml-4">
+                        <h4 className="text-base font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {speaker.name}
+                        </h4>
+                        <p className="text-sm text-gray-500">{speaker.title}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                
+                
               </div>
 
               {/* Tags */}

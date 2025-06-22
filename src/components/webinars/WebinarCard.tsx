@@ -6,7 +6,6 @@ import {
   Clock, 
   Users,  
   ArrowRight,
-  User,
   CheckCircle,
   XCircle,
   Clock as ClockIcon,
@@ -186,100 +185,126 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar }) => {
             </div>
             
             <div className="flex items-start text-sm text-gray-500">
-              <User className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
-              <div>
-                {webinar.speakers.map((speaker, index) => (
-                  <React.Fragment key={index}>
-                    <p className="font-medium text-gray-900">{speaker.name}</p>
-                    <p className="text-gray-500">{speaker.title}</p>
-                  </React.Fragment>
+              <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
+              <div className="space-y-2">
+                {webinar.speakers.slice(0, 2).map((speaker, index) => (
+                  <div key={index} className="flex items-center group">
+                    <div className="relative">
+                      {speaker.avatar ? (
+                        <img 
+                          src={speaker.avatar} 
+                          alt={speaker.name}
+                          className="h-6 w-6 rounded-full object-cover mr-2 border-2 border-white shadow-sm"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(speaker.name) + '&background=random';
+                          }}
+                        />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-medium mr-2">
+                          {speaker.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {speaker.name}
+                      </span>
+                      <span className="text-gray-400 mx-1">•</span>
+                      <span className="text-gray-500 text-xs">{speaker.title}</span>
+                    </div>
+                  </div>
+                ))}
+                {webinar.speakers.length > 2 && (
+                  <div className="text-xs text-gray-400 pl-8">
+                    +{webinar.speakers.length - 2} intervenant(s) supplémentaire(s)
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {webinar.tags.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {webinar.tags.map((tag, index) => (
+                  <span 
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                  >
+                    {tag}
+                  </span>
                 ))}
               </div>
-            </div>
+            )}
           </div>
           
-          {webinar.tags.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {webinar.tags.map((tag, index) => (
-                <span 
-                  key={index}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                >
-                  {tag}
+          <div className="mt-6">
+            {webinar.isCompleted ? (
+              <div className="text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100">
+                <div className="flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  Session terminée
+                </div>
+                {webinar.meetingLink && (
+                  <a 
+                    href={webinar.meetingLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Voir l'enregistrement <ArrowRight className="ml-1 h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            ) : isFull ? (
+              <div className="text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100">
+                <div className="flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                  Complet
+                </div>
+              </div>
+            ) : webinar.isLive ? (
+              <a
+                href={webinar.meetingLink || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <span className="flex h-2 w-2 mr-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                 </span>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-6">
-          {webinar.isCompleted ? (
-            <div className="text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100">
-              <div className="flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                Session terminée
+                Rejoindre maintenant
+              </a>
+            ) : (
+              <Link
+                to={`/webinars/${webinar.id}`}
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                S'inscrire maintenant
+              </Link>
+            )}
+            
+            {!webinar.isCompleted && !isFull && webinar.isUpcoming && !webinar.isLive && (
+              <div className="mt-2 text-center text-xs text-gray-500">
+                <ClockIcon className="inline-block h-3 w-3 mr-1" />
+                {(() => {
+                  const today = new Date();
+                  const webinarDate = new Date(webinar.date);
+                  const diffTime = webinarDate.getTime() - today.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  
+                  if (diffDays <= 0) {
+                    return "Inscriptions closes";
+                  } else if (diffDays === 1) {
+                    return "Clôture des inscriptions aujourd'hui";
+                  } else if (diffDays === 2) {
+                    return "Clôture des inscriptions demain";
+                  } else {
+                    return `Clôture des inscriptions dans ${diffDays} jours`;
+                  }
+                })()}
               </div>
-              {webinar.meetingLink && (
-                <a 
-                  href={webinar.meetingLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  Voir l'enregistrement <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              )}
-            </div>
-          ) : isFull ? (
-            <div className="text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100">
-              <div className="flex items-center justify-center">
-                <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                Complet
-              </div>
-            </div>
-          ) : webinar.isLive ? (
-            <a
-              href={webinar.meetingLink || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              <span className="flex h-2 w-2 mr-2">
-                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-white opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-              </span>
-              Rejoindre maintenant
-            </a>
-          ) : (
-            <Link
-              to={`/webinars/${webinar.id}`}
-              className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              S'inscrire maintenant
-            </Link>
-          )}
-          
-          {!webinar.isCompleted && !isFull && webinar.isUpcoming && !webinar.isLive && (
-            <div className="mt-2 text-center text-xs text-gray-500">
-              <ClockIcon className="inline-block h-3 w-3 mr-1" />
-              {(() => {
-                const today = new Date();
-                const webinarDate = new Date(webinar.date);
-                const diffTime = webinarDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (diffDays <= 0) {
-                  return "Inscriptions closes";
-                } else if (diffDays === 1) {
-                  return "Clôture des inscriptions aujourd'hui";
-                } else if (diffDays === 2) {
-                  return "Clôture des inscriptions demain";
-                } else {
-                  return `Clôture des inscriptions dans ${diffDays} jours`;
-                }
-              })()}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
