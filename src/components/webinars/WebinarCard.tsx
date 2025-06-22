@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 
+export interface Speaker {
+  name: string;
+  title: string;
+  avatar?: string;
+}
+
 export interface Webinar {
   id: string;
   title: string;
@@ -29,11 +35,7 @@ export interface Webinar {
   category: string;
   level: 'beginner' | 'intermediate' | 'advanced';
   imageUrl?: string;
-  speaker: {
-    name: string;
-    title: string;
-    avatar?: string;
-  };
+  speakers: Speaker[];
   meetingLink?: string;
   isLive: boolean;
   isUpcoming: boolean;
@@ -186,8 +188,12 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar }) => {
             <div className="flex items-start text-sm text-gray-500">
               <User className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">{webinar.speaker.name}</p>
-                <p className="text-gray-500">{webinar.speaker.title}</p>
+                {webinar.speakers.map((speaker, index) => (
+                  <React.Fragment key={index}>
+                    <p className="font-medium text-gray-900">{speaker.name}</p>
+                    <p className="text-gray-500">{speaker.title}</p>
+                  </React.Fragment>
+                ))}
               </div>
             </div>
           </div>

@@ -12,7 +12,8 @@ import {
   Bookmark,
   ExternalLink,
   XCircle,
-  UserCheck
+  UserCheck,
+  User
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import WebinarRegistrationForm from '../components/webinars/WebinarRegistrationForm';
@@ -90,7 +91,7 @@ const WebinarDetail: React.FC = () => {
             category: data.category,
             level: data.level,
             imageUrl: data.imageUrl,
-            speaker: data.speaker,
+            speakers: data.speakers,
             meetingLink: data.meetingLink,
             isLive: data.isLive,
             isUpcoming: data.isUpcoming,
@@ -372,16 +373,35 @@ const WebinarDetail: React.FC = () => {
 
             {/* Détails & actions */}
             <div className="px-4 py-6 sm:px-8">
-              {/* Intervenant */}
-              <div className="flex items-center mb-4">
-                <img
-                  src={webinar.speaker.avatar}
-                  alt={webinar.speaker.name}
-                  className="h-12 w-12 rounded-full object-cover mr-4 border"
-                />
+              {/* Intervenant(s) */}
+              <div className="flex items-start space-x-3">
+                <UserCheck className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <div className="font-semibold text-gray-900">{webinar.speaker.name}</div>
-                  <div className="text-sm text-gray-500">{webinar.speaker.title}</div>
+                  <h3 className="text-sm font-medium text-gray-500">Intervenant(s)</h3>
+                  <div className="mt-1 space-y-2">
+                    {webinar.speakers.map((speaker, index) => (
+                      <div key={index} className="flex items-start">
+                        {speaker.avatar ? (
+                          <img 
+                            src={speaker.avatar} 
+                            alt={speaker.name} 
+                            className="h-10 w-10 rounded-full mr-3 object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://via.placeholder.com/100?text=Avatar';
+                            }}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-3">
+                            <User className="h-5 w-5" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{speaker.name}</p>
+                          <p className="text-sm text-gray-500">{speaker.title}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

@@ -158,6 +158,13 @@ export const NotificationService = {
       console.log(`Préparation d'un email pour ${userEmails.length + 1} destinataires (1 principal + ${userEmails.length} en Cci)`);
       console.log('Liste des emails qui seraient en Cci:', userEmails);
       
+      // Formater la liste des intervenants
+      const speakersList = webinar.speakers && webinar.speakers.length > 0 
+        ? webinar.speakers.map(speaker => 
+            `• ${speaker.name}${speaker.title ? `, ${speaker.title}` : ''}`
+          ).join('\n')
+        : 'Aucun intervenant spécifié';
+      
       // 3. Préparer le contenu de l'email pour notification webinaire
       const emailData: EmailData = {
         to_email: mainEmail,
@@ -176,7 +183,10 @@ export const NotificationService = {
 
           📅 Date: ${dateFormatted} à ${timeFormatted}
           ⏱ Durée: ${webinar.duration} minutes
-          👨‍🏫 Présentateur: ${webinar.speaker.name}, ${webinar.speaker.title}
+          
+          👥 Intervenant(s):
+          ${speakersList}
+          
           📊 Niveau: ${webinar.level}
 
           -----------------------------------------------

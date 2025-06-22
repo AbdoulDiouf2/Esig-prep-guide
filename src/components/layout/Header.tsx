@@ -66,7 +66,7 @@ const Header: React.FC = () => {
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Home className="w-4 h-4 mr-1" />
-                  <span className="md:hidden lg:inline">Tableau de bord</span>
+                  <span className="md:hidden lg:inline">Accueil</span>
                   <span className="md:inline lg:hidden">Accueil</span>
                 </Link>
                 <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
@@ -104,7 +104,7 @@ const Header: React.FC = () => {
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}>
                     <Bot className="w-4 h-4 mr-1" />
-                    <span>Assistant IA</span>
+                    <span>IA</span>
                   </Link>
                 </SuperAdminCheck>
                 

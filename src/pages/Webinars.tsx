@@ -15,6 +15,12 @@ import WebinarCard from '../components/webinars/WebinarCard';
 import { db } from '../firebase';
 import { collection, query, getDocs, Timestamp, orderBy, where } from 'firebase/firestore';
 
+export interface Speaker {
+  name: string;
+  title: string;
+  avatar?: string;
+}
+
 export interface Webinar {
   id: string;
   title: string;
@@ -27,11 +33,7 @@ export interface Webinar {
   customCategory?: string; // Catégorie personnalisée pour l'option "autre"
   level: 'beginner' | 'intermediate' | 'advanced';
   imageUrl?: string;
-  speaker: {
-    name: string;
-    title: string;
-    avatar?: string;
-  };
+  speakers: Speaker[];
   meetingLink?: string;
   isLive: boolean;
   isUpcoming: boolean;
@@ -158,7 +160,7 @@ const Webinars: React.FC = () => {
           customCategory: data.customCategory,
           level: data.level,
           imageUrl: data.imageUrl,
-          speaker: data.speaker,
+          speakers: data.speakers || [],
           meetingLink: data.meetingLink,
           isLive: data.isLive,
           isUpcoming: data.isUpcoming,

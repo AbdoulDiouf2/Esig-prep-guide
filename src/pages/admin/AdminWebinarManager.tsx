@@ -36,11 +36,11 @@ interface Webinar {
   customCategory?: string; // Catégorie personnalisée pour l'option "autre"
   level: 'beginner' | 'intermediate' | 'advanced';
   imageUrl?: string;
-  speaker: {
+  speakers: Array<{
     name: string;
     title: string;
     avatar?: string;
-  };
+  }>;
   meetingLink?: string;
   isLive: boolean;
   isUpcoming: boolean;
@@ -120,7 +120,7 @@ const AdminWebinarManager: React.FC = () => {
           customCategory: data.customCategory,
           level: data.level,
           imageUrl: data.imageUrl,
-          speaker: data.speaker,
+          speakers: data.speakers || [],
           meetingLink: data.meetingLink,
           isLive: data.isLive,
           isUpcoming: data.isUpcoming,
@@ -170,11 +170,11 @@ const AdminWebinarManager: React.FC = () => {
       currentParticipants: 0,
       category: '',
       level: 'beginner',
-      speaker: {
+      speakers: [{
         name: '',
         title: '',
         avatar: ''
-      },
+      }],
       meetingLink: '',
       isLive: false,
       isUpcoming: true,
@@ -201,11 +201,7 @@ const AdminWebinarManager: React.FC = () => {
         customCategory: selectedWebinar.customCategory,
         level: selectedWebinar.level,
         imageUrl: selectedWebinar.imageUrl,
-        speaker: {
-          name: selectedWebinar.speaker.name,
-          title: selectedWebinar.speaker.title,
-          avatar: selectedWebinar.speaker.avatar || ''
-        },
+        speakers: selectedWebinar.speakers || [],
         meetingLink: selectedWebinar.meetingLink || '',
         isLive: selectedWebinar.isLive,
         isUpcoming: selectedWebinar.isUpcoming,
@@ -228,12 +224,7 @@ const AdminWebinarManager: React.FC = () => {
       customCategory: webinar.customCategory,
       level: webinar.level,
       imageUrl: webinar.imageUrl,
-      speaker: {
-        // S'assurer que speaker existe et a les propriétés requises
-        name: webinar.speaker.name,
-        title: webinar.speaker.title,
-        avatar: webinar.speaker.avatar
-      },
+      speakers: webinar.speakers || [],
       meetingLink: webinar.meetingLink,
       isLive: webinar.isLive,
       isUpcoming: webinar.isUpcoming,
@@ -385,7 +376,7 @@ const AdminWebinarManager: React.FC = () => {
             title: newWebinar.title,
             action: 'Création du webinaire',
             date: newWebinar.date,
-            speaker: newWebinar.speaker?.name
+            speaker: newWebinar.speakers?.[0]?.name
           }
         });
         
@@ -428,11 +419,7 @@ const AdminWebinarManager: React.FC = () => {
     currentParticipants: 0,
     category: '',
     level: 'beginner',
-    speaker: {
-      name: '',
-      title: '',
-      avatar: ''
-    },
+    speakers: [],
     meetingLink: '',
     isLive: false,
     isUpcoming: true,
@@ -459,27 +446,34 @@ const AdminWebinarManager: React.FC = () => {
     });
   };
 
-  const handleSpeakerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSpeakerChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const fieldName = e.target.name;
     const fieldValue = e.target.value;
     
-    // Faire correspondre les noms des champs du formulaire aux propriétés de l'objet speaker
-    let speakerProperty = '';
-    if (fieldName === 'speakerName') speakerProperty = 'name';
-    else if (fieldName === 'speakerTitle') speakerProperty = 'title';
-    else if (fieldName === 'speakerAvatar') speakerProperty = 'avatar';
-    
-    setFormData({
-      ...formData,
-      speaker: {
-        // S'assurer que speaker existe et a les propriétés requises
-        name: formData.speaker?.name || '',
-        title: formData.speaker?.title || '',
-        avatar: formData.speaker?.avatar,
-        // Mettre à jour le champ spécifique
-        [speakerProperty]: fieldValue
-      }
-    });
+    setFormData(prev => ({
+      ...prev,
+      speakers: prev.speakers?.map((speaker, i) => 
+        i === index 
+          ? { ...speaker, [fieldName.replace('speaker', '').toLowerCase()]: fieldValue }
+          : speaker
+      ) || []
+    }));
+  };
+
+  const addSpeaker = () => {
+    setFormData(prev => ({
+      ...prev,
+      speakers: [...(prev.speakers || []), { name: '', title: '', avatar: '' }]
+    }));
+  };
+
+  const removeSpeaker = (index: number) => {
+    if (formData.speakers && formData.speakers.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        speakers: prev.speakers?.filter((_, i) => i !== index) || []
+      }));
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -870,11 +864,6 @@ const AdminWebinarManager: React.FC = () => {
                     ? 'Modifiez les informations du webinaire existant.' 
                     : 'Veuillez remplir tous les champs obligatoires pour créer un nouveau webinaire.'}
                 </p>
-                <div className="bg-blue-50 text-blue-800 p-3 rounded-md">
-                  <p className="text-sm font-medium">
-                    Note: Cette interface est un prototype. La fonctionnalité de sauvegarde dans Firestore sera implémentée ultérieurement.
-                  </p>
-                </div>
               </div>
               
               <form className="space-y-6" onSubmit={(e) => {
@@ -1080,63 +1069,87 @@ const AdminWebinarManager: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Intervenant - Nom */}
-                  <div>
-                    <label htmlFor="speakerName" className="block text-sm font-medium text-gray-700">
-                      Nom de l'intervenant <span className="text-red-500">*</span>
+                  {/* Intervenants */}
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Intervenants <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      id="speakerName"
-                      name="speakerName"
-                      value={formData.speaker?.name || ''}
-                      onChange={handleSpeakerChange}
-                      required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* Intervenant - Titre */}
-                  <div>
-                    <label htmlFor="speakerTitle" className="block text-sm font-medium text-gray-700">
-                      Titre de l'intervenant <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="speakerTitle"
-                      name="speakerTitle"
-                      value={formData.speaker?.title || ''}
-                      onChange={handleSpeakerChange}
-                      required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* Intervenant - Avatar */}
-                  <div>
-                    <label htmlFor="speakerAvatar" className="block text-sm font-medium text-gray-700">
-                      Avatar de l'intervenant (URL)
-                    </label>
-                    <input
-                      type="text"
-                      id="speakerAvatar"
-                      name="speakerAvatar"
-                      value={formData.speaker?.avatar || ''}
-                      onChange={handleSpeakerChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    {formData.speaker?.avatar && (
-                      <div className="mt-2">
-                        <img 
-                          src={formData.speaker.avatar} 
-                          alt="Avatar" 
-                          className="h-10 w-10 rounded-full object-cover" 
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://via.placeholder.com/100?text=Avatar';
-                          }}
+                    {(formData.speakers || []).map((speaker, index) => (                      <div key={index} className="mb-4">
+                        <div className="flex items-center mb-2">
+                          <label 
+                            htmlFor={`speakerName-${index}`} 
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Nom de l'intervenant {index + 1}
+                          </label>
+                          <button 
+                            type="button" 
+                            onClick={() => removeSpeaker(index)} 
+                            className="ml-2 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          id={`speakerName-${index}`}
+                          name="speakerName"
+                          value={speaker.name}
+                          onChange={(e) => handleSpeakerChange(e, index)}
+                          required
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
+                        <label 
+                          htmlFor={`speakerTitle-${index}`} 
+                          className="block text-sm font-medium text-gray-700 mt-2"
+                        >
+                          Titre de l'intervenant {index + 1}
+                        </label>
+                        <input
+                          type="text"
+                          id={`speakerTitle-${index}`}
+                          name="speakerTitle"
+                          value={speaker.title}
+                          onChange={(e) => handleSpeakerChange(e, index)}
+                          required
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <label 
+                          htmlFor={`speakerAvatar-${index}`} 
+                          className="block text-sm font-medium text-gray-700 mt-2"
+                        >
+                          Avatar de l'intervenant {index + 1} (URL)
+                        </label>
+                        <input
+                          type="text"
+                          id={`speakerAvatar-${index}`}
+                          name="speakerAvatar"
+                          value={speaker.avatar || ''}
+                          onChange={(e) => handleSpeakerChange(e, index)}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        {speaker.avatar && (
+                          <div className="mt-2">
+                            <img 
+                              src={speaker.avatar} 
+                              alt="Avatar" 
+                              className="h-10 w-10 rounded-full object-cover" 
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://via.placeholder.com/100?text=Avatar';
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
+                    <button 
+                      type="button" 
+                      onClick={addSpeaker} 
+                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ajouter un intervenant
+                    </button>
                   </div>
 
                   {/* Lien de la réunion */}
