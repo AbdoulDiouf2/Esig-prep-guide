@@ -179,9 +179,14 @@ export const NotificationService = {
 
           🏛️ ${webinar.title}
 
-          📝 Description: ${webinar.description.substring(0, 150)}${webinar.description.length > 150 ? '...' : ''}
+          -----------------------------------------------
 
-          📅 Date: ${dateFormatted} à ${timeFormatted}
+          📝 Description: 
+          ${webinar.description}
+
+          -----------------------------------------------
+
+          📅 Date: ${dateFormatted} à ${timeFormatted} heure de France
           ⏱ Durée: ${webinar.duration} minutes
           
           👥 Intervenant(s):
@@ -196,8 +201,8 @@ export const NotificationService = {
           Ceci est une notification automatique, merci de ne pas y répondre directement.
         `,
         app_name: 'ESIG-prep-guide',
-        faq_url: `${window.location.origin}/Esig-prep-guide/webinars`
-        // bcc_list: userEmails.join(',') // Cci pour l'envoi réel
+        faq_url: `${window.location.origin}/Esig-prep-guide/webinars`,
+        bcc_list: userEmails.join(',') // Cci pour l'envoi réel
       };
       
       // 4. Envoi de l'email unique avec Cci
