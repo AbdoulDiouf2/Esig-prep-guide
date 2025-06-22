@@ -184,43 +184,60 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar }) => {
               </span>
             </div>
             
-            <div className="flex items-start text-sm text-gray-500">
-              <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
-              <div className="space-y-2">
-                {webinar.speakers.slice(0, 2).map((speaker, index) => (
-                  <div key={index} className="flex items-center group">
-                    <div className="relative">
-                      {speaker.avatar ? (
-                        <img 
-                          src={speaker.avatar} 
-                          alt={speaker.name}
-                          className="h-6 w-6 rounded-full object-cover mr-2 border-2 border-white shadow-sm"
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(speaker.name) + '&background=random';
-                          }}
-                        />
-                      ) : (
-                        <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-medium mr-2">
-                          {speaker.name.charAt(0).toUpperCase()}
+            {webinar.speakers.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  Intervenant{webinar.speakers.length > 1 ? 's' : ''}
+                </h4>
+                <div className="space-y-3">
+                  {webinar.speakers.slice(0, 3).map((speaker, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-start group transition-all duration-200 hover:bg-gray-50 -mx-2 p-2 rounded-lg"
+                    >
+                      <div className="relative flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-indigo-500 font-medium text-lg overflow-hidden">
+                          {speaker.avatar ? (
+                            <img 
+                              src={speaker.avatar} 
+                              alt={speaker.name}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(speaker.name)}&background=4f46e5&color=fff&size=80`;
+                              }}
+                            />
+                          ) : (
+                            <span>
+                              {(() => {
+                                const names = speaker.name.split(' ');
+                                if (names.length >= 2) {
+                                  return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+                                }
+                                return names[0][0].toUpperCase();
+                              })()}
+                            </span>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                          {speaker.name}
+                        </p>
+                        <p className="text-xs text-gray-500 line-clamp-2">
+                          {speaker.title}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {speaker.name}
-                      </span>
-                      <span className="text-gray-400 mx-1">•</span>
-                      <span className="text-gray-500 text-xs">{speaker.title}</span>
+                  ))}
+                  {webinar.speakers.length > 3 && (
+                    <div className="text-xs text-indigo-600 font-medium text-center pt-1">
+                      +{webinar.speakers.length - 3} autres intervenants
                     </div>
-                  </div>
-                ))}
-                {webinar.speakers.length > 2 && (
-                  <div className="text-xs text-gray-400 pl-8">
-                    +{webinar.speakers.length - 2} intervenant(s) supplémentaire(s)
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
             {webinar.tags.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">

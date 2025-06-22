@@ -483,7 +483,7 @@ const Webinars: React.FC = () => {
                 Rejoignez notre équipe d'intervenants et partagez votre expertise avec notre communauté étudiante.
               </p>
               <Link
-                to="/proposer-un-atelier"
+                to="/proposer-atelier"
                 className="mt-8 bg-white border border-transparent rounded-md shadow px-5 py-3 inline-flex items-center text-base font-medium text-blue-600 hover:bg-blue-50"
               >
                 Proposer un atelier <ArrowRight className="ml-3 -mr-1 h-5 w-5" />
