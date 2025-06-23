@@ -47,6 +47,9 @@ firestore.indexes.json
 firestore.rules
 storage.rules
 
+# Fichier de configuration généré pour le service worker
+public/firebase-messaging-sw-config.js
+
 # Debug logs
 firebase-debug.log
 firebase-debug.*.log

@@ -12,23 +12,16 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Importer la configuration générée
+importScripts('/firebase-messaging-sw-config.js');
+
 // Importer Firebase
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Configuration Firebase - À remplacer par vos propres valeurs
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-
-// Initialiser Firebase
+// Initialiser Firebase avec la configuration générée
 console.log('Service Worker: Initialisation de Firebase');
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(self.firebaseConfig);
 const messaging = firebase.messaging();
 
 // Gérer les messages en arrière-plan
