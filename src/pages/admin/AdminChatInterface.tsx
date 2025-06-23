@@ -3,10 +3,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import adminChatService, { ChatConversation } from '../../services/adminChatService';
 import chatService, { ChatMessage as ChatMessageType } from '../../services/chatService';
 import ChatMessage from '../../components/chat/ChatMessage';
-import { Send, User, MessageSquare, Trash2, Plus } from 'lucide-react';
+import { Send, User, MessageSquare, Trash2, Plus, Bell, BellOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { addDoc, collection, serverTimestamp, getDocs, query } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { pushNotificationService } from '../../services/pushNotificationService';
+
+
 
 const scrollbarStyles = `
   /* Style pour la barre de défilement WebKit (Chrome, Safari, etc.) */
@@ -138,6 +141,46 @@ interface UserData {
 
 const AdminChatInterface: React.FC = () => {
   const { currentUser } = useAuth();
+  const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
+
+  // Fonction pour activer/désactiver les notifications
+  const toggleNotifications = async () => {
+    try {
+      if (isNotificationEnabled) {
+        await pushNotificationService.deleteToken();
+        setIsNotificationEnabled(false);
+        console.log('Notifications désactivées');
+      } else {
+        const token = await pushNotificationService.requestNotificationPermission();
+        setIsNotificationEnabled(!!token);
+        if (token) {
+          console.log('Notifications activées avec le token:', token);
+        } else {
+          console.warn('Impossible d\'activer les notifications');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du basculement des notifications:', error);
+    }
+  };
+
+  // Effet pour vérifier l'état des notifications au chargement
+  useEffect(() => {
+    const checkNotificationStatus = async () => {
+      try {
+        const permission = Notification.permission;
+        if (permission === 'granted') {
+          const token = await pushNotificationService.getCurrentToken();
+          setIsNotificationEnabled(!!token);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification des notifications:', error);
+      }
+    };
+
+    checkNotificationStatus();
+  }, []);
+
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -472,13 +515,22 @@ const AdminChatInterface: React.FC = () => {
               <div className="p-4 border-b border-gray-200 flex-shrink-0">
                 <div className="flex justify-between items-center">
                   <h2 className="font-semibold text-lg">Conversations</h2>
-                  <button
-                    onClick={() => setShowUserSelector(!showUserSelector)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
-                    title="Nouvelle conversation"
-                  >
-                    <Plus size={20} />
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={toggleNotifications}
+                      className={`p-2 rounded-full ${isNotificationEnabled ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                      title={isNotificationEnabled ? 'Désactiver les notifications' : 'Activer les notifications'}
+                    >
+                      {isNotificationEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+                    </button>
+                    <button
+                      onClick={() => setShowUserSelector(!showUserSelector)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                      title="Nouvelle conversation"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Sélecteur d'utilisateur pour nouvelle conversation */}

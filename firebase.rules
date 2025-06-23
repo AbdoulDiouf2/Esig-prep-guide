@@ -301,6 +301,15 @@ service cloud.firestore {
     }
     
     // Règles pour la collection messages (chat)
+    // Règles pour la gestion des tokens de notification
+    match /users/{userId}/tokens/{tokenId} {
+      // Un utilisateur peut créer et supprimer ses propres tokens
+      // Les administrateurs peuvent gérer les tokens de tous les utilisateurs
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+    }
+
     match /messages/{messageId} {
       // Fonction pour vérifier si l'utilisateur est impliqué dans la conversation
       function isParticipant() {

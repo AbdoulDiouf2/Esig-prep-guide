@@ -9,6 +9,7 @@ import EditorRoute from './components/routes/EditorRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
 import React, { useEffect, useState } from 'react';
+import { NotificationBanner } from './components/NotificationBanner';
 import UserStatusModal from './components/auth/UserStatusModal';
 import { AlertTriangle, X, CheckCircle } from 'lucide-react';
 import { Analytics } from './components/analytics/VercelAnalytics';
@@ -198,36 +199,28 @@ const DisclaimerBanner = () => {
   );
 };
 
-// Composant pour envelopper les routes protégées
-const ProtectedContent = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <>
-      <WelcomeModal />
-      <UserStatusModal />
-      {children}
-      <DisclaimerBanner />
-    </>
-  );
-};
-
 // Composant pour gérer l'authentification
 const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
   }
 
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <ProtectedContent>{children}</ProtectedContent>;
+  return (
+    <>
+      <WelcomeModal />
+      <ConsentBanner />
+      <DisclaimerBanner />
+      <NotificationBanner />
+      {children}
+    </>
+  );
 };
 
 // Composant pour rediriger vers le dashboard si déjà authentifié

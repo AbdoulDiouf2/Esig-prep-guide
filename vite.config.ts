@@ -20,6 +20,12 @@ export default defineConfig({
   },
   server: {
     open: true,
+    headers: {
+      'Service-Worker-Allowed': '/',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+    },
   },
   define: {
     'process.env': {}

@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonctions utilitaires
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin == true;
+    }
+    
+    function isEditor() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isEditor == true;
+    }
+
+    // Règles pour la collection users
+    match /users/{userId} {
+      // Un utilisateur ne peut accéder qu'à son propre profil
+      // Les admins et super admins peuvent voir tous les profils
+      // Les éditeurs n'ont pas accès aux profils des autres utilisateurs
+      allow read: if isOwner(userId) || isAdmin() || isSuperAdmin();
+      
+      // Seul le propriétaire peut modifier son profil de base
+      allow update: if isOwner(userId) && 
+                      (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isEditor', 'isSuperAdmin']));
+      
+      // Seuls les administrateurs peuvent modifier le statut admin et éditeur
+      // Mais un admin normal ne peut pas modifier un super admin
+      allow update: if isAdmin() && (
+                      !resource.data.isSuperAdmin || isSuperAdmin()
+                    );
+      
+      // Permet aux super admins de supprimer n'importe quel utilisateur
+      allow delete: if isOwner(userId) || isSuperAdmin();
+      
+      // Création autorisée lors de l'inscription
+      // Règle modifiée pour éviter la dépendance circulaire
+      allow create: if isAuthenticated() && 
+                    request.auth.uid == userId && 
+                    (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false) && 
+                    (!('isEditor' in request.resource.data) || request.resource.data.isEditor == false) &&
+                    (!('isSuperAdmin' in request.resource.data) || request.resource.data.isSuperAdmin == false);
+
+      // Règles pour les tokens de notification
+      match /tokens/{tokenId} {
+        // Un utilisateur peut créer et supprimer ses propres tokens
+        // Les administrateurs peuvent gérer les tokens de tous les utilisateurs
+        allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+        allow create: if isAuthenticated() && isOwner(userId);
+        allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+      }
+    }
+
+    // ... (le reste de vos règles existantes)
+  }
+}
