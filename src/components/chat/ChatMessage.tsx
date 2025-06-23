@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Check } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../services/chatService';
 import { Timestamp } from 'firebase/firestore';
 
@@ -51,12 +51,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               Pièce jointe
             </a>
           )}
-          <div
-            className={`text-xs mt-1 ${
-              isCurrentUser ? 'text-blue-100' : 'text-gray-500'
-            }`}
-          >
-            {formatDate(message.timestamp)}
+          <div className="flex items-center mt-1">
+            <span className={`text-xs ${isCurrentUser ? 'text-blue-100' : 'text-gray-500'}`}>
+              {formatDate(message.timestamp)}
+            </span>
+            {isCurrentUser && (
+              <span className={`ml-1 ${message.read ? 'text-blue-300' : 'text-blue-100'}`}>
+                <Check size={12} strokeWidth={3} className="inline" />
+                {message.read && <Check size={12} strokeWidth={3} className="inline -ml-1" />}
+              </span>
+            )}
           </div>
         </div>
         

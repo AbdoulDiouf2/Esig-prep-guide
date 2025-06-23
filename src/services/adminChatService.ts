@@ -265,8 +265,14 @@ const adminChatService = {
       const q = query(
         messagesRef,
         or(
-          and(where('senderId', '==', userId), where('receiverRole', '==', 'admin')),
-          and(where('receiverId', '==', userId), where('senderRole', '==', 'admin'))
+          and(
+            where('senderId', '==', userId),
+            where('receiverId', '==', 'admin')
+          ),
+          and(
+            where('receiverId', '==', userId),
+            where('senderId', '==', 'admin')
+          )
         )
       );
       
