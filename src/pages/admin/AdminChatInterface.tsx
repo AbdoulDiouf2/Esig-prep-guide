@@ -3,9 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import adminChatService, { ChatConversation } from '../../services/adminChatService';
 import chatService, { ChatMessage as ChatMessageType } from '../../services/chatService';
 import ChatMessage from '../../components/chat/ChatMessage';
-import { Send, Search, User, MessageSquare, Trash2 } from 'lucide-react';
+import { Send, User, MessageSquare, Trash2, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, getDocs, query } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 const scrollbarStyles = `
@@ -130,15 +130,23 @@ const ConversationItem = ({
   </div>
 );
 
+interface UserData {
+  uid: string;
+  displayName: string;
+  email: string;
+}
+
 const AdminChatInterface: React.FC = () => {
   const { currentUser } = useAuth();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [showUserSelector, setShowUserSelector] = useState(false);
   
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
@@ -149,14 +157,25 @@ const AdminChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Chargement initial des conversations
+  // Chargement initial des conversations et des utilisateurs
   useEffect(() => {
     if (!currentUser) return;
     
-    const loadConversations = async () => {
+    const loadData = async () => {
       try {
+        // Charger les conversations
         const userConversations = await adminChatService.getAllConversations();
         setConversations(userConversations);
+        
+        // Charger tous les utilisateurs
+        const usersQuery = query(collection(db, 'users'));
+        const querySnapshot = await getDocs(usersQuery);
+        const usersList = querySnapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...doc.data()
+        } as UserData));
+        
+        setAllUsers(usersList);
         
         // Sélectionner automatiquement le premier utilisateur s'il y en a
         if (userConversations.length > 0 && !selectedUserId) {
@@ -164,13 +183,13 @@ const AdminChatInterface: React.FC = () => {
           setSelectedUserName(userConversations[0].userName);
         }
       } catch (error) {
-        console.error('Erreur lors du chargement des conversations:', error);
+        console.error('Erreur lors du chargement des données:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    loadConversations();
+    loadData();
     
     // S'abonner aux mises à jour des conversations en temps réel
     const unsubscribe = adminChatService.subscribeToConversations((updatedConversations) => {
@@ -179,6 +198,26 @@ const AdminChatInterface: React.FC = () => {
     
     return () => unsubscribe();
   }, [currentUser, selectedUserId]);
+
+  // Filtrer les utilisateurs pour n'afficher que ceux avec qui on n'a pas de conversation
+  const getAvailableUsers = () => {
+    const existingUserIds = new Set(conversations.map(c => c.userId));
+    return allUsers
+      .filter(user => !existingUserIds.has(user.uid) && user.uid !== currentUser?.uid)
+      .sort((a, b) => {
+        const nameA = (a.displayName || a.email || '').toLowerCase();
+        const nameB = (b.displayName || b.email || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+  };
+
+  // Démarrer une nouvelle conversation avec un utilisateur
+  const startNewConversation = (user: UserData) => {
+    setSelectedUserId(user.uid);
+    setSelectedUserName(user.displayName || user.email || 'Utilisateur sans nom');
+    setMessages([]);
+    setShowUserSelector(false);
+  };
 
   // Charger les messages d'une conversation
   const loadMessages = async (userId: string) => {
@@ -429,20 +468,45 @@ const AdminChatInterface: React.FC = () => {
           <div className="grid grid-cols-12 h-full">
             {/* Liste des utilisateurs (1/3) */}
             <div className="col-span-4 border-r border-gray-200 flex flex-col h-full">
-              {/* En-tête avec recherche désactivée */}
+              {/* En-tête avec bouton pour ajouter une conversation */}
               <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Recherche désactivée"
-                    disabled
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-gray-100 cursor-not-allowed"
-                  />
-                  <Search size={18} className="absolute left-3 top-3 text-gray-400" />
+                <div className="flex justify-between items-center">
+                  <h2 className="font-semibold text-lg">Conversations</h2>
+                  <button
+                    onClick={() => setShowUserSelector(!showUserSelector)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                    title="Nouvelle conversation"
+                  >
+                    <Plus size={20} />
+                  </button>
                 </div>
+                
+                {/* Sélecteur d'utilisateur pour nouvelle conversation */}
+                {showUserSelector && (
+                  <div className="mt-2 relative">
+                    <select
+                      className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={(e) => {
+                        const userId = e.target.value;
+                        if (userId) {
+                          const user = allUsers.find(u => u.uid === userId);
+                          if (user) startNewConversation(user);
+                        }
+                      }}
+                      value=""
+                    >
+                      <option value="">Sélectionnez un utilisateur...</option>
+                      {getAvailableUsers().map(user => (
+                        <option key={user.uid} value={user.uid}>
+                          {user.displayName || user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               
-              {/* Liste des conversations avec hauteur fixe et défilement */}
+              {/* Liste des conversations */}
               <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                 {loading ? (
                   <div className="flex h-full items-center justify-center">
@@ -475,15 +539,19 @@ const AdminChatInterface: React.FC = () => {
                 <div className="flex flex-col h-full">
                   {/* En-tête de la conversation */}
                   <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
-                        {selectedUserName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h2 className="font-semibold text-gray-900">{selectedUserName}</h2>
-                        {conversations.find(c => c.userId === selectedUserId)?.userEmail && (
-                          <p className="text-sm text-gray-500">{conversations.find(c => c.userId === selectedUserId)?.userEmail}</p>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
+                          {selectedUserName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h2 className="font-semibold text-gray-900">{selectedUserName}</h2>
+                          {allUsers.find(u => u.uid === selectedUserId)?.email && (
+                            <p className="text-sm text-gray-500">
+                              {allUsers.find(u => u.uid === selectedUserId)?.email}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
