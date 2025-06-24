@@ -331,130 +331,6 @@ const AdminDashboard: React.FC = () => {
             {/* Nouvelle section de statistiques détaillées */}
             <div className="mt-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Statistiques détaillées des étudiants CPS</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Activité récente */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">Activité récente</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Actifs ces 7 derniers jours</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {(() => {
-                            const cpsUsers = users.filter(user => user.status === 'cps');
-                            const total = cpsUsers.length;
-                            if (total === 0) return '0/0 (0%)';
-                            
-                            const activeUsers = cpsUsers.filter(user => {
-                              const lastLogin = user.lastLogin;
-                              if (!lastLogin) return false;
-                              
-                              let lastLoginDate: Date;
-                              
-                              if (lastLogin instanceof Date) {
-                                lastLoginDate = lastLogin;
-                              } else if (typeof lastLogin === 'number') {
-                                lastLoginDate = new Date(lastLogin);
-                              } else if (typeof lastLogin === 'string') {
-                                lastLoginDate = new Date(lastLogin);
-                              } else if (lastLogin && typeof lastLogin === 'object' && 'toDate' in lastLogin && typeof lastLogin.toDate === 'function') {
-                                lastLoginDate = lastLogin.toDate();
-                              } else {
-                                return false; // Format de date non reconnu
-                              }
-                              
-                              const sevenDaysAgo = new Date();
-                              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                              return lastLoginDate >= sevenDaysAgo;
-                            }).length;
-                            
-                            return `${activeUsers}/${total} (${Math.round((activeUsers / total) * 100)}%)`;
-                          })()}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-blue-600 h-2.5 rounded-full" 
-                          style={{ 
-                            width: `${(() => {
-                              const cpsUsers = users.filter(user => user.status === 'cps');
-                              const total = cpsUsers.length;
-                              if (total === 0) return 0;
-                              
-                              const activeUsers = cpsUsers.filter(user => {
-                                const lastLogin = user.lastLogin;
-                                if (!lastLogin) return false;
-                                
-                                let lastLoginDate: Date;
-                                
-                                if (lastLogin instanceof Date) {
-                                  lastLoginDate = lastLogin;
-                                } else if (typeof lastLogin === 'number') {
-                                  lastLoginDate = new Date(lastLogin);
-                                } else if (typeof lastLogin === 'string') {
-                                  lastLoginDate = new Date(lastLogin);
-                                } else if (lastLogin && typeof lastLogin === 'object' && 'toDate' in lastLogin && typeof lastLogin.toDate === 'function') {
-                                  lastLoginDate = lastLogin.toDate();
-                                } else {
-                                  return false; // Format de date non reconnu
-                                }
-                                
-                                const sevenDaysAgo = new Date();
-                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                                return lastLoginDate >= sevenDaysAgo;
-                              }).length;
-                              
-                              return (activeUsers / total) * 100;
-                            })()}%` 
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Taux de complétion par section */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">Taux de complétion par section</h4>
-                  <div className="space-y-3">
-                    {guideSections.slice(0, 3).map(section => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
-                      const total = cpsUsers.length;
-                      const completed = cpsUsers.filter(user => {
-                        const userProgression = userProgressions.find(p => p.userId === user.uid);
-                        return userProgression?.completedSections?.includes(section.id);
-                      }).length;
-                      
-                      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-                      
-                      return (
-                        <div key={section.id}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="truncate max-w-[200px]" title={section.title}>{section.title}</span>
-                            <span className="font-medium">{completionRate}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full"
-                              style={{
-                                width: `${completionRate}%`,
-                                backgroundColor: completionRate < 30 ? '#EF4444' : 
-                                               completionRate < 70 ? '#F59E0B' : '#10B981'
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {guideSections.length > 3 && (
-                      <div className="text-sm text-gray-500 text-center mt-2">
-                        +{guideSections.length - 3} autres sections
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
 
               {/* Sections nécessitant de l'attention */}
               <div className="mt-6 bg-white rounded-lg shadow p-6">
@@ -490,9 +366,7 @@ const AdminDashboard: React.FC = () => {
                             .map((section, index) => (
                               <div key={section.id} className={`p-3 bg-white rounded border ${index < 2 ? 'mb-2' : ''}`}>
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-900 truncate" title={section.title}>
-                                    {section.title}
-                                  </span>
+                                  <span className="text-sm font-medium text-gray-900 truncate" title={section.title}>{section.title}</span>
                                   <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
                                     {Math.round(section.completionRate)}%
                                   </span>
