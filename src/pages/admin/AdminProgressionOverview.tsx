@@ -7,6 +7,8 @@ import { getUserSubsectionData } from '../../services/subsectionDataService';
 import { useContent } from '../../contexts/ContentContext';
 import { Users, Plane, Check, X, Calendar, MapPin, Bus, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable, { UserOptions } from 'jspdf-autotable';
 
 interface UserDoc {
   uid: string;
@@ -27,6 +29,14 @@ interface ArrivalInfo {
   airport: string;                // Aéroport d'arrivée
   hasOwnTransportation: boolean;  // Moyen de transport personnel
   wantGroupTransport: boolean;    // Souhait de prise en charge commune
+}
+
+// Interface pour typer correctement l'objet doc de jsPDF
+interface JsPDFWithAutoTable extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+  autoTable: (options: UserOptions) => jsPDF;
 }
 
 const AdminProgressionOverview: React.FC = () => {
@@ -59,6 +69,16 @@ const AdminProgressionOverview: React.FC = () => {
     
     return null;
   }, [guideSections]); // Uniquement guideSections en dépendance
+
+  // Fonction pour calculer la progression globale d'un utilisateur
+  const getUserGlobalProgress = useCallback((completedSections: string[]) => {
+    if (!guideSections || guideSections.length === 0) return 0;
+    // Filtrer pour ne garder que les sections qui existent encore
+    const validCompletedSections = completedSections.filter(sectionId => 
+      guideSections.some(section => section.id === sectionId)
+    );
+    return Math.round((validCompletedSections.length / guideSections.length) * 100);
+  }, [guideSections]);
 
   // Fonction pour exporter les données en Excel selon le statut visa (obtenu/refusé)
   const exportToExcel = useCallback((visaStatus: 'obtained' | 'refused') => {
@@ -124,6 +144,171 @@ const AdminProgressionOverview: React.FC = () => {
       setExporting(false);
     }
   }, [users, userProgressions, arrivalData, getUserVisaStatus]);
+
+  // Fonction pour obtenir le nom de la phase
+  const getPhaseName = (phase: string) => {
+    switch (phase) {
+      case 'pre-arrival':
+        return 'Avant l\'arrivée';
+      case 'during-process':
+        return 'Pendant le processus';
+      case 'post-cps':
+        return 'Après le CPS';
+      default:
+        return 'Phase inconnue';
+    }
+  };
+
+  // Fonction pour obtenir la progression par phase
+  const getPhaseProgress = useCallback((completedSections: string[], phase: string) => {
+    const phaseSections = guideSections.filter(section => section.phase === phase);
+    if (phaseSections.length === 0) return 0;
+    
+    // Filtrer pour ne garder que les sections complétées qui existent dans la phase
+    const validCompletedSections = completedSections.filter(sectionId => 
+      phaseSections.some(section => section.id === sectionId)
+    );
+    
+    return Math.round((validCompletedSections.length / phaseSections.length) * 100);
+  }, [guideSections]);
+
+  // Fonction pour exporter la progression en PDF
+  const exportToPDF = useCallback(() => {
+    setExporting(true);
+    
+    try {
+      // Créer un nouveau document PDF avec le bon type
+      const doc = new jsPDF() as JsPDFWithAutoTable;
+      
+      // Ajouter le titre
+      doc.setFontSize(20);
+      doc.text('Rapport de Progression des Étudiants CPS', 14, 20);
+      
+      // Ajouter la date
+      doc.setFontSize(10);
+      doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+      
+      // Filtrer uniquement les utilisateurs avec le statut 'cps'
+      const cpsUsers = users.filter(user => user.status === 'cps');
+      
+      // Préparer les données du tableau principal
+      const tableData = cpsUsers.map(user => {
+        const progression = userProgressions.find(p => p.userId === user.uid);
+        const progress = progression ? getUserGlobalProgress(progression.completedSections) : 0;
+        const visaStatus = progression ? getUserVisaStatus(user.uid, userProgressions) : 'N/A';
+        
+        return [
+          user.displayName || 'Anonyme',
+          user.email || 'Non renseigné',
+          `${progress}%`,
+          visaStatus === 'obtained' ? 'Obtenu' : visaStatus === 'refused' ? 'Refusé' : 'En attente'
+        ];
+      });
+      
+      // Vérifier s'il y a des données à afficher
+      if (tableData.length === 0) {
+        doc.setFontSize(12);
+        doc.text("Aucun étudiant CPS trouvé.", 14, 50);
+      } else {
+        // Ajouter le tableau principal avec autoTable
+        autoTable(doc, {
+          head: [['Nom', 'Email', 'Progression', 'Statut Visa']],
+          body: tableData,
+          startY: 40,
+          headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: 255,
+            fontStyle: 'bold'
+          },
+          alternateRowStyles: {
+            fillColor: [245, 245, 245]
+          },
+          margin: { top: 40 },
+          didDrawPage: (data) => {
+            // Sauvegarder la position Y après le premier tableau
+            data.settings.margin.top = 10;
+          }
+        });
+
+        // Ajouter un saut de page avant le tableau des progressions par phase
+        doc.addPage();
+        
+        // Titre pour la section des progressions par phase
+        doc.setFontSize(16);
+        doc.text('Détail des Progressions par Phase', 14, 20);
+        
+        // Préparer les données pour le tableau des progressions par phase
+        const phaseProgressData = cpsUsers.flatMap(user => {
+          const progression = userProgressions.find(p => p.userId === user.uid);
+          if (!progression) return [];
+          
+          // Calculer la progression pour chaque phase
+          const phases = ['post-cps', 'during-process', 'pre-arrival'];
+          return phases.map(phase => ({
+            name: user.displayName || 'Anonyme',
+            email: user.email || 'Non renseigné',
+            phase: getPhaseName(phase),
+            progress: getPhaseProgress(progression.completedSections, phase) + '%'
+          }));
+        });
+        
+        // Convertir en format de tableau
+        const phaseTableData = phaseProgressData.map(item => [
+          item.name,
+          item.email,
+          item.phase,
+          item.progress
+        ]);
+        
+        // Ajouter le tableau des progressions par phase
+        if (phaseTableData.length > 0) {
+          autoTable(doc, {
+            head: [['Nom', 'Email', 'Phase', 'Progression']],
+            body: phaseTableData,
+            startY: 30,
+            headStyles: {
+              fillColor: [41, 128, 185],
+              textColor: 255,
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [245, 245, 245]
+            },
+            margin: { top: 30 }
+          });
+        }
+        
+        // Calculer les statistiques uniquement pour les utilisateurs CPS
+        const totalUsers = cpsUsers.length;
+        const completedUsers = cpsUsers.filter(user => {
+          const progression = userProgressions.find(p => p.userId === user.uid);
+          return progression && getUserGlobalProgress(progression.completedSections) === 100;
+        }).length;
+        
+        // Ajouter les statistiques
+        const finalY = doc.lastAutoTable?.finalY || 50;
+        doc.setFontSize(14);
+        doc.text('Statistiques', 14, finalY + 20);
+        
+        doc.setFontSize(10);
+        doc.text(`• Nombre total d'étudiants CPS: ${totalUsers}`, 20, finalY + 30);
+        doc.text(
+          `• Étudiants ayant complété 100%: ${completedUsers} (${Math.round((completedUsers / (totalUsers || 1)) * 100)}%)`,
+          20,
+          finalY + 40
+        );
+      }
+      
+      // Sauvegarder le PDF
+      doc.save(`progression_etudiants_cps_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      alert('Une erreur est survenue lors de la génération du PDF.');
+    } finally {
+      setExporting(false);
+    }
+  }, [users, userProgressions, getUserVisaStatus, getUserGlobalProgress, getPhaseProgress]);
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -248,7 +433,7 @@ const AdminProgressionOverview: React.FC = () => {
                 val.includes('Aout') || val.includes('Fevrier') || val.includes('Decembre')
               );
               
-              // Debug des valeurs trouvées pour diagnostic
+              // Debug des valeurs trouvées
               if (containsDateFormat) {
                 console.log('Valeur de date potentielle trouvée:', val, 'dans la clé:', k);
               }
@@ -392,25 +577,6 @@ const AdminProgressionOverview: React.FC = () => {
     fetchProgressions();
   }, [guideSections, getUserVisaStatus]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
 
-  const getUserGlobalProgress = (completedSections: string[]) => {
-    if (!guideSections || guideSections.length === 0) return 0;
-    // Filtrer pour ne garder que les sections qui existent encore
-    const validCompletedSections = completedSections.filter(sectionId => 
-      guideSections.some(section => section.id === sectionId)
-    );
-    return Math.round((validCompletedSections.length / guideSections.length) * 100);
-  };
-
-  const getPhaseProgress = (completedSections: string[], phase: string) => {
-    const phaseSections = guideSections.filter(section => section.phase === phase);
-    if (phaseSections.length === 0) return 0;
-    // Filtrer pour ne garder que les sections existantes
-    const validCompletedSections = completedSections.filter(sectionId => 
-      phaseSections.some(s => s.id === sectionId)
-    );
-    return Math.round((validCompletedSections.length / phaseSections.length) * 100);
-  };
-  
   // Filtrer les utilisateurs CPS 
   const cpsUsers = users.filter(user => user.status === 'cps');
   
@@ -464,6 +630,17 @@ const AdminProgressionOverview: React.FC = () => {
           <div className="text-center text-gray-500">Chargement des progressions...</div>
         ) : activeTab === 'progressions' ? (
           <div className="overflow-x-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Liste des étudiants CPS</h3>
+              <button 
+                onClick={exportToPDF}
+                disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+              >
+                <Download size={16} />
+                {exporting ? 'Génération...' : 'Exporter en PDF'}
+              </button>
+            </div>
             <table className="w-full divide-y divide-gray-200 text-xs">
               <thead>
                 <tr>
