@@ -72,26 +72,33 @@ const FAQ: React.FC = () => {
     
     if (!newQuestion.trim()) return;
     
-    addFAQItem({
+    const faqData: Omit<FAQItem, 'id'> = {
       question: newQuestion,
       answer: "Cette question est en attente de réponse par notre équipe.",
       category: newCategory || 'général',
-      phase: questionType === 'phase' ? newPhase : undefined,
       questionType,
       isApproved: false,
-      isAnswered: false, // Nouvelle question, pas encore répondue
+      isAnswered: false,
       createdDate: new Date().toISOString().split('T')[0],
       updatedDate: new Date().toISOString().split('T')[0],
-      userId: currentUser?.uid, // Stocker l'ID de l'utilisateur s'il est connecté
-      userEmail: currentUser?.email // Stocker l'email de l'utilisateur s'il est connecté
-    });
+      userId: currentUser?.uid,
+      userEmail: currentUser?.email
+    };
+
+    // Ajouter le champ phase uniquement si c'est une question liée à une phase
+    if (questionType === 'phase') {
+      faqData.phase = newPhase;
+    }
+    // Ne pas définir faqData.phase pour les autres types de questions
+    
+    addFAQItem(faqData);
     
     // Reset form fields but keep the form visible to show confirmation
     setNewQuestion('');
     setNewCategory('');
     setShowConfirmation(true);
     
-    // Hide form after confirmation is shown (3 seconds)
+    // Hide form after confirmation is shown (5 seconds)
     setTimeout(() => {
       setShowConfirmation(false);
       setShowAddQuestion(false);
@@ -206,7 +213,14 @@ const FAQ: React.FC = () => {
                       id="questionType"
                       className="mt-2 block w-full rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all placeholder-gray-400 text-base px-4 py-2"
                       value={questionType}
-                      onChange={e => setQuestionType(e.target.value as 'phase' | 'site' | 'general')}
+                      onChange={e => {
+                        const newType = e.target.value as 'phase' | 'site' | 'general';
+                        setQuestionType(newType);
+                        // Réinitialiser la phase si le type n'est plus 'phase'
+                        if (newType !== 'phase') {
+                          setNewPhase('post-cps'); // Réinitialiser à la valeur par défaut
+                        }
+                      }}
                       required
                     >
                       <option value="phase">En lien avec une phase</option>
@@ -312,11 +326,23 @@ const FAQ: React.FC = () => {
                           )}
                         </h3>
                         <div className="flex items-center mt-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                            {item.phase === 'post-cps' ? 'Post-CPS' :
-                             item.phase === 'during-process' ? 'Pendant les démarches' :
-                             'Pré-arrivée'}
-                          </span>
+                          {item.questionType === 'phase' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                              {item.phase === 'post-cps' ? 'Post-CPS' :
+                               item.phase === 'during-process' ? 'Pendant les démarches' :
+                               'Pré-arrivée'}
+                            </span>
+                          )}
+                          {item.questionType === 'site' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">
+                              Fonctionnement du site
+                            </span>
+                          )}
+                          {item.questionType === 'general' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                              Question générale
+                            </span>
+                          )}
                           {item.category && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                               {item.category}
@@ -387,11 +413,23 @@ const FAQ: React.FC = () => {
                           <div className="ml-3">
                             <h3 className="text-lg font-medium text-gray-900">{item.question}</h3>
                             <div className="flex items-center mt-1">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                {item.phase === 'post-cps' ? 'Post-CPS' :
-                                 item.phase === 'during-process' ? 'Pendant les démarches' :
-                                 'Pré-arrivée'}
-                              </span>
+                              {item.questionType === 'phase' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                  {item.phase === 'post-cps' ? 'Post-CPS' :
+                                   item.phase === 'during-process' ? 'Pendant les démarches' :
+                                   'Pré-arrivée'}
+                                </span>
+                              )}
+                              {item.questionType === 'site' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">
+                                  Fonctionnement du site
+                                </span>
+                              )}
+                              {item.questionType === 'general' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                  Question générale
+                                </span>
+                              )}
                               {item.category && (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                   {item.category}
@@ -460,11 +498,23 @@ const FAQ: React.FC = () => {
                               </span>
                             </h3>
                             <div className="flex items-center mt-1">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                {item.phase === 'post-cps' ? 'Post-CPS' :
-                                 item.phase === 'during-process' ? 'Pendant les démarches' :
-                                 'Pré-arrivée'}
-                              </span>
+                              {item.questionType === 'phase' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                  {item.phase === 'post-cps' ? 'Post-CPS' :
+                                   item.phase === 'during-process' ? 'Pendant les démarches' :
+                                   'Pré-arrivée'}
+                                </span>
+                              )}
+                              {item.questionType === 'site' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">
+                                  Fonctionnement du site
+                                </span>
+                              )}
+                              {item.questionType === 'general' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                  Question générale
+                                </span>
+                              )}
                               {item.category && (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                   {item.category}
