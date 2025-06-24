@@ -52,6 +52,7 @@ interface UserDoc {
   photoURL?: string;
   status?: string;        // Statut de l'utilisateur (actif, suspendu, etc.)
   createdAt?: string | FirestoreTimestamp | number | Date;  // Date de création du profil (plusieurs formats possibles)
+  lastLogin?: string | FirestoreTimestamp | number | Date;  // Ajout du champ lastLogin
 }
 
 const AdminUserManager: React.FC = () => {
@@ -497,6 +498,7 @@ const AdminUserManager: React.FC = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de création</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière connexion</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -743,6 +745,137 @@ const AdminUserManager: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-2">
+                      <span className="text-sm text-gray-600">
+                        {(() => {
+                          // Définir une date actuelle pour les profils sans date
+                          if (!user.lastLogin) {
+                            return <span className="text-xs text-gray-400 italic">Non disponible</span>;
+                          }
+                          
+                          try {
+                            // Afficher le type et la valeur pour déboguer
+                            // (Vous pouvez supprimer cette ligne une fois les problèmes corrigés)
+                            console.log(`lastLogin pour ${user.email}:`, 
+                              typeof user.lastLogin, 
+                              JSON.stringify(user.lastLogin)
+                            );
+                            
+                            // Pour les objets Firestore Timestamp
+                            if (user.lastLogin && 
+                                typeof user.lastLogin === 'object' && 
+                                'toDate' in user.lastLogin && 
+                                typeof user.lastLogin.toDate === 'function') {
+                              // Conversion du timestamp Firestore en date
+                              const date = user.lastLogin.toDate();
+                              
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les objets avec seconds (timestamp Firestore brut)
+                            if (user.lastLogin && 
+                                typeof user.lastLogin === 'object' && 
+                                'seconds' in user.lastLogin && 
+                                'nanoseconds' in user.lastLogin) {
+                              // Conversion du timestamp Firestore en date
+                              const timestamp = user.lastLogin as FirestoreTimestamp;
+                              const seconds = timestamp.seconds;
+                              const date = new Date(seconds * 1000);
+                              
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les chaînes au format "16 juin 2025 à 20:21:00 UTC"
+                            if (typeof user.lastLogin === 'string') {
+                              if (user.lastLogin.includes(' à ')) {
+                                const parts = user.lastLogin.split(' à ');
+                                return (
+                                  <>
+                                    {parts[0]}
+                                    <br />
+                                    <span className="text-xs text-gray-500">
+                                      {parts[1]?.split(' ')[0] || ''}
+                                    </span>
+                                  </>
+                                );
+                              } else {
+                                // Essayer de convertir la chaîne en date
+                                const date = new Date(user.lastLogin);
+                                if (!isNaN(date.getTime())) {
+                                  return (
+                                    <>
+                                      {date.toLocaleDateString('fr-FR')}
+                                      <br />
+                                      <span className="text-xs text-gray-500">
+                                        {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </>
+                                  );
+                                } else {
+                                  // Si la conversion échoue, on affiche la chaîne brute
+                                  return <span>{user.lastLogin}</span>;
+                                }
+                              }
+                            }
+                            
+                            // Pour les timestamps numériques
+                            if (typeof user.lastLogin === 'number') {
+                              const date = new Date(user.lastLogin);
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Pour les dates
+                            if (user.lastLogin instanceof Date) {
+                              const date = user.lastLogin;
+                              return (
+                                <>
+                                  {date.toLocaleDateString('fr-FR')}
+                                  <br />
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            // Fallback avec affichage du type pour aider au débogage
+                            return <span className="text-xs">
+                              {typeof user.lastLogin}: {String(user.lastLogin)}
+                            </span>;
+                            
+                          } catch (error) {
+                            console.error("Erreur de format de date:", error);
+                            return <span className="text-xs text-red-500">
+                              Format invalide
+                            </span>;
+                          }
+                        })()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
                       {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
                       <div className="flex flex-col sm:flex-row gap-2">
                         {user.uid !== currentUser?.uid && (
@@ -757,7 +890,7 @@ const AdminUserManager: React.FC = () => {
                                 </>
                               ) : (
                                 <>
-                                  <UserPlus className="w-4 h-4 mr-1" /> Promouvoir admin
+                                  <UserPlus className="w-4 h-4 mr-1" /> Rendre admin
                                 </>
                               )}
                             </button>
@@ -776,7 +909,7 @@ const AdminUserManager: React.FC = () => {
                                 </>
                               ) : (
                                 <>
-                                  <Edit className="w-4 h-4 mr-1" /> Promouvoir éditeur
+                                  <Edit className="w-4 h-4 mr-1" /> Rendre éditeur
                                 </>
                               )}
                             </button>
