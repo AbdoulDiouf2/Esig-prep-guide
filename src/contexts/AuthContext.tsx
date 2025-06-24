@@ -8,6 +8,7 @@ import {
   updateProfile,
   sendEmailVerification
 } from 'firebase/auth';
+import { updateDoc } from 'firebase/firestore'; // Ajout de l'import manquant
 import { auth } from '../firebase';
 import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -23,6 +24,7 @@ export type AppUser = {
   isSuperAdmin?: boolean;
   isEditor?: boolean;
   createdAt?: Date;
+  lastLogin?: Date;
   photoURL?: string;
   providerData?: Array<{
     providerId: string;
@@ -75,6 +77,7 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     isEditor: userData?.isEditor || false,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
     createdAt: userData?.createdAt?.toDate(),
+    lastLogin: userData?.lastLogin?.toDate(),
     providerData: firebaseUser.providerData.map(provider => ({
       providerId: provider.providerId,
       uid: provider.uid,
@@ -179,6 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Vérifier/créer le profil Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userSnapshot = await getDoc(userDocRef);
+      const loginTimestamp = new Date();
+      
       if (!userSnapshot.exists()) {
         await setDoc(userDocRef, {
           uid: user.uid,
@@ -187,12 +192,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailVerified: user.emailVerified,
           isAdmin: false,
           createdAt: serverTimestamp(),
+          lastLogin: loginTimestamp,
           photoURL: user.photoURL ?? undefined,
         });
+      } else {
+        // Mettre à jour la date de dernière connexion
+        await updateDoc(userDocRef, {
+          lastLogin: loginTimestamp
+        });
       }
+      
       const appUser = await mapFirebaseUser(user);
-      setCurrentUser(appUser);
-      return appUser;
+      const updatedUser: AppUser = {
+        ...appUser,
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        emailVerified: user.emailVerified,
+        isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
+        lastLogin: loginTimestamp
+      };
+      setCurrentUser(updatedUser);
+      return updatedUser;
     } catch (error) {
       console.error('Erreur de connexion:', error);
       throw error;
@@ -238,45 +259,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Connexion avec Google
   const loginWithGoogle = async (): Promise<AppUser | null> => {
-  const provider = new GoogleAuthProvider();
-  let user = null;
-  try {
-    const result = await signInWithPopup(auth, provider);
-    user = result.user;
-    console.log('[Google] Utilisateur connecté:', user);
-
-    // Vérifier si le document utilisateur existe déjà
-    const userDocRef = doc(db, 'users', user.uid);
-    let userSnapshot;
+    const provider = new GoogleAuthProvider();
+    let user = null;
+    const loginTimestamp = new Date();
     
     try {
-      userSnapshot = await getDoc(userDocRef);
-      console.log('[Google] Document utilisateur existe:', userSnapshot.exists());
+      const result = await signInWithPopup(auth, provider);
+      user = result.user;
+      console.log('[Google] Utilisateur connecté:', user);
 
-      if (!userSnapshot.exists()) {
-        try {
-          // Création du document utilisateur avec isAdmin: false par défaut
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            emailVerified: user.emailVerified,
-            isAdmin: false,
-            isEditor: false,
-            createdAt: serverTimestamp(),
-            photoURL: user.photoURL ?? undefined,
-          });
-          console.log('[Google] Document utilisateur créé dans Firestore');
-        } catch (firestoreError) {
-          console.error('[Google] Erreur lors de la création du document utilisateur:', firestoreError);
-          // On continue quand même pour permettre la connexion, même si le document n'a pas pu être créé
+      // Vérifier si le document utilisateur existe déjà
+      const userDocRef = doc(db, 'users', user.uid);
+      let userSnapshot;
+      
+      try {
+        userSnapshot = await getDoc(userDocRef);
+        console.log('[Google] Document utilisateur existe:', userSnapshot.exists());
+
+        if (!userSnapshot.exists()) {
+          try {
+            // Création du document utilisateur avec isAdmin: false par défaut
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              emailVerified: user.emailVerified,
+              isAdmin: false,
+              isEditor: false,
+              createdAt: serverTimestamp(),
+              lastLogin: loginTimestamp,
+              photoURL: user.photoURL ?? undefined,
+            });
+            console.log('[Google] Document utilisateur créé dans Firestore');
+          } catch (firestoreError) {
+            console.error('[Google] Erreur lors de la création du document utilisateur:', firestoreError);
+            // On continue quand même pour permettre la connexion, même si le document n'a pas pu être créé
+          }
+        } else {
+          // Mettre à jour la date de dernière connexion
+          try {
+            await updateDoc(userDocRef, {
+              lastLogin: loginTimestamp
+            });
+            console.log('[Google] Date de dernière connexion mise à jour');
+          } catch (updateError) {
+            console.error('[Google] Erreur lors de la mise à jour de la dernière connexion:', updateError);
+          }
         }
+      } catch (firestoreError) {
+        console.error('[Google] Erreur lors de la vérification du document utilisateur:', firestoreError);
+        // On suppose que le document n'existe pas mais on continue la connexion
+        userSnapshot = { exists: () => false, data: () => ({ isAdmin: false, isEditor: false }) };
       }
-    } catch (firestoreError) {
-      console.error('[Google] Erreur lors de la vérification du document utilisateur:', firestoreError);
-      // On suppose que le document n'existe pas mais on continue la connexion
-      userSnapshot = { exists: () => false, data: () => ({ isAdmin: false, isEditor: false }) };
-    }
 
     // Retourne l'utilisateur sous forme AppUser
     const appUser: AppUser = {
@@ -310,6 +344,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userDocRef = doc(db, 'users', user.uid);
     let userSnapshot;
     
+    const loginTimestamp = new Date();
+    
     try {
       userSnapshot = await getDoc(userDocRef);
       console.log('[GitHub] Document utilisateur existe:', userSnapshot.exists());
@@ -325,6 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isAdmin: false,
             isEditor: false,
             createdAt: serverTimestamp(),
+            lastLogin: loginTimestamp,
             photoURL: user.photoURL ?? undefined,
           });
           console.log('[GitHub] Document utilisateur créé dans Firestore');
@@ -332,22 +369,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('[GitHub] Erreur lors de la création du document utilisateur:', firestoreError);
           // On continue quand même pour permettre la connexion, même si le document n'a pas pu être créé
         }
+      } else {
+        // Mettre à jour la date de dernière connexion
+        try {
+          await updateDoc(userDocRef, {
+            lastLogin: loginTimestamp
+          });
+          console.log('[GitHub] Date de dernière connexion mise à jour');
+        } catch (updateError) {
+          console.error('[GitHub] Erreur lors de la mise à jour de la dernière connexion:', updateError);
+        }
       }
     } catch (firestoreError) {
       console.error('[GitHub] Erreur lors de la vérification du document utilisateur:', firestoreError);
       // On suppose que le document n'existe pas mais on continue la connexion
-      userSnapshot = { exists: () => false, data: () => ({ isAdmin: false, isEditor: false }) };
+      userSnapshot = { 
+        exists: () => false, 
+        data: () => ({ 
+          isAdmin: false, 
+          isEditor: false,
+          isSuperAdmin: false 
+        }) 
+      };
     }
 
+    // Récupérer les données de l'utilisateur depuis Firestore
+    const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+    
     // Retourne l'utilisateur sous forme AppUser
     const appUser: AppUser = {
       uid: user.uid,
       email: user.email || '',
       displayName: user.displayName || '',
       emailVerified: user.emailVerified,
-      isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
-      isEditor: userSnapshot.exists() ? userSnapshot.data()?.isEditor ?? false : false,
+      isAdmin: userData?.isAdmin ?? false,
+      isEditor: userData?.isEditor ?? false,
+      isSuperAdmin: userData?.isSuperAdmin ?? false,
       createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+      lastLogin: loginTimestamp,
       photoURL: user.photoURL ?? undefined,
     };
     console.log('[GitHub] AppUser retourné:', appUser);
@@ -358,19 +417,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 };
 
-  const value = {
-    currentUser,
-    loading,
-    register,
-    login,
-    loginWithGoogle,
-    loginWithGithub,
-    logout,
-    isAdmin,
-    isEditor,
-    isSuperAdmin,
-    sendVerificationEmail,
-  };
+const value = {
+  currentUser,
+  loading,
+  register,
+  login,
+  loginWithGoogle,
+  loginWithGithub,
+  logout,
+  isAdmin,
+  isEditor,
+  isSuperAdmin,
+  sendVerificationEmail
+};
 
   return (
     <AuthContext.Provider value={value}>
