@@ -459,38 +459,63 @@ const AdminDashboard: React.FC = () => {
               {/* Sections nécessitant de l'attention */}
               <div className="mt-6 bg-white rounded-lg shadow p-6">
                 <h4 className="text-md font-medium text-gray-900 mb-4">Sections nécessitant de l'attention</h4>
-                <div className="space-y-4">
-                  {[...guideSections]
-                    .map(section => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
-                      const total = cpsUsers.length;
-                      const completed = cpsUsers.filter(user => {
-                        const userProgression = userProgressions.find(p => p.userId === user.uid);
-                        return userProgression?.completedSections?.includes(section.id);
-                      }).length;
-                      
-                      return {
-                        ...section,
-                        completionRate: total > 0 ? (completed / total) * 100 : 0
-                      };
-                    })
-                    .sort((a, b) => a.completionRate - b.completionRate)
-                    .slice(0, 3)
-                    .map(section => (
-                      <div key={section.id} className="border-b pb-2 last:border-b-0 last:pb-0">
-                        <div className="flex justify-between">
-                          <span className="font-medium">{section.title}</span>
-                          <span className="text-sm text-gray-600">{Math.round(section.completionRate)}% de complétion</span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Phase: {section.phase === 'pre-arrival' ? 'Pré-arrivée' : 
-                                 section.phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS'}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {['pre-arrival', 'during-process', 'post-cps'].map((phase) => {
+                    const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : 
+                                     phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
+                    const phaseColor = phase === 'pre-arrival' ? 'bg-blue-50 border-blue-200' : 
+                                     phase === 'during-process' ? 'bg-green-50 border-green-200' : 'bg-purple-50 border-purple-200';
+                    
+                    return (
+                      <div key={phase} className={`border rounded-lg p-4 ${phaseColor}`}>
+                        <h5 className="font-medium text-gray-900 mb-3">{phaseLabel}</h5>
+                        <div className="space-y-3">
+                          {[...guideSections]
+                            .filter(section => section.phase === phase)
+                            .map(section => {
+                              const cpsUsers = users.filter(user => user.status === 'cps');
+                              const total = cpsUsers.length;
+                              const completed = cpsUsers.filter(user => {
+                                const userProgression = userProgressions.find(p => p.userId === user.uid);
+                                return userProgression?.completedSections?.includes(section.id);
+                              }).length;
+                              
+                              return {
+                                ...section,
+                                completionRate: total > 0 ? (completed / total) * 100 : 0
+                              };
+                            })
+                            .sort((a, b) => a.completionRate - b.completionRate)
+                            .slice(0, 3)
+                            .map((section, index) => (
+                              <div key={section.id} className={`p-3 bg-white rounded border ${index < 2 ? 'mb-2' : ''}`}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-gray-900 truncate" title={section.title}>
+                                    {section.title}
+                                  </span>
+                                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                                    {Math.round(section.completionRate)}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                  <div 
+                                    className="h-1.5 rounded-full"
+                                    style={{
+                                      width: `${section.completionRate}%`,
+                                      backgroundColor: section.completionRate < 30 ? '#EF4444' : 
+                                                     section.completionRate < 70 ? '#F59E0B' : '#10B981'
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))}
+                          {guideSections.filter(s => s.phase === phase).length === 0 && (
+                            <div className="text-sm text-gray-500 text-center py-2">Aucune section</div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  {guideSections.length === 0 && (
-                    <div className="text-sm text-gray-500">Aucune section à afficher</div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             </div>
