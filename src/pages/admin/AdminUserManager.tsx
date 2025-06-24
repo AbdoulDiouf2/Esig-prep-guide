@@ -41,7 +41,7 @@ interface FirestoreTimestamp {
   nanoseconds: number;
 }
 
-interface UserDoc {
+export interface UserDoc {
   uid: string;
   email: string;
   displayName: string;

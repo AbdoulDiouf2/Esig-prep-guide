@@ -3,17 +3,7 @@ import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
 import { DocumentData } from 'firebase/firestore';
 import SuperAdminCheck from '../../components/routes/SuperAdminCheck';
-
-interface UserDoc {
-  uid: string;
-  email: string;
-  displayName: string;
-  isAdmin: boolean;
-  isSuperAdmin?: boolean;
-  emailVerified: boolean;
-  photoURL?: string;
-  status?: string;
-}
+import { UserDoc } from './AdminUserManager';
 
 import { Link } from 'react-router-dom';
 import { useContent } from '../../contexts/ContentContext';
@@ -338,6 +328,172 @@ const AdminDashboard: React.FC = () => {
                 );
               })}
             </div>
+            {/* Nouvelle section de statistiques détaillées */}
+            <div className="mt-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Statistiques détaillées des étudiants CPS</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Activité récente */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Activité récente</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700">Actifs ces 7 derniers jours</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const cpsUsers = users.filter(user => user.status === 'cps');
+                            const total = cpsUsers.length;
+                            if (total === 0) return '0/0 (0%)';
+                            
+                            const activeUsers = cpsUsers.filter(user => {
+                              const lastLogin = user.lastLogin;
+                              if (!lastLogin) return false;
+                              
+                              let lastLoginDate: Date;
+                              
+                              if (lastLogin instanceof Date) {
+                                lastLoginDate = lastLogin;
+                              } else if (typeof lastLogin === 'number') {
+                                lastLoginDate = new Date(lastLogin);
+                              } else if (typeof lastLogin === 'string') {
+                                lastLoginDate = new Date(lastLogin);
+                              } else if (lastLogin && typeof lastLogin === 'object' && 'toDate' in lastLogin && typeof lastLogin.toDate === 'function') {
+                                lastLoginDate = lastLogin.toDate();
+                              } else {
+                                return false; // Format de date non reconnu
+                              }
+                              
+                              const sevenDaysAgo = new Date();
+                              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                              return lastLoginDate >= sevenDaysAgo;
+                            }).length;
+                            
+                            return `${activeUsers}/${total} (${Math.round((activeUsers / total) * 100)}%)`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ 
+                            width: `${(() => {
+                              const cpsUsers = users.filter(user => user.status === 'cps');
+                              const total = cpsUsers.length;
+                              if (total === 0) return 0;
+                              
+                              const activeUsers = cpsUsers.filter(user => {
+                                const lastLogin = user.lastLogin;
+                                if (!lastLogin) return false;
+                                
+                                let lastLoginDate: Date;
+                                
+                                if (lastLogin instanceof Date) {
+                                  lastLoginDate = lastLogin;
+                                } else if (typeof lastLogin === 'number') {
+                                  lastLoginDate = new Date(lastLogin);
+                                } else if (typeof lastLogin === 'string') {
+                                  lastLoginDate = new Date(lastLogin);
+                                } else if (lastLogin && typeof lastLogin === 'object' && 'toDate' in lastLogin && typeof lastLogin.toDate === 'function') {
+                                  lastLoginDate = lastLogin.toDate();
+                                } else {
+                                  return false; // Format de date non reconnu
+                                }
+                                
+                                const sevenDaysAgo = new Date();
+                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                return lastLoginDate >= sevenDaysAgo;
+                              }).length;
+                              
+                              return (activeUsers / total) * 100;
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Taux de complétion par section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Taux de complétion par section</h4>
+                  <div className="space-y-3">
+                    {guideSections.slice(0, 3).map(section => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      const completed = cpsUsers.filter(user => {
+                        const userProgression = userProgressions.find(p => p.userId === user.uid);
+                        return userProgression?.completedSections?.includes(section.id);
+                      }).length;
+                      
+                      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                      
+                      return (
+                        <div key={section.id}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="truncate max-w-[200px]" title={section.title}>{section.title}</span>
+                            <span className="font-medium">{completionRate}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full"
+                              style={{
+                                width: `${completionRate}%`,
+                                backgroundColor: completionRate < 30 ? '#EF4444' : 
+                                               completionRate < 70 ? '#F59E0B' : '#10B981'
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {guideSections.length > 3 && (
+                      <div className="text-sm text-gray-500 text-center mt-2">
+                        +{guideSections.length - 3} autres sections
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sections nécessitant de l'attention */}
+              <div className="mt-6 bg-white rounded-lg shadow p-6">
+                <h4 className="text-md font-medium text-gray-900 mb-4">Sections nécessitant de l'attention</h4>
+                <div className="space-y-4">
+                  {[...guideSections]
+                    .map(section => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      const completed = cpsUsers.filter(user => {
+                        const userProgression = userProgressions.find(p => p.userId === user.uid);
+                        return userProgression?.completedSections?.includes(section.id);
+                      }).length;
+                      
+                      return {
+                        ...section,
+                        completionRate: total > 0 ? (completed / total) * 100 : 0
+                      };
+                    })
+                    .sort((a, b) => a.completionRate - b.completionRate)
+                    .slice(0, 3)
+                    .map(section => (
+                      <div key={section.id} className="border-b pb-2 last:border-b-0 last:pb-0">
+                        <div className="flex justify-between">
+                          <span className="font-medium">{section.title}</span>
+                          <span className="text-sm text-gray-600">{Math.round(section.completionRate)}% de complétion</span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Phase: {section.phase === 'pre-arrival' ? 'Pré-arrivée' : 
+                                 section.phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS'}
+                        </div>
+                      </div>
+                    ))}
+                  {guideSections.length === 0 && (
+                    <div className="text-sm text-gray-500">Aucune section à afficher</div>
+                  )}
+                </div>
+              </div>
+            </div>
             </>
           )}
           {/* Prévoir un graphique ici plus tard */}
@@ -611,30 +767,18 @@ const AdminDashboard: React.FC = () => {
               <h3 className="text-md font-semibold text-gray-900 mb-2">Post-CPS</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Sections</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'post-cps').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'post-cps').length : 0}</div>
+                  <div className="text-sm text-gray-600">Sections</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Ressources</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'post-cps').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(resources) ? resources.filter(r => r.phase === 'post-cps').length : 0}</div>
+                  <div className="text-sm text-gray-600">Ressources</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Questions FAQ</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'post-cps').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'post-cps').length : 0}</div>
+                  <div className="text-sm text-gray-600">Questions FAQ</div>
                 </div>
               </div>
             </div>
@@ -644,30 +788,18 @@ const AdminDashboard: React.FC = () => {
               <h3 className="text-md font-semibold text-gray-900 mb-2">Pendant les démarches</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Sections</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'during-process').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'during-process').length : 0}</div>
+                  <div className="text-sm text-gray-600">Sections</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Ressources</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'during-process').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(resources) ? resources.filter(r => r.phase === 'during-process').length : 0}</div>
+                  <div className="text-sm text-gray-600">Ressources</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Questions FAQ</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'during-process').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'during-process').length : 0}</div>
+                  <div className="text-sm text-gray-600">Questions FAQ</div>
                 </div>
               </div>
             </div>
@@ -677,30 +809,18 @@ const AdminDashboard: React.FC = () => {
               <h3 className="text-md font-semibold text-gray-900 mb-2">Pré-arrivée</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Sections</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'pre-arrival').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(guideSections) ? guideSections.filter(s => s.phase === 'pre-arrival').length : 0}</div>
+                  <div className="text-sm text-gray-600">Sections</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Ressources</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(resources) ? resources.filter(r => r.phase === 'pre-arrival').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(resources) ? resources.filter(r => r.phase === 'pre-arrival').length : 0}</div>
+                  <div className="text-sm text-gray-600">Ressources</div>
                 </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Questions FAQ</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'pre-arrival').length : 0}
-                    </span>
-                  </div>
+                  <div className="text-3xl font-bold text-blue-800 mb-1">{Array.isArray(faqItems) ? faqItems.filter(f => f.phase === 'pre-arrival').length : 0}</div>
+                  <div className="text-sm text-gray-600">Questions FAQ</div>
                 </div>
               </div>
             </div>
