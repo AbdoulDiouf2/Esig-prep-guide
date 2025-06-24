@@ -207,47 +207,95 @@ const AdminDashboard: React.FC = () => {
                 <div className="text-sm text-gray-600">Étudiants CPS inscrits</div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg">
-                <div className="text-3xl font-bold text-green-800 mb-1">
-                  {(() => {
-                    const cpsUsers = users.filter(user => user.status === 'cps');
-                    const total = cpsUsers.length;
-                    if (total === 0) return 0;
-                    
-                    // Ne considérer que les progressions des utilisateurs CPS qui ont terminé à 100%
-                    const cpsUserIds = cpsUsers.map(user => user.uid);
-                    const full = userProgressions
-                      .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) === 100)
-                      .length;
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-green-800">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '0%';
                       
-                    return Math.round((full / total) * 100);
-                  })()}%
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      const full = userProgressions
+                        .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) === 100)
+                        .length;
+                        
+                      return `${Math.round((full / total) * 100)}%`;
+                    })()}
+                  </span>
+                  <span className="ml-2 text-lg text-gray-600">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '(0/0)';
+                      
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      const full = userProgressions
+                        .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) === 100)
+                        .length;
+                        
+                      return `(${full}/${total})`;
+                    })()}
+                  </span>
                 </div>
                 <div className="text-sm text-gray-600">ont terminé toutes les sections</div>
               </div>
               <div className="p-4 bg-yellow-50 rounded-lg">
-                <div className="text-3xl font-bold text-yellow-800 mb-1">
-                  {(() => {
-                    const cpsUsers = users.filter(user => user.status === 'cps');
-                    if (cpsUsers.length === 0) return 0;
-                    const cpsProgressions = userProgressions.filter(p => 
-                      cpsUsers.some(user => user.uid === p.userId)
-                    );
-                    if (cpsProgressions.length === 0) return 0;
-                    const sum = cpsProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
-                    return Math.round(sum / cpsProgressions.length);
-                  })()}%
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-yellow-800">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '0%';
+                      
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
+                      if (cpsProgressions.length === 0) return '0%';
+                      
+                      const sum = cpsProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
+                      return `${Math.round(sum / cpsProgressions.length)}%`;
+                    })()}
+                  </span>
+                  <span className="ml-2 text-lg text-gray-600">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '(0/0)';
+                      
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
+                      return `(${cpsProgressions.length}/${total})`;
+                    })()}
+                  </span>
                 </div>
                 <div className="text-sm text-gray-600">Progression moyenne</div>
               </div>
               <div className="p-4 bg-purple-50 rounded-lg">
-                <div className="text-3xl font-bold text-purple-800 mb-1">
-                  {(() => {
-                    const cpsUsers = users.filter(user => user.status === 'cps');
-                    const cpsUserIds = cpsUsers.map(user => user.uid);
-                    return userProgressions
-                      .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) >= 50)
-                      .length;
-                  })()}
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-purple-800">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '0';
+                      
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      return userProgressions
+                        .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) >= 50)
+                        .length;
+                    })()}
+                  </span>
+                  <span className="ml-2 text-lg text-gray-600">
+                    {(() => {
+                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const total = cpsUsers.length;
+                      if (total === 0) return '(0/0)';
+                      
+                      const cpsUserIds = cpsUsers.map(user => user.uid);
+                      const over50 = userProgressions
+                        .filter(p => cpsUserIds.includes(p.userId) && getUserGlobalProgress(p.completedSections) >= 50)
+                        .length;
+                      return `(${over50}/${total})`;
+                    })()}
+                  </span>
                 </div>
                 <div className="text-sm text-gray-600">étudiants CPS à plus de 50%</div>
               </div>
@@ -257,7 +305,6 @@ const AdminDashboard: React.FC = () => {
               {['pre-arrival', 'during-process', 'post-cps'].map((phase) => {
                 const phaseSections = guideSections.filter(s => s.phase === phase);
                 const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
-                const color = phase === 'pre-arrival' ? 'blue' : phase === 'during-process' ? 'green' : 'purple';
                 // Filtrer pour n'avoir que les utilisateurs CPS
                 const cpsUsers = users.filter(user => user.status === 'cps');
                 const cpsUserIds = cpsUsers.map(user => user.uid);
@@ -272,11 +319,20 @@ const AdminDashboard: React.FC = () => {
                 const full = cpsUsers.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
                   cpsProgressions.filter(p => phaseSections.every(s => p.completedSections.includes(s.id))).length / cpsUsers.length * 100
                 );
+                
+                // Compter le nombre d'étudiants ayant terminé la phase
+                const completedCount = phaseSections.length === 0 ? 0 : 
+                  cpsProgressions.filter(p => phaseSections.every(s => p.completedSections.includes(s.id))).length;
+                
                 return (
-                  <div className={`p-4 bg-${color}-50 rounded-lg`} key={phase}>
-                    <div className={`text-3xl font-bold text-${color}-800 mb-1`}>{avg}%</div>
+                  <div className={`p-4 rounded-lg ${phase === 'pre-arrival' ? 'bg-blue-50' : phase === 'during-process' ? 'bg-green-50' : 'bg-purple-50'}`} key={phase}>
+                    <div className={`text-3xl font-bold ${phase === 'pre-arrival' ? 'text-blue-800' : phase === 'during-process' ? 'text-green-800' : 'text-purple-800'} mb-1`}>
+                      {avg}% <span className="text-lg">({cpsProgressions.length}/{cpsUsers.length})</span>
+                    </div>
                     <div className="text-sm text-gray-600 mb-1">Progression moyenne {phaseLabel}</div>
-                    <div className={`text-lg font-bold text-${color}-800 mb-1`}>{full}%</div>
+                    <div className={`text-lg font-bold ${phase === 'pre-arrival' ? 'text-blue-800' : phase === 'during-process' ? 'text-green-800' : 'text-purple-800'} mb-1`}>
+                      {full}% <span className="text-sm">({completedCount}/{cpsUsers.length})</span>
+                    </div>
                     <div className="text-sm text-gray-600">ont terminé {phaseLabel}</div>
                   </div>
                 );
