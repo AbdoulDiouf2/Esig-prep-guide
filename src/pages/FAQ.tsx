@@ -361,7 +361,7 @@ const FAQ: React.FC = () => {
                   {openQuestionId === item.id && (
                     <div className="mt-4 ml-11">
                       <div className="flex items-start">
-                        <p className="text-gray-700">{item.answer}</p>
+                        <p className="text-gray-700 whitespace-pre-line">{item.answer}</p>
                         <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Admin
                         </span>
@@ -447,7 +447,7 @@ const FAQ: React.FC = () => {
                       
                       {openQuestionId === item.id && (
                         <div className="mt-4 ml-11">
-                          <p className="text-gray-700">{item.answer}</p>
+                          <p className="text-gray-700 whitespace-pre-line">{item.answer}</p>
                           <p className="text-xs text-gray-500 mt-2">
                             Mise à jour le {item.updatedDate}
                           </p>
@@ -535,7 +535,7 @@ const FAQ: React.FC = () => {
                       
                       {openQuestionId === item.id && (
                         <div className="mt-4 ml-11">
-                          <p className="text-gray-700 italic">{item.answer}</p>
+                          <p className="text-gray-700 whitespace-pre-line">{item.answer}</p>
                         </div>
                       )}
                     </div>
