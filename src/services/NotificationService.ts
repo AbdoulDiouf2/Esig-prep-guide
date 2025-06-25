@@ -202,7 +202,7 @@ export const NotificationService = {
         `,
         app_name: 'ESIG-prep-guide',
         faq_url: `${window.location.origin}/Esig-prep-guide/webinars`,
-        bcc_list: userEmails.join(',') // Cci pour l'envoi réel
+        // bcc_list: userEmails.join(',') // Cci pour l'envoi réel
       };
       
       // 4. Envoi de l'email unique avec Cci
