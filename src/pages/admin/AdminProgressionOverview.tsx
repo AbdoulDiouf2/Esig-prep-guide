@@ -654,7 +654,16 @@ const AdminProgressionOverview: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {usersInProgress.filter(user => !user.isAdmin && user.status === 'cps').map(user => {
+                {usersInProgress
+  .filter(user => !user.isAdmin && user.status === 'cps')
+  .sort((a, b) => {
+    const progressionA = userProgressions.find(p => p.userId === a.uid);
+    const progressionB = userProgressions.find(p => p.userId === b.uid);
+    const percentA = progressionA ? getUserGlobalProgress(progressionA.completedSections) : 0;
+    const percentB = progressionB ? getUserGlobalProgress(progressionB.completedSections) : 0;
+    return percentB - percentA;
+  })
+  .map(user => {
                   const progression = userProgressions.find(p => p.userId === user.uid);
                   // Assurons-nous que nous ne comptons que les sections qui existent encore
                   const validCompletedSections = progression ? progression.completedSections.filter(sectionId => 
