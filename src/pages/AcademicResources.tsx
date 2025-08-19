@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +37,7 @@ interface AcademicResource {
   specialisation?: string; // Pour S8 et 3ème année
   departement?: 'TIC' | 'ET' | 'GEE' | 'SEI';
   links: ResourceLink[]; // Plusieurs liens possibles
+  url?: string; // Pour la rétrocompatibilité avec les anciennes données
   createdBy?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -64,6 +66,7 @@ const AcademicResources: React.FC = () => {
   const [selectedSemester, setSelectedSemester] = useState<number | 'all'>('all');
   const [selectedParcours, setSelectedParcours] = useState<string>('all');
   const [selectedSpecialisation, setSelectedSpecialisation] = useState<string>('all');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedDepartement, setSelectedDepartement] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingResource, setEditingResource] = useState<AcademicResource | null>(null);
