@@ -55,6 +55,13 @@ const AcademicResources: React.FC = () => {
   const [editingResource, setEditingResource] = useState<AcademicResource | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error'}>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
   const [formData, setFormData] = useState<ResourceFormData>({
     title: '',
     description: '',
@@ -82,7 +89,7 @@ const AcademicResources: React.FC = () => {
     const fetchResources = async () => {
       try {
         const resourcesRef = collection(db, 'academicResources');
-        const q = query(resourcesRef, orderBy('year'), orderBy('semester'), orderBy('subject'));
+        const q = query(resourcesRef, orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         
         const resourcesList: AcademicResource[] = [];
@@ -136,6 +143,7 @@ const AcademicResources: React.FC = () => {
     if (!currentUser) return;
 
     try {
+      setIsSubmitting(true);
       const resourceData = {
         ...formData,
         createdBy: currentUser.uid,
@@ -176,9 +184,22 @@ const AcademicResources: React.FC = () => {
       });
       setShowAddForm(false);
       setEditingResource(null);
+      setToast({
+        show: true,
+        message: editingResource ? 'Ressource modifiée avec succès !' : 'Ressource ajoutée avec succès !',
+        type: 'success'
+      });
+      setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Une erreur est survenue lors de la sauvegarde.');
+      setToast({
+        show: true,
+        message: 'Erreur lors de la sauvegarde.',
+        type: 'error'
+      });
+      setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -192,12 +213,25 @@ const AcademicResources: React.FC = () => {
     if (!resourceToDelete) return;
 
     try {
+      setIsDeleting(true);
       await deleteDoc(doc(db, 'academicResources', resourceToDelete));
       setResources(prev => prev.filter(r => r.id !== resourceToDelete));
+      setToast({
+        show: true,
+        message: 'Ressource supprimée avec succès !',
+        type: 'success'
+      });
+      setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Une erreur est survenue lors de la suppression.');
+      setToast({
+        show: true,
+        message: 'Erreur lors de la suppression.',
+        type: 'error'
+      });
+      setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
     } finally {
+      setIsDeleting(false);
       setShowDeleteModal(false);
       setResourceToDelete(null);
     }
@@ -492,9 +526,13 @@ const AcademicResources: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  {editingResource ? 'Modifier' : 'Ajouter'}
+                  {isSubmitting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  )}
+                  {isSubmitting ? 'En cours...' : (editingResource ? 'Modifier' : 'Ajouter')}
                 </button>
               </div>
             </form>
@@ -610,20 +648,51 @@ const AcademicResources: React.FC = () => {
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Supprimer
+                {isDeleting && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                )}
+                {isDeleting ? 'Suppression...' : 'Supprimer'}
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-export default AcademicResources;
-
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`fixed bottom-4 right-4 z-50 transform transition-all duration-300 ease-in-out ${
+          toast.show ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+        }`}>
+          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 ${
+            toast.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}>
+            <div className={`flex-shrink-0 ${
+              toast.type === 'success' ? 'text-green-100' : 'text-red-100'
+            }`}>
+              {toast.type === 'success' ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <p className="font-medium">{toast.message}</p>
+            <button
+              onClick={() => setToast(prev => ({ ...prev, show: false }))}
+              className="flex-shrink-0 ml-4 text-white hover:text-gray-200"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
     </div>
