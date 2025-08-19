@@ -23,23 +23,29 @@ interface AcademicResource {
   id?: string;
   title: string;
   description: string;
-  type: 'cours' | 'td' | 'tp' | 'exam' | 'project';
+  type: 'cours' | 'td' | 'tp' | 'exam' | 'project' | 'all';
   year: 1 | 2 | 3;
   semester: 5 | 6 | 7 | 8 | 9 | 10;
   subject: string;
+  parcours?: string; // Pour S7
+  specialisation?: string; // Pour S8 et 3ème année
+  departement?: 'TIC' | 'ET' | 'GEE' | 'SEI';
   url: string;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;
+  createdBy?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface ResourceFormData {
   title: string;
   description: string;
-  type: 'cours' | 'td' | 'tp' | 'exam' | 'project';
+  type: 'cours' | 'td' | 'tp' | 'exam' | 'project' | 'all';
   year: 1 | 2 | 3;
   semester: 5 | 6 | 7 | 8 | 9 | 10;
   subject: string;
+  parcours?: string;
+  specialisation?: string;
+  departement?: 'TIC' | 'ET' | 'GEE' | 'SEI';
   url: string;
 }
 
@@ -51,6 +57,9 @@ const AcademicResources: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedSemester, setSelectedSemester] = useState<number | 'all'>('all');
+  const [selectedParcours, setSelectedParcours] = useState<string>('all');
+  const [selectedSpecialisation, setSelectedSpecialisation] = useState<string>('all');
+  const [selectedDepartement, setSelectedDepartement] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingResource, setEditingResource] = useState<AcademicResource | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -65,24 +74,46 @@ const AcademicResources: React.FC = () => {
   const [formData, setFormData] = useState<ResourceFormData>({
     title: '',
     description: '',
-    type: 'cours',
+    type: 'all',
     year: 1,
     semester: 5,
     subject: '',
+    parcours: '',
+    specialisation: '',
+    departement: undefined,
     url: ''
   });
 
   const canEdit = isAdmin() || isEditor();
 
+  // Données de structure académique
+  const parcoursS7 = [
+    'ET-GEE', 'ET-TIC', 'ET-SEI', 'GEE-TIC', 'GEE-SEI', 'TIC-SEI', 'ET', 'GEE', 'TIC', 'SEI'
+  ];
+
+  const specialisations = {
+    TIC: ['BDTN', 'CERT', 'ISN', 'IA-IR', 'IF', 'IA et Big Data (Campus Poitiers)', 'Développement logiciel : Test & Qualité (Campus Poitiers)'],
+    ET: ['ESAA'],
+    GEE: ['DARIA', 'GET', 'IA_DES', 'EDD'],
+    SEI: ['ISEMAC', 'MCTSE', 'ISE-VA']
+  };
+
+  const departements = ['TIC', 'ET', 'GEE', 'SEI'] as const;
+
   // Fonction pour obtenir les semestres disponibles selon l'année
   const getAvailableSemesters = (year: number) => {
     switch (year) {
-      case 1: return [5, 6]; // 1ère année: S5, S6
-      case 2: return [7, 8]; // 2ème année: S7, S8
-      case 3: return [9, 10]; // 3ème année: S9, S10
+      case 1: return [5, 6]; // 1ère année: S5, S6 (tronc commun)
+      case 2: return [7, 8]; // 2ème année: S7 (parcours), S8 (spécialisation)
+      case 3: return [9, 10]; // 3ème année: S9, S10 (spécialisation)
       default: return [5, 6, 7, 8, 9, 10];
     }
   };
+
+  // Fonction pour déterminer si on doit afficher les champs parcours/spécialisation
+  const shouldShowParcours = () => formData.year === 2 && formData.semester === 7;
+  const shouldShowSpecialisation = () => (formData.year === 2 && formData.semester === 8) || formData.year === 3;
+  const shouldShowDepartement = () => shouldShowSpecialisation();
 
   // Charger les ressources depuis Firestore
   useEffect(() => {
@@ -117,14 +148,17 @@ const AcademicResources: React.FC = () => {
   // Filtrer les ressources
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.subject.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesYear = selectedYear === 'all' || resource.year === selectedYear;
     const matchesType = selectedType === 'all' || resource.type === selectedType;
     const matchesSemester = selectedSemester === 'all' || resource.semester === selectedSemester;
+    const matchesParcours = selectedParcours === 'all' || resource.parcours === selectedParcours;
+    const matchesSpecialisation = selectedSpecialisation === 'all' || resource.specialisation === selectedSpecialisation;
+    const matchesDepartement = selectedDepartement === 'all' || resource.departement === selectedDepartement;
     
-    return matchesSearch && matchesYear && matchesType && matchesSemester;
+    return matchesSearch && matchesYear && matchesType && matchesSemester && matchesParcours && matchesSpecialisation && matchesDepartement;
   });
 
   // Grouper les ressources par année
@@ -144,8 +178,13 @@ const AcademicResources: React.FC = () => {
 
     try {
       setIsSubmitting(true);
+      // Nettoyer les données avant l'envoi - supprimer les valeurs undefined
+      const cleanedFormData = Object.fromEntries(
+        Object.entries(formData).filter(([, value]) => value !== undefined && value !== '')
+      );
+      
       const resourceData = {
-        ...formData,
+        ...cleanedFormData,
         createdBy: currentUser.uid,
         updatedAt: new Date()
       };
@@ -166,20 +205,24 @@ const AcademicResources: React.FC = () => {
         });
         setResources(prev => [...prev, {
           id: docRef.id,
-          ...resourceData,
+          ...cleanedFormData,
+          createdBy: currentUser.uid,
           createdAt: new Date(),
           updatedAt: new Date()
-        }]);
+        } as AcademicResource]);
       }
 
       // Réinitialiser le formulaire
       setFormData({
         title: '',
         description: '',
-        type: 'cours',
+        type: 'all',
         year: 1,
         semester: 5,
         subject: '',
+        parcours: '',
+        specialisation: '',
+        departement: undefined,
         url: ''
       });
       setShowAddForm(false);
@@ -246,6 +289,9 @@ const AcademicResources: React.FC = () => {
       year: resource.year,
       semester: resource.semester,
       subject: resource.subject,
+      parcours: resource.parcours || '',
+      specialisation: resource.specialisation || '',
+      departement: resource.departement,
       url: resource.url
     });
     setEditingResource(resource);
@@ -259,6 +305,7 @@ const AcademicResources: React.FC = () => {
       case 'tp': return <FileText className="w-4 h-4" />;
       case 'exam': return <Clock className="w-4 h-4" />;
       case 'project': return <Calendar className="w-4 h-4" />;
+      case 'all': return <BookOpen className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
@@ -270,6 +317,7 @@ const AcademicResources: React.FC = () => {
       case 'tp': return 'TP';
       case 'exam': return 'Examen';
       case 'project': return 'Projet';
+      case 'all': return 'Toutes ressources';
       default: return type;
     }
   };
@@ -281,8 +329,50 @@ const AcademicResources: React.FC = () => {
       case 'tp': return 'bg-purple-100 text-purple-800';
       case 'exam': return 'bg-red-100 text-red-800';
       case 'project': return 'bg-yellow-100 text-yellow-800';
+      case 'all': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Gérer les changements d'année pour mettre à jour les semestres disponibles
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newYear = parseInt(e.target.value) as 1 | 2 | 3;
+    const availableSemesters = getAvailableSemesters(newYear);
+    
+    setFormData(prev => ({
+      ...prev,
+      year: newYear,
+      semester: availableSemesters[0] as 5 | 6 | 7 | 8 | 9 | 10,
+      // Réinitialiser les champs spécifiques selon l'année
+      parcours: newYear === 2 && prev.semester === 7 ? prev.parcours : '',
+      specialisation: (newYear === 2 && prev.semester === 8) || newYear === 3 ? prev.specialisation : '',
+      departement: (newYear === 2 && prev.semester === 8) || newYear === 3 ? prev.departement : undefined
+    }));
+  };
+
+  // Gérer les changements de semestre
+  const handleSemesterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSemester = parseInt(e.target.value) as 5 | 6 | 7 | 8 | 9 | 10;
+    
+    setFormData(prev => ({
+      ...prev,
+      semester: newSemester,
+      // Réinitialiser les champs selon le semestre
+      parcours: newSemester === 7 ? prev.parcours : '',
+      specialisation: newSemester === 8 || newSemester >= 9 ? prev.specialisation : '',
+      departement: newSemester === 8 || newSemester >= 9 ? prev.departement : undefined
+    }));
+  };
+
+  // Gérer les changements de département
+  const handleDepartementChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDepartement = e.target.value as 'TIC' | 'ET' | 'GEE' | 'SEI' | '';
+    
+    setFormData(prev => ({
+      ...prev,
+      departement: newDepartement || undefined,
+      specialisation: '' // Réinitialiser la spécialisation
+    }));
   };
 
   if (loading) {
@@ -327,10 +417,13 @@ const AcademicResources: React.FC = () => {
                 setFormData({
                   title: '',
                   description: '',
-                  type: 'cours',
+                  type: 'all' as const,
                   year: 1,
                   semester: 5,
                   subject: '',
+                  parcours: '',
+                  specialisation: '',
+                  departement: undefined,
                   url: ''
                 });
               }}
@@ -345,7 +438,7 @@ const AcademicResources: React.FC = () => {
 
       {/* Filtres */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Search className="w-4 h-4 inline mr-1" />
@@ -401,8 +494,39 @@ const AcademicResources: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tous les semestres</option>
-              {getAvailableSemesters(selectedYear as number).map(semester => (
-                <option key={semester} value={semester}>S{semester}</option>
+              <option value={5}>S5</option>
+              <option value={6}>S6</option>
+              <option value={7}>S7</option>
+              <option value={8}>S8</option>
+              <option value={9}>S9</option>
+              <option value={10}>S10</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Parcours</label>
+            <select
+              value={selectedParcours}
+              onChange={(e) => setSelectedParcours(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Tous les parcours</option>
+              {parcoursS7.map(parcours => (
+                <option key={parcours} value={parcours}>{parcours}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Spécialisation</label>
+            <select
+              value={selectedSpecialisation}
+              onChange={(e) => setSelectedSpecialisation(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toutes les spécialisations</option>
+              {Object.values(specialisations).flat().map(spec => (
+                <option key={spec} value={spec}>{spec}</option>
               ))}
             </select>
           </div>
@@ -444,10 +568,11 @@ const AcademicResources: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'cours' | 'td' | 'tp' | 'exam' | 'project' | 'all' }))}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="all">Toutes ressources (Cours + TD + TP + Projet)</option>
                     <option value="cours">Cours</option>
                     <option value="td">TD</option>
                     <option value="tp">TP</option>
@@ -473,10 +598,7 @@ const AcademicResources: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Année *</label>
                   <select
                     value={formData.year}
-                    onChange={(e) => {
-                      setFormData(prev => ({ ...prev, year: parseInt(e.target.value) as any }));
-                      setFormData(prev => ({ ...prev, semester: getAvailableSemesters(parseInt(e.target.value) as number)[0] }));
-                    }}
+                    onChange={handleYearChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -490,7 +612,7 @@ const AcademicResources: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Semestre *</label>
                   <select
                     value={formData.semester}
-                    onChange={(e) => setFormData(prev => ({ ...prev, semester: parseInt(e.target.value) as any }))}
+                    onChange={handleSemesterChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -501,6 +623,56 @@ const AcademicResources: React.FC = () => {
                 </div>
               </div>
               
+              {/* Champs spécifiques selon l'année et le semestre */}
+              {shouldShowParcours() && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Parcours (S7)</label>
+                  <select
+                    value={formData.parcours || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, parcours: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sélectionner un parcours</option>
+                    {parcoursS7.map(parcours => (
+                      <option key={parcours} value={parcours}>{parcours}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {shouldShowDepartement() && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+                    <select
+                      value={formData.departement || ''}
+                      onChange={handleDepartementChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Sélectionner un département</option>
+                      {departements.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Spécialisation</label>
+                    <select
+                      value={formData.specialisation || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, specialisation: e.target.value }))}
+                      disabled={!formData.departement}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    >
+                      <option value="">Sélectionner une spécialisation</option>
+                      {formData.departement && specialisations[formData.departement]?.map(spec => (
+                        <option key={spec} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">URL/Lien *</label>
                 <input
@@ -563,7 +735,7 @@ const AcademicResources: React.FC = () => {
               <div key={year} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
                   <h2 className="text-xl font-bold">
-                    {year === 1 ? '1ère' : year === 2 ? '2ème' : '3ème'} année
+                    {year === 1 ? '1ère année (Tronc commun)' : year === 2 ? '2ème année (Parcours & Spécialisations)' : '3ème année (Spécialisations)'}
                   </h2>
                   <p className="text-blue-100">
                     {resourcesByYear[year].length} ressource{resourcesByYear[year].length > 1 ? 's' : ''} disponible{resourcesByYear[year].length > 1 ? 's' : ''}
@@ -591,7 +763,7 @@ const AcademicResources: React.FC = () => {
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDelete(resource.id)}
+                                onClick={() => handleDelete(resource.id!)}
                                 className="text-red-600 hover:text-red-800 p-1"
                                 title="Supprimer"
                               >
@@ -607,9 +779,27 @@ const AcademicResources: React.FC = () => {
                           <p className="text-sm text-gray-500 mb-3 line-clamp-2">{resource.description}</p>
                         )}
                         
-                        <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                          <span>S{resource.semester}</span>
-                          <span>Mis à jour le {resource.updatedAt.toLocaleDateString('fr-FR')}</span>
+                        {/* Affichage des informations spécifiques */}
+                        <div className="space-y-1 mb-3">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>S{resource.semester}</span>
+                            <span>Mis à jour le {resource.updatedAt?.toLocaleDateString('fr-FR')}</span>
+                          </div>
+                          {resource.parcours && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              Parcours: {resource.parcours}
+                            </div>
+                          )}
+                          {resource.departement && (
+                            <div className="text-xs text-purple-600 font-medium">
+                              Département: {resource.departement}
+                            </div>
+                          )}
+                          {resource.specialisation && (
+                            <div className="text-xs text-green-600 font-medium">
+                              Spécialisation: {resource.specialisation}
+                            </div>
+                          )}
                         </div>
                         
                         <a
