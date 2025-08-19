@@ -55,6 +55,7 @@ import WebinarDetail from './pages/WebinarDetail';
 import ProposerAtelier from './pages/ProposerAtelier';
 import MesPropositions from './pages/MesPropositions';
 import UserChat from './pages/UserChat';
+import AcademicResources from './pages/AcademicResources';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -288,6 +289,11 @@ function App() {
                 <Route path="/resources" element={
                   <AuthWrapper>
                     <ResourceLibrary />
+                  </AuthWrapper>
+                } />
+                <Route path="/academic-resources" element={
+                  <AuthWrapper>
+                    <AcademicResources />
                   </AuthWrapper>
                 } />
                 <Route path="/faq" element={
@@ -543,8 +549,7 @@ function App() {
                     <MesPropositions />
                   </AuthWrapper>
                 } />
-                {/* <Route path="/webinars/:id/confirmation" element={<WebinarConfirmation />} /> */}
-
+                
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

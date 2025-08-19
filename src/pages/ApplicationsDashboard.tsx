@@ -112,6 +112,13 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"]
         },
         {
+          icon: <BookOpen className="w-8 h-8 text-indigo-600" />,
+          title: "Ressources Académiques",
+          description: "Accédez aux cours, TD, TP organisés par année d'étude",
+          link: "/academic-resources",
+          roles: ["admin", "editor", "user"]
+        },
+        {
           icon: <Plane className="w-8 h-8 text-indigo-500" />,
           title: "Réservation de billets d'avion",
           description: "Trouvez et réservez vos billets d'avion au meilleur prix",
