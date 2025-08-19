@@ -57,45 +57,22 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
 
   // Synchroniser l'état local avec la valeur externe
   useEffect(() => {
-    // Ne pas écraser les valeurs existantes avec des valeurs vides
-    if (value === undefined || value === null) {
-      if (fieldType === 'date') {
-        // Ne pas réinitialiser si nous avons déjà une date
-        if (dateValue === '') {
-          setDateValue('');
-        }
-      } else if (fieldType === 'datetime') {
-        // Ne pas réinitialiser si nous avons déjà une date
-        if (dateTimeValue === '') {
-          setDateTimeValue('');
-        }
-      } else if (fieldType === 'boolean') {
-        // Boolean peut être réinitialisé
-        setBooleanValue(false);
-      } else if (localValue === '') {
-        setLocalValue('');
-      }
-      return;
-    }
-
-    // Conversion des valeurs non nulles
+    // La prop `value` est la source de vérité. 
+    // L'état local est mis à jour en fonction de cette prop.
     if (fieldType === 'boolean') {
       setBooleanValue(Boolean(value));
     } else if (fieldType === 'date' && value instanceof Date) {
-      // Pour les dates, vérifier si c'est une date valide avant de l'utiliser
       const formattedDate = formatDateForInput(value);
-      console.log(`Setting date value for ${id}:`, formattedDate, 'from date object:', value);
       setDateValue(formattedDate);
     } else if (fieldType === 'datetime' && value instanceof Date) {
-      // Pour les dates avec heure, vérifier si c'est une date valide avant de l'utiliser
       const formattedDateTime = formatDateTimeForInput(value);
-      console.log(`Setting datetime value for ${id}:`, formattedDateTime, 'from date object:', value);
       setDateTimeValue(formattedDateTime);
     } else {
-      // Pour les autres types, convertir en string
-      setLocalValue(String(value));
+      // Pour les autres types (select, text, number...), on met à jour la valeur locale.
+      // Si la valeur est null ou undefined, on la remplace par une chaîne vide.
+      setLocalValue(value ? String(value) : '');
     }
-  }, [value, fieldType, id, dateValue, dateTimeValue, localValue]);
+  }, [value, fieldType]);
 
   const handleBooleanChange = (newValue: boolean) => {
     setBooleanValue(newValue); // Mettre à jour l'état local
@@ -158,7 +135,12 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
 
   const handleBlur = () => {
     // Convertir et sauvegarder la valeur au format approprié lors de la perte de focus
-    const typedValue = localValue;
+    let typedValue: TypedValue = localValue;
+
+    if ((fieldType === 'select' || fieldType === 'airport') && localValue === '') {
+      typedValue = null;
+    }
+    
     onChange(id, typedValue);
     
     if (onBlur) {

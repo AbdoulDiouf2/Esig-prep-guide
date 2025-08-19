@@ -31,9 +31,10 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
   }, [value]);
 
   // Gérer le changement de valeur
-  const handleChange = (newValue: string) => {
-    setInputValue(newValue);
-    onChange(item.id, newValue);
+  const handleChange = (newValue: TypedValue) => {
+    const stringValue = newValue === null ? '' : String(newValue);
+    setInputValue(stringValue);
+    onChange(item.id, stringValue);
   };
 
   // Gérer le changement de valeur typée
@@ -45,7 +46,7 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
     
     // On met également à jour la valeur string pour la compatibilité avec les composants existants
     if (item.fieldType) {
-      const stringValue = String(newTypedValue);
+      const stringValue = newTypedValue === null ? '' : String(newTypedValue);
       onChange(id, stringValue);
     }
   };
