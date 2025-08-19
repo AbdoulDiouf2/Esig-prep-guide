@@ -5,7 +5,6 @@ import {
   ArrowLeft, 
   BookOpen, 
   FileText, 
-  Download, 
   ExternalLink,
   Calendar,
   Users,
@@ -19,6 +18,12 @@ import {
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
+interface ResourceLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 interface AcademicResource {
   id?: string;
   title: string;
@@ -30,7 +35,7 @@ interface AcademicResource {
   parcours?: string; // Pour S7
   specialisation?: string; // Pour S8 et 3ème année
   departement?: 'TIC' | 'ET' | 'GEE' | 'SEI';
-  url: string;
+  links: ResourceLink[]; // Plusieurs liens possibles
   createdBy?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -46,7 +51,7 @@ interface ResourceFormData {
   parcours?: string;
   specialisation?: string;
   departement?: 'TIC' | 'ET' | 'GEE' | 'SEI';
-  url: string;
+  links: ResourceLink[];
 }
 
 const AcademicResources: React.FC = () => {
@@ -81,7 +86,7 @@ const AcademicResources: React.FC = () => {
     parcours: '',
     specialisation: '',
     departement: undefined,
-    url: ''
+    links: [{ id: '1', title: 'Lien principal', url: '' }]
   });
 
   const canEdit = isAdmin() || isEditor();
@@ -223,7 +228,7 @@ const AcademicResources: React.FC = () => {
         parcours: '',
         specialisation: '',
         departement: undefined,
-        url: ''
+        links: [{ id: '1', title: 'Lien principal', url: '' }]
       });
       setShowAddForm(false);
       setEditingResource(null);
@@ -282,6 +287,24 @@ const AcademicResources: React.FC = () => {
 
   // Préparer l'édition
   const handleEdit = (resource: AcademicResource) => {
+    // Gérer la rétrocompatibilité avec l'ancien champ url
+    let linksToEdit: ResourceLink[] = [];
+    
+    if (resource.links && resource.links.length > 0) {
+      // Nouvelle structure avec liens multiples
+      linksToEdit = resource.links;
+    } else if ((resource as any).url) {
+      // Ancienne structure avec url simple - convertir
+      linksToEdit = [{ 
+        id: '1', 
+        title: 'Lien principal', 
+        url: (resource as any).url 
+      }];
+    } else {
+      // Aucun lien existant
+      linksToEdit = [{ id: '1', title: 'Lien principal', url: '' }];
+    }
+    
     setFormData({
       title: resource.title,
       description: resource.description,
@@ -292,7 +315,7 @@ const AcademicResources: React.FC = () => {
       parcours: resource.parcours || '',
       specialisation: resource.specialisation || '',
       departement: resource.departement,
-      url: resource.url
+      links: linksToEdit
     });
     setEditingResource(resource);
     setShowAddForm(true);
@@ -375,6 +398,36 @@ const AcademicResources: React.FC = () => {
     }));
   };
 
+  // Gestion des liens multiples
+  const addLink = () => {
+    const newId = Date.now().toString();
+    setFormData(prev => ({
+      ...prev,
+      links: [...prev.links, { id: newId, title: '', url: '' }]
+    }));
+  };
+
+  const removeLink = (linkId: string) => {
+    // Empêcher la suppression du dernier lien
+    if (formData.links.length <= 1) {
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      links: prev.links.filter(link => link.id !== linkId)
+    }));
+  };
+
+  const updateLink = (linkId: string, field: 'title' | 'url', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      links: prev.links.map(link => 
+        link.id === linkId ? { ...link, [field]: value } : link
+      )
+    }));
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -424,7 +477,7 @@ const AcademicResources: React.FC = () => {
                   parcours: '',
                   specialisation: '',
                   departement: undefined,
-                  url: ''
+                  links: [{ id: '1', title: 'Lien principal', url: '' }]
                 });
               }}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
@@ -673,16 +726,62 @@ const AcademicResources: React.FC = () => {
                 </div>
               )}
 
+              {/* Gestion des liens multiples */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL/Lien *</label>
-                <input
-                  type="url"
-                  value={formData.url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                  required
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Liens/Ressources *</label>
+                  <button
+                    type="button"
+                    onClick={addLink}
+                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Ajouter un lien
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {formData.links.map((link, index) => (
+                    <div key={link.id} className="border border-gray-200 rounded-md p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Lien {index + 1}</span>
+                        {formData.links.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeLink(link.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Supprimer ce lien"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {formData.links.length === 1 && (
+                          <span className="text-xs text-gray-500 italic">
+                            Lien obligatoire
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={link.title}
+                          onChange={(e) => updateLink(link.id, 'title', e.target.value)}
+                          placeholder="Nom du lien (ex: Cours magistral, TD1...)"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => updateLink(link.id, 'url', e.target.value)}
+                          required
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               
               <div className="flex justify-end space-x-3 pt-4">
@@ -802,15 +901,39 @@ const AcademicResources: React.FC = () => {
                           )}
                         </div>
                         
-                        <a
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Accéder à la ressource
-                        </a>
+                        {/* Affichage des liens multiples */}
+                        <div className="space-y-2">
+                          {resource.links && resource.links.length > 0 ? (
+                            resource.links.map((link, index) => (
+                              <div key={link.id || index} className="mb-2">
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-md transition-colors duration-200"
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2 flex-shrink-0" />
+                                  <span className="truncate">{link.title || `Lien ${index + 1}`}</span>
+                                </a>
+                              </div>
+                            ))
+                          ) : (
+                            // Fallback pour les anciennes données avec url simple
+                            resource.url && (
+                              <div className="mb-2">
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-md transition-colors duration-200"
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2 flex-shrink-0" />
+                                  <span>Accéder à la ressource</span>
+                                </a>
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
