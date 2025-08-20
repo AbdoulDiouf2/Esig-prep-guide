@@ -575,7 +575,7 @@ const Dashboard: React.FC = () => {
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
                             {section.title}
                           </h3>
-                          <p className="text-gray-600 mb-4">{section.content}</p>
+                          <p className="text-gray-600 mb-4 whitespace-pre-line">{section.content}</p>
                           
                           {/* Sous-sections */}
                           {section.subSections && section.subSections.length > 0 && (
