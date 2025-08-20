@@ -4,6 +4,35 @@ import SubsectionItemInput from './SubsectionItemInput';
 import { TypedValue } from '../../services/subsectionDataService';
 import { Check, X } from 'lucide-react';
 
+/**
+ * Fonction utilitaire pour détecter et rendre les liens cliquables
+ */
+const renderTextWithLinks = (text: string) => {
+  // Regex pour détecter les URLs (http, https, www)
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+  
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      // Ajouter https:// si l'URL commence par www
+      const href = part.startsWith('www.') ? `https://${part}` : part;
+      return (
+        <a
+          key={index}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 interface SubsectionFormProps {
   subSection: SubSection;
   checkedItems: Record<string, boolean>;
@@ -64,7 +93,9 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
     return (
       <ul className="list-disc pl-5 space-y-1">
         {subSection.items.map(item => (
-          <li key={item.id} className="text-sm text-gray-700">{item.content}</li>
+          <li key={item.id} className="text-sm text-gray-700">
+            {renderTextWithLinks(item.content)}
+          </li>
         ))}
       </ul>
     );
@@ -83,7 +114,7 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
               onChange={() => onCheckChange(item.id)}
             />
             <label htmlFor={`check-${item.id}`} className="ml-2 block text-sm text-gray-700">
-              {item.content}
+              {renderTextWithLinks(item.content)}
             </label>
           </div>
         ))}
