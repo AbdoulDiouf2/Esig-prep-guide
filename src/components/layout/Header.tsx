@@ -75,7 +75,13 @@ const Header: React.FC = () => {
                   <Grid className="w-4 h-4 mr-1" />
                   <span>Applications</span>
                 </Link>
-                <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                {/* <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <FileText className="w-4 h-4 mr-1" />
+                  <span>Ressources</span>
+                </Link> */}
+                <Link to="/all-resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <FileText className="w-4 h-4 mr-1" />
