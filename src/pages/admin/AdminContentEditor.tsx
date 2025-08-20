@@ -4,7 +4,7 @@ import { logAdminActivity } from './adminActivityLog';
 import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem, InputFieldType } from '../../contexts/ContentContext';
 import { 
   Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle,
-  List, CheckSquare, Type, X, FileEdit
+  List, CheckSquare, Type, X, FileEdit, Edit
 } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -75,6 +75,7 @@ const AdminContentEditor: React.FC = () => {
   const [newItemContent, setNewItemContent] = useState('');
   const [newItemFieldType, setNewItemFieldType] = useState<InputFieldType>('text');
   const [newItemOptions, setNewItemOptions] = useState<string>('');
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // États FAQ
   const [question, setQuestion] = useState('');
@@ -398,6 +399,52 @@ const AdminContentEditor: React.FC = () => {
   
   const removeItemFromSubSection = (itemId: string) => {
     setNewSubSectionItems(newSubSectionItems.filter(item => item.id !== itemId));
+  };
+
+  const editItemFromSubSection = (itemId: string) => {
+    const item = newSubSectionItems.find(item => item.id === itemId);
+    if (item) {
+      setNewItemContent(item.content);
+      setNewItemFieldType(item.fieldType || 'text');
+      setNewItemOptions(item.options ? item.options.join(', ') : '');
+      setEditingItemId(itemId);
+    }
+  };
+
+  const updateItemInSubSection = () => {
+    if (newItemContent.trim() === '' || !editingItemId) return;
+
+    const updatedItems = newSubSectionItems.map(item => {
+      if (item.id === editingItemId) {
+        const updatedItem: SubSectionItem = {
+          ...item,
+          content: newItemContent.trim()
+        };
+
+        if (newSubSectionType === 'inputField') {
+          updatedItem.fieldType = newItemFieldType;
+          if (newItemFieldType === 'select' && newItemOptions.trim()) {
+            updatedItem.options = newItemOptions.split(',').map(opt => opt.trim()).filter(opt => opt);
+          } else {
+            updatedItem.options = undefined;
+          }
+        }
+
+        return updatedItem;
+      }
+      return item;
+    });
+
+    setNewSubSectionItems(updatedItems);
+    setNewItemContent('');
+    setNewItemOptions('');
+    setEditingItemId(null);
+  };
+
+  const cancelEditItem = () => {
+    setNewItemContent('');
+    setNewItemOptions('');
+    setEditingItemId(null);
   };
   
   const saveSubSection = async () => {
@@ -1217,13 +1264,32 @@ const AdminContentEditor: React.FC = () => {
                                newSubSectionType === 'checkList' ? 'Nouvelle case à cocher' : 
                                'Libellé du champ'}
                   />
-                  <button
-                    type="button"
-                    onClick={addItemToSubSection}
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-r-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  {editingItemId ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={updateItemInSubSection}
+                        className="inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEditItem}
+                        className="inline-flex items-center justify-center px-3 py-2 border border-transparent rounded-r-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={addItemToSubSection}
+                      className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-r-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 
                 {/* Options additionnelles pour les champs de saisie */}
@@ -1283,13 +1349,24 @@ const AdminContentEditor: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromSubSection(item.id)}
-                          className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => editItemFromSubSection(item.id)}
+                            className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-blue-700"
+                            title="Modifier"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeItemFromSubSection(item.id)}
+                            className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-700"
+                            title="Supprimer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
