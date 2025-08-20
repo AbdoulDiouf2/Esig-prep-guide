@@ -56,6 +56,7 @@ import ProposerAtelier from './pages/ProposerAtelier';
 import MesPropositions from './pages/MesPropositions';
 import UserChat from './pages/UserChat';
 import AcademicResources from './pages/AcademicResources';
+import Ressources from './pages/Ressources';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -294,6 +295,11 @@ function App() {
                 <Route path="/academic-resources" element={
                   <AuthWrapper>
                     <AcademicResources />
+                  </AuthWrapper>
+                } />
+                <Route path="/all-resources" element={
+                  <AuthWrapper>
+                    <Ressources />
                   </AuthWrapper>
                 } />
                 <Route path="/faq" element={
