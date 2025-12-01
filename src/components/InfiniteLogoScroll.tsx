@@ -26,6 +26,12 @@ const schoolLogos = [
     name: 'College Sacré Coeur',
     logoUrl: 'https://www.courssacrecoeur.info/images/logo.gif',
     alt: 'Logo Collège Sacré Coeur'
+  },
+  {
+    id: 5,
+    name: 'SACRE COEUR',
+    logoUrl: '/logo-sacre-coeur.png',
+    alt: 'Logo Sacre Coeur'
   }
 ];
 
