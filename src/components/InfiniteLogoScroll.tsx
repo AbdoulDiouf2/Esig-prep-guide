@@ -17,15 +17,15 @@ const schoolLogos = [
   },
   {
     id: 3,
-    name: 'ESMT',
-    logoUrl: 'https://burkina24.com/wp-content/uploads/2023/05/ESMT-logo.png',
-    alt: 'Logo ESMT'
-  },
-  {
-    id: 4,
     name: 'College Sacré Coeur',
     logoUrl: 'https://www.courssacrecoeur.info/images/logo.gif',
     alt: 'Logo Collège Sacré Coeur'
+  },
+  {
+    id: 4,
+    name: 'ESMT',
+    logoUrl: 'https://burkina24.com/wp-content/uploads/2023/05/ESMT-logo.png',
+    alt: 'Logo ESMT'
   },
   {
     id: 5,
