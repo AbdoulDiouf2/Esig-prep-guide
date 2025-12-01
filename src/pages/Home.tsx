@@ -20,18 +20,18 @@ const Home: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-8 md:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-                Votre guide pour passer de CPS à l'ESIGELEC
+                La plateforme ESIG-prep-guide pour les étudiants CPS et Alumni
               </h1>
               <p className="text-lg md:text-xl text-blue-100 mb-8">
-                Trouvez toutes les ressources et l'accompagnement nécessaires pour réussir votre transition des Classes Préparatoires Scientifiques de Dakar vers l'ESIGELEC à Rouen.
+                Accédez à une plateforme centralisée qui accompagne les étudiants CPS vers l'ESIGELEC (guides, ressources, communauté) et prépare l'arrivée de nouveaux modules dédiés aux Alumni (annuaire, opportunités, mentorat).
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 {currentUser ? (
                   <Link 
-                    to="/dashboard" 
+                    to="/applications" 
                     className="bg-white text-blue-900 hover:bg-blue-50 px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
                   >
-                    Accédez à votre tableau de bord
+                    Accéder au centre d'applications
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 ) : (
@@ -69,10 +69,10 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Tout ce dont vous avez besoin pour réussir votre transition
+              Une plateforme pour centraliser vos parcours et vos ressources
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Notre plateforme vous guide à travers chaque étape du processus, du post-CPS jusqu'à votre arrivée en France.
+              ESIG-prep-guide regroupe, dans un même espace, les outils essentiels pour les étudiants CPS (guides, ressources, communauté) et posera les bases des futurs modules Alumni (entrepreneuriat, carrière, réseau).
             </p>
           </div>
 
@@ -270,18 +270,18 @@ const Home: React.FC = () => {
       <section className="py-16 bg-gradient-to-r from-green-800 to-green-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">
-            Prêt à commencer votre parcours vers l'ESIGELEC ?
+            Prêt à explorer la plateforme ESIG-prep-guide ?
           </h2>
           <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
-            Rejoignez notre communauté d'étudiants CPS et bénéficiez de toutes les ressources dont vous avez besoin pour réussir votre transition.
+            Rejoignez la communauté et accédez à un centre d'applications dédié aux étudiants CPS, bientôt complété par un espace Alumni (annuaire des entrepreneurs, opportunités, mentorat et plus encore).
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             {currentUser ? (
               <Link 
-                to="/dashboard" 
+                to="/applications" 
                 className="bg-white text-green-900 hover:bg-green-50 px-8 py-3 rounded-md font-medium transition-colors duration-200"
               >
-                Accéder à mon tableau de bord
+                Accéder au centre d'applications
               </Link>
             ) : (
               <>

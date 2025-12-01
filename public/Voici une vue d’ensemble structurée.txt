@@ -1,0 +1,393 @@
+Voici une vue d’ensemble structurée du projet, à la fois arborescence et rôle fonctionnel des parties principales.
+
+1. Racine du projet
+package.json
+App React + TypeScript + Vite.
+UI : Tailwind CSS, Ant Design, Lucide.
+Services : Firebase (auth, Firestore, storage), Dropbox, EmailJS, Express (backend léger dans 
+functions
+), Vercel Analytics.
+Scripts : dev, 
+build
+, preview, deploy (GitHub Pages).
+Config & tooling
+vite.config.ts
+ : config Vite (React, base pour déploiement GitHub Pages).
+tsconfig*.json : config TypeScript (app, node).
+tailwind.config.js
+, 
+postcss.config.js
+, 
+eslint.config.js
+ : style & lint.
+.env
+ : clés (Firebase, EmailJS, etc. – non versionnées normalement).
+firebase.json
+, 
+firebase.rules
+, 
+firebase-temp.rules
+ : config Firebase Hosting + règles Firestore.
+netlify/
+, 
+.netlify
+, 
+netlify.toml
+, 
+vercel.json
+ : configs de déploiement alternatifs.
+build/
+, 
+dist/
+ : artefacts de build.
+Docs fonctionnels
+README.md
+ : présentation du projet.
+FONCTIONNALITES.md
+, 
+FONCTIONNALITES_COMPLETES.md
+ : description détaillée des features.
+email-ressources-academiques.md
+ : cahier des charges / contenu pour les ressources académiques.
+Backend Cloud Functions
+functions/
+index.js
+ : logique Node/Express + Firebase Admin (notifications, webhooks Dropbox, etc.).
+package.json
+, 
+package-lock.json
+ : deps backend.
+.eslintrc.js
+ : lint côté fonctions.
+Statique / service workers
+public/
+logo.png
+, 
+Logo_ESIGELEC.svg.png
+, 
+logo_CPS.jpeg
+, 
+esig-prep-guide-qrcode.png
+, 
+pay1.jpg
+.
+firebase-messaging-sw.js
+, 
+firebase-messaging-sw-config.js
+ : service worker pour push notifications.
+404.html
+ : page 404 statique.*
+2. Entrée front-end
+index.html
+ : point d’entrée Vite.
+src/main.tsx
+Monte React (<App />) dans #root.
+Initialise EmailJS (emailjs.init(VITE_EMAILJS_PUBLIC_KEY)).
+src/index.css
+Styles globaux (Tailwind).
+3. Structure principale 
+src/
+text
+src/
+  App.tsx
+  main.tsx
+  index.css
+  firebase.ts
+  components/
+  pages/
+  contexts/
+  services/
+  hooks/
+  types/
+  utils/
+  constants/
+  vite-env.d.ts
+3.1. 
+App.tsx
+ – Routing & layout global
+Routeur : HashRouter + Routes/Route.
+Providers : AuthProvider, ContentProvider.
+Layout global : Header, Footer, ScrollToTop.
+Bannières/modales globales :
+WelcomeModal
+ (disclaimer quotidien),
+ConsentBanner (cookies),
+DisclaimerBanner
+,
+NotificationBanner,
+UserStatusModal,
+Analytics (Vercel).
+Gestion d’authentification et rôles :
+AuthWrapper
+ : protège toutes les routes authentifiées (dashboard, FAQ, forum, etc.).
+AdminRoute, EditorRoute, SuperAdminRoute : gardes de route par rôle.
+RedirectIfAuthenticated
+ : redirige vers /dashboard si déjà connecté.
+Pages principales utilisateur :
+/ → Home
+/login, /register, /reset-password
+/dashboard → guide + progression
+/applications → ApplicationsDashboard (hub de fonctionnalités)
+/resources → ResourceLibrary
+/academic-resources → AcademicResources (ressources scolaires 1A–3A)
+/all-resources → Ressources
+/faq, /feedback, /profile, /tutorial, /help
+/forum* : Forum, ThreadView, NewThread
+/webinars
+, /webinars/:id, /proposer-atelier, /mes-propositions
+/user-chat, /chat-ai (superadmin seulement)
+/test-firebase
+/legal/* : pages légales & registre RGPD (admin).
+* → NotFound.
+Pages administration / édition :
+/admin* : AdminDashboard, AdminContentEditor, AdminResourceManager, AdminUserManager, AdminUserProfile, AdminActivityLogPage, AdminProgressionOverview, AdminTutorial, AdminDropboxManager, FeedbackAdmin, AdminWebinarManager, AdminWorkshopProposals, AdminChatInterface, AdminEmailBroadcast (superadmin).
+/editor* : EditorDashboard + proxies vers content/resources/FAQ/forum/webinars/feedbacks/dropbox.*
+4. 
+contexts/
+ – Gestion d’état global
+AuthContext.tsx
+Gère :
+currentUser
+login/register/logout/reset password
+rôles : isAdmin(), isEditor(), isSuperAdmin()…
+Source de vérité pour l’auth + rôles dans tout le front.
+ContentContext.tsx
+Charge et expose :
+GuideSection (3 phases : post-cps, during-process, pre-arrival)
+ResourceDocument
+FAQItem
+Intégré au Dashboard, FAQ, ResourceLibrary, etc.
+CookieConsentContext.tsx
+, 
+useCookieConsentContext.ts
+État d’acceptation cookies / bannière.
+5. 
+components/
+ – Composants réutilisables
+Racine 
+components/
+ :
+
+AdminEmailBroadcast.tsx
+ : UI d’envoi d’emails de masse (superadmin).
+ConfirmationModal.tsx
+, 
+PasswordModal.tsx
+, 
+PasswordConfirmModal.tsx
+ : modales génériques.
+DropboxFileBrowser.tsx
+, 
+dropbox.tsx
+ : navigateur Dropbox (admin/editor).
+InfiniteLogoScroll.tsx
+, 
+InfiniteLogoScroll.css
+, 
+LogoSlider.tsx
+ : animations logos.
+NotificationBanner.tsx
+ : bannière d’alertes globales.
+ScrollToTop.tsx
+ : remonte en haut à chaque changement de route.
+Notification/
+webinars
+/
+chat
+/
+inputs
+ sous-dossiers :
+notifications/
+ : composant pour notifications.
+webinars/
+ : cartes, listes, etc.
+chat/
+ : UI chat admin–user.
+inputs/
+ : champs personnalisés.
+subsection/
+ : rendu des sous-sections interactives (checklist, bulletList, inputField).
+5.1. 
+components/auth/
+AdminRoute.tsx
+, 
+ProtectedRoute.tsx
+, 
+AuthWrapper.tsx
+ (version générique), 
+UserStatusModal.tsx
+, 
+WelcomeModal.tsx
+.
+5.2. 
+components/layout/
+Header.tsx
+ : navigation principale, liens dashboard, applications, administration, etc.
+Footer.tsx
+ : liens légaux, crédits.
+MainLayout.tsx
+ : layout réutilisable.
+5.3. 
+components/routes/
+EditorRoute.tsx
+, 
+SuperAdminRoute.tsx
+ : gardes de route par rôle.
+SuperAdminCheck.tsx
+ : wrapper pour afficher certaines cartes uniquement aux superadmins.
+6. 
+pages/
+ – Pages complètes
+Racine :
+
+Utilisateur général :
+Home.tsx
+Dashboard.tsx
+ : cœur du guide par phases (avec sous-sections interactives, progression, logique visa, etc.).
+ResourceLibrary.tsx
+, 
+Ressources.tsx
+, 
+AcademicResources.tsx
+ : ressources docs + académique.
+FAQ.tsx
+ : questions filtrées, soumission (avec uid/email).
+Forum.tsx
+, 
+ThreadView.tsx
+, 
+NewThread.tsx
+ : forum.
+Webinars.tsx
+, 
+WebinarDetail.tsx
+, 
+ProposerAtelier.tsx
+, 
+MesPropositions.tsx
+.
+UserProfile.tsx
+, 
+UserTutorial.tsx
+, 
+Help.tsx
+, 
+Feedback.tsx
+, 
+UserChat.tsx
+, 
+ChatAI.tsx
+ (superadmin), 
+TestFirebase.tsx
+, 
+Login.tsx
+, 
+Register.tsx
+, 
+ResetPassword.tsx
+, 
+NotFound.tsx
+.
+ApplicationsDashboard.tsx
+ : centre d’applications catégorisé (Main, Admin, Édition, Voyage, Outils, Avancées) avec filtrage par rôle.
+6.1. 
+pages/admin/
+AdminDashboard.tsx
+ : tableau de bord admin (stats, cartes d’accès, modules à venir).
+AdminContentEditor.tsx
+ : gestion des GuideSection + FAQ.
+AdminResourceManager.tsx
+ : gestion des documents/ressources.
+AdminUserManager.tsx
+, 
+AdminUserProfile.tsx
+ : gestion des utilisateurs et rôles.
+AdminActivityLog.tsx
+, 
+adminActivityLog.ts
+, 
+useRecentAdminActivity.ts
+ : journal d’activité admin.
+AdminProgressionOverview.tsx
+ : vue globale des progressions (incl. logique visa).
+AdminDropboxManager.tsx
+ : gestion intégration Dropbox.
+AdminTutorial.tsx
+ : guide admin.
+AdminWebinarManager.tsx
+, 
+AdminWorkshopProposals.tsx
+ : gestion des webinaires & propositions d’ateliers.
+AdminChatInterface.tsx
+ : interface pour le chat admin–user.
+FeedbackAdmin.tsx
+ : gestion des feedbacks.
+FutureFeatures.tsx
+ : écran des fonctionnalités futures (probablement masqué ou obsolète).
+6.2. 
+pages/editor/
+EditorDashboard.tsx : vue dédiée éditeur (accès au contenu, ressources, FAQ, forum, webinaires, etc.), sans données sensibles.
+6.3. 
+pages/legal/
+CGU.tsx
+, 
+PrivacyPolicy.tsx
+, 
+LegalNotice.tsx
+, 
+ModerationCharter.tsx
+, 
+RGPDRegistry.tsx
+.
+constants.ts
+ : textes/références partagés.
+7. 
+services/
+ – Accès aux données & logique métier
+NotificationService.ts
+ : EmailJS (emails de masse, confirmations, etc.).
+WebinarService.ts
+ : CRUD webinaires.
+adminChatService.ts
+, 
+chatService.ts
+, 
+chatNotificationService.ts
+ : Firestore + notifications pour le chat admin ↔ utilisateur.
+forumService.ts
+ : catégories, threads, replies, votes.
+progressionService.ts
+, 
+adminProgressionService.ts
+ : calcul & stockage de la progression par utilisateur/phase + vue admin.
+subsectionDataService.ts
+ : persistance des sous-sections du guide (checklists, inputs) dans Firestore.
+pushNotificationService.ts
+ : intégration push (FCM).
+8. 
+hooks/
+useCookieConsent.ts
+ : logique pour la bannière de consentement.
+useNotifications.ts
+ : abonnement/gestion notifications.
+9. 
+firebase.ts
+Initialisation du SDK Firebase (client) :
+Auth, Firestore, Storage, Messaging, Analytics (selon config).
+Export des instances à utiliser dans services/* et contexts/AuthContext.*
+10. 
+types/
+ & 
+utils/
+types/
+forum.ts
+ : types pour threads, messages, catégories.
+global.d.ts
+, 
+vercel-analytics.d.ts
+ : declarations TypeScript pour globals/libs.
+utils/
+cleanupForumCategories.ts
+ : nettoyage/normalisation des catégories forum.
+dropboxUtils.ts
+ : helpers pour Dropbox.

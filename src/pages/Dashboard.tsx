@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare } from 'lucide-react';
+import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare, ArrowLeft } from 'lucide-react';
 import SubsectionForm from '../components/subsection/SubsectionForm';
 import { 
   getUserSubsectionData, 
@@ -17,6 +17,7 @@ import { ChatNotificationService } from '../services/chatNotificationService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const { 
     guideSections,
     resources,
@@ -413,6 +414,16 @@ const Dashboard: React.FC = () => {
             Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} !</strong> Suivez votre progression et accédez à vos ressources.
           </p>
         </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-4">
+        <button 
+          onClick={() => navigate('/applications')}
+          className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Retour au centre d'applications
+        </button>
       </div>
       
       <div className="container mx-auto px-4 py-8 relative">

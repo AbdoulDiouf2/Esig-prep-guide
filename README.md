@@ -20,7 +20,12 @@
 
 ## 🔍 Aperçu
 
-**ESIG-prep-guide** est une plateforme complète conçue pour accompagner les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen. Structurée selon les trois phases principales du parcours étudiant (post-CPS, démarches administratives, pré-arrivée), la plateforme offre des ressources organisées, des guides pratiques et un système interactif de FAQ.
+**ESIG-prep-guide** est une plateforme multi-modules conçue pour centraliser les outils et ressources destinés aux étudiants CPS et à la communauté Alumni de l'ESIGELEC.
+
+### Volets actuels et futurs
+
+- **Volet Étudiants CPS** (actuellement disponible) : Accompagne les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen, structuré selon trois phases (post-CPS, démarches administratives, pré-arrivée).
+- **Volet Alumni** (en développement) : Annuaire des entrepreneurs, opportunités business & emploi, mentorat & networking, intelligence artificielle communautaire, et bien d'autres modules pour renforcer la communauté.
 
 ### Objectifs du projet
 
@@ -28,8 +33,15 @@
 - Centraliser les ressources et documents nécessaires à chaque étape du processus
 - Créer une communauté d'entraide entre les différentes promotions
 - Réduire les incertitudes liées à l'expatriation et à l'intégration dans un nouvel environnement académique
+- Poser les bases d'une plateforme évolutive capable d'accueillir de nouveaux modules (Alumni, entrepreneuriat, mentorat, etc.)
 
 ## ✨ Fonctionnalités clés
+
+### 🏠 Centre d'applications
+- **Hub centralisé** regroupant tous les modules et fonctionnalités disponibles
+- **Navigation intuitive** par catégories (Modules étudiants CPS, Administration, Édition, Outils, Fonctionnalités avancées)
+- **Filtrage dynamique** selon le rôle de l'utilisateur (étudiant, éditeur, administrateur)
+- **Affichage des modules futurs** avec statut "Bientôt disponible"
 
 ### 📚 Gestion des ressources
 - **Bibliothèque documentaire** organisée par phases et catégories
@@ -62,11 +74,19 @@
 - **Gestion du contenu** (FAQ, ressources, sections de guide)
 - **Gestionnaire Dropbox** intégré pour les fichiers
 - **Gestion des utilisateurs** avec promotion/rétrogradation des rôles
+- **Tableau de bord éditeur** pour les rôles d'édition (sans accès aux données sensibles)
 
 ### 📜 Conformité légale
 - Documentation légale complète (CGU, Politique de confidentialité, etc.)
 - Système de consentement conforme au RGPD
 - Registre RGPD accessible aux administrateurs
+
+### 🚀 Roadmap & Évolutivité
+La plateforme est conçue pour accueillir progressivement de nouveaux modules :
+- **Phase 1** : Annuaire des entrepreneurs (fiches, recherche, filtrage, export)
+- **Phase 2** : Opportunités business & emploi, Mentorat & networking
+- **Phase 3** : Intelligence artificielle communautaire, Connexion événements & initiatives
+- **Futures améliorations** : Internationalisation, Gamification, Analytics avancés, Application mobile
 
 ## 🔧 Technologies
 
@@ -121,6 +141,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=votre_sender_id
 VITE_FIREBASE_APP_ID=votre_app_id
 VITE_FIREBASE_MEASUREMENT_ID=votre_measurement_id
 VITE_DROPBOX_ACCESS_TOKEN=votre_token_dropbox
+VITE_EMAILJS_PUBLIC_KEY=votre_cle_emailjs
 ```
 
 4. **Lancer l'application en mode développement**
@@ -249,4 +270,4 @@ Projet: [https://github.com/AbdoulDiouf2/Esig-prep-guide](https://github.com/Abd
 
 Développé avec ❤️ pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
 
-Dernière mise à jour: 23 Mai 2025
+Dernière mise à jour: 1er Décembre 2025

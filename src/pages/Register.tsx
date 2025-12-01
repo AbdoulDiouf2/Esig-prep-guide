@@ -21,7 +21,7 @@ const Register: React.FC = () => {
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/dashboard');
+      navigate('/applications');
     } catch (err) {
       setError("Erreur lors de l'inscription avec Google");
       console.error(err);
@@ -35,7 +35,7 @@ const Register: React.FC = () => {
     setGithubLoading(true);
     try {
       await loginWithGithub();
-      navigate('/dashboard');
+      navigate('/applications');
     } catch (err) {
       setError("Erreur lors de l'inscription avec GitHub");
       console.error(err);
@@ -55,7 +55,7 @@ const Register: React.FC = () => {
       setError('');
       setLoading(true);
       await register(email, password, name);
-      navigate('/dashboard');
+      navigate('/applications');
     } catch {
       setError('Erreur lors de la création du compte');
       console.error();

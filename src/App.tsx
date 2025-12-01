@@ -225,11 +225,11 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Composant pour rediriger vers le dashboard si déjà authentifié
+// Composant pour rediriger vers un point d'entrée par défaut si déjà authentifié
 const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/dashboard";
+  const from = location.state?.from?.pathname || "/applications";
 
   if (loading) {
     return (

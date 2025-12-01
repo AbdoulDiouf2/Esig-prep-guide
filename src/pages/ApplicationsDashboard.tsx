@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  ArrowLeft, 
   BookOpen, 
   FileText, 
   HelpCircle, 
@@ -51,7 +50,6 @@ interface CategoryFeatures {
 
 const ApplicationsDashboard: React.FC = () => {
   const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
-  const navigate = useNavigate();
   const [isSuperAdminState, setIsSuperAdminState] = useState(false);
   const [activeCategory, setActiveCategory] = useState('main');
 
@@ -73,13 +71,13 @@ const ApplicationsDashboard: React.FC = () => {
 
   const allFeatures: CategoryFeatures = {
     main: {
-      title: "Fonctionnalités principales",
+      title: "Modules étudiants CPS",
       icon: <Star className="w-6 h-6 text-yellow-500" />,
       features: [
         {
           icon: <BookOpen className="w-8 h-8 text-blue-500" />,
-          title: "Guide de préparation",
-          description: "Accédez au guide de préparation et au contenu informatif",
+          title: "Module Étudiants CPS – Guide de préparation",
+          description: "Consultez le guide de préparation interactif et suivez votre progression étape par étape",
           link: "/dashboard",
           roles: ["admin", "editor", "user"]
         },
@@ -362,18 +360,10 @@ const ApplicationsDashboard: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors mr-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Retour au tableau de bord
-          </button>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-800">Centre d'applications</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Plateforme ESIG-prep-guide · Centre d'applications</h1>
         <p className="text-gray-600 mt-2">
-          Bienvenue {currentUser?.displayName || 'Utilisateur'}, accédez à toutes les fonctionnalités disponibles pour votre compte.
+          Bienvenue {currentUser?.displayName || 'Utilisateur'}, cet espace centralise l'ensemble des modules et fonctionnalités disponibles pour votre profil
+          (Étudiants CPS, administration, édition, outils et futures fonctionnalités Alumni).
         </p>
       </div>
 

@@ -1,0 +1,419 @@
+# TODO – ESIG-prep-guide
+
+**Source fonctionnelle** : `public/doc.md` (Documentation Officielle – Novembre 2025)
+
+---
+
+## 1. Fonctionnalités déjà réalisées
+
+- **Authentification & Profil**
+  - [x] Connexion email/mot de passe, Google, GitHub
+  - [x] Réinitialisation du mot de passe
+  - [x] Profil utilisateur (personnalisation de base)
+  - [x] Vérification email
+  - [x] Système de rôles multi-niveaux (user, editor, admin, superadmin)
+
+- **Tableau de bord & Suivi**
+  - [x] Tableau de bord étudiant avec phases (post-cps, during-process, pre-arrival)
+  - [x] Suivi de progression par phases et progression globale
+  - [x] Notifications de chat (badge messages non lus)
+  - [x] Navigation de parcours étudiant via ApplicationsDashboard
+  - [x] Logique visa (sections acceptation/refus, surcoche automatique via IDs)
+
+- **Gestion de contenu interactif**
+  - [x] Guides interactifs avec sous-sections (`bulletList`, `checkList`, `inputField`)
+  - [x] Sauvegarde automatique des réponses utilisateur (Firestore)
+  - [x] Calcul automatique de complétion de section
+  - [x] Association de ressources aux sections de guide
+
+- **Bibliothèque de ressources**
+  - [x] Organisation documentaire par phases
+  - [x] Listing et filtrage des documents
+  - [x] Intégration Dropbox (admin/editor) via navigateur de fichiers
+  - [x] Téléchargement / ouverture des ressources
+
+- **Ressources académiques**
+  - [x] Page dédiée "Ressources Académiques" (1A–3A)
+  - [x] Liens vers cours, TD, TP
+  - [x] Filtrage par année, département, spécialisation
+
+- **Système de FAQ**
+  - [x] Consultation des questions par phase/type
+  - [x] Soumission de questions par les utilisateurs
+  - [x] Stockage uid/email de l’utilisateur
+  - [x] Modération/validation des questions (Admin/Éditeur)
+  - [x] Vue personnalisée des questions de l’utilisateur
+
+- **Forum communautaire**
+  - [x] Catégories de forum
+  - [x] Création de threads et réponses
+  - [x] Nettoyage/normalisation des catégories
+  - [x] Modération par les rôles (éditeur/admin)
+
+- **Webinaires & ateliers**
+  - [x] Listing des webinaires
+  - [x] Détail d’un webinaire
+  - [x] Propositions d’ateliers (ProposerAtelier, MesPropositions)
+  - [x] Gestion admin des webinaires et propositions
+
+- **Chat & communication**
+  - [x] Chat utilisateur ↔ admin (UserChat + AdminChatInterface + services)
+  - [x] Notifications de chat en temps réel / non lus
+  - [x] Chat IA réservé aux superadmins (ChatAI)
+
+- **Feedback & support**
+  - [x] Formulaire de feedback côté utilisateur
+  - [x] Interface admin pour consulter les feedbacks
+  - [x] Tutoriel utilisateur et page d’aide
+  - [x] Tutoriel admin
+
+- **Interfaces d’administration / édition**
+  - [x] Tableau de bord Admin
+  - [x] Gestion du contenu (sections de guide, FAQ)
+  - [x] Gestion des ressources documentaires
+  - [x] Gestion des utilisateurs et rôles
+  - [x] Vue progression globale (AdminProgressionOverview)
+  - [x] Logs d’activité admin
+  - [x] Gestion Dropbox (AdminDropboxManager)
+  - [x] Gestion webinaires & propositions
+  - [x] Tableau de bord Éditeur (sans données sensibles)
+
+- **Centre d’applications**
+  - [x] Hub centralisé (ApplicationsDashboard)
+  - [x] Catégories par type de fonctionnalités (Principales, Administration, Édition, Voyage, Outils, Avancées)
+  - [x] Filtrage dynamique par rôle (user, editor, admin)
+  - [x] Marquage "Bientôt disponible" pour les modules futurs
+
+- **Pages légales & conformité**
+  - [x] CGU
+  - [x] Politique de confidentialité
+  - [x] Mentions légales
+  - [x] Charte de modération
+  - [x] Registre RGPD (admin-only)
+  - [x] Disclaimers et consentement cookies
+
+- **Autres**
+  - [x] Page d’accueil
+  - [x] Gestion des notifications globales (bannières)
+  - [x] Page 404 personnalisée
+  - [x] Intégration analytics (Vercel)
+
+---
+
+## 2. Fonctionnalités confirmées à implémenter (Roadmap)
+
+Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
+
+- **Refonte plateforme avant modules Alumni (Phase 0)**
+  - [x] **Redéfinir le point d'entrée après connexion**
+    - [x] Modifier `RedirectIfAuthenticated` dans `App.tsx` pour que la route par défaut après connexion soit `"/applications"` au lieu de `"/dashboard"` (si aucune route précédente n'est stockée dans `state.from`).
+    - [x] Vérifier que toutes les routes protégées (FAQ, Forum, Webinaires, etc.) continuent de fonctionner correctement avec cette logique.
+  - [x] **Positionner clairement le centre d'applications comme hub de la plateforme**
+    - [x] Adapter les textes de `ApplicationsDashboard` pour le présenter comme "Accueil plateforme / Centre d'applications" (et non comme une simple fonctionnalité secondaire).
+    - [x] S'assurer que le module Étudiants CPS est clairement identifié comme un module parmi d'autres (ex. carte "Module Étudiants CPS – Guide de préparation").
+  - [x] **Clarifier la navigation principale (Header)**
+    - [x] Mettre un lien explicite vers le hub (ex. "Plateforme" ou "Applications") pointant vers `"/applications"`.
+    - [x] Mettre un lien explicite vers le module Étudiants CPS (ex. "Étudiants CPS" ou "Guide CPS") pointant vers `"/dashboard"`.
+    - [x] Prévoir un emplacement futur pour le volet Alumni (ex. lien ou menu désactivé / "Bientôt disponible").
+  - [x] **Aligner la page d'accueil publique (/)**
+    - [x] Mettre à jour la page `Home.tsx` pour présenter ESIG-prep-guide comme **plateforme multi-modules** (Étudiants, Alumni, Admin, etc.).
+    - [x] Expliquer le découpage : volet Étudiants CPS, futur volet Alumni (annuaire, opportunités, mentorat, IA communautaire, etc.).
+  - [x] **Mettre à jour la documentation produit**
+    - [x] Adapter `README.md` pour décrire ESIG-prep-guide comme plateforme, avec liste des modules existants et futurs.
+    - [x] Vérifier/coordonner avec `public/doc.md` et `TODO.md` pour que la vision plateforme et les phases (Phase 0 refonte, Phase 1 Annuaire, Phase 2 Opportunités & Networking, Phase 3 IA & Événements) soient cohérentes.
+
+- **Phase 1 : Annuaire Alumni - Réseau Professionnel et Compétences (Système Hybrid)**
+  
+  **📋 Résumé Phase 1** : Créer un annuaire alumni flexible et ouvert permettant aux alumni de se présenter (profil riche : bio, secteurs, expertise, portfolio, services, réseaux sociaux) et de se connecter entre eux. Système hybrid : inscription basique OU avec profil entrepreneur (validation admin avant publication). Recherche full-text + filtres avancés (secteur, expertise, année promo, localisation, type d'aide). Mise en avant des nouveaux profils, indicateur de complétion, demandes de contact simples, et notifications pour engagement. V1 complète : technique solide + valeur immédiate pour alumni.
+  
+  - [ ] **Phase 1.0 : Architecture et flux de données (Hybrid)**
+    - [ ] Définir le flux d'inscription alumni (création profil auto + complétion infos)
+    - [ ] Définir les statuts de fiche : `pending` (en attente), `approved` (validée), `rejected` (refusée)
+    - [ ] Définir les champs obligatoires vs optionnels
+    - [ ] Documenter le workflow : inscription → complétion → validation → publication
+  - [ ] **Phase 1.0.1 : Formulaire d'inscription dynamique et progressif**
+    - [ ] Restructurer `Register.tsx` en formulaire multi-étapes :
+      - **Étape 1 (Basique)** : Email, mot de passe, nom, année de promotion (OBLIGATOIRE pour tous)
+      - **Étape 2 (Décision)** : Question "Êtes-vous entrepreneur/alumni ?" (Oui/Non)
+        - Si OUI → Étape 3
+        - Si NON → Créer compte basique + redirection /applications
+      - **Étape 3 (Entrepreneur)** : Entreprise, secteur, localisation, description, photo
+      - **Étape 4 (Résumé)** : Afficher résumé avant validation
+    - [ ] Implémenter composant `MultiStepForm.tsx` (réutilisable)
+      - Navigation Suivant/Précédent
+      - Indicateur de progression (étape X/Y)
+      - Validation par étape
+    - [ ] Modifier `AuthContext.tsx` - fonction `register()` :
+      - Si entrepreneur : créer profil entrepreneur avec status = `pending`
+      - Si basique : créer profil utilisateur simple (avec année promo)
+    - [ ] Modifier `ApplicationsDashboard.tsx` :
+      - Afficher notification UNIQUEMENT si profil entrepreneur pending
+      - Bouton "Compléter mon profil entrepreneur" → `/complete-entrepreneur-profile`
+    - [ ] Fichiers : `src/pages/Register.tsx`, `src/components/forms/MultiStepForm.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/ApplicationsDashboard.tsx`
+  - [ ] **Phase 1.1 : Modèle de données et structure Firestore (Flexible & Ouvert)**
+    - [ ] Créer type TypeScript `AlumniProfile` avec champs :
+      - **Infos personnelles** : nom, email, année promo, photo, headline (titre professionnel)
+      - **Bio & Description** : bio (texte long), domaines d'intérêt
+      - **Secteurs & Expertise** : secteurs[] (Tech, Finance, Design, etc.), expertise[] (tags libres)
+      - **Professionnel** : company, position, companyDescription, website
+      - **Portfolio** : portfolio[] (titre, description, URL, image)
+      - **Services** : services[] (nom, description, catégorie)
+      - **Réseaux sociaux** : linkedin, github, twitter, website
+      - **Localisation** : city, country
+      - **Métadonnées** : status, dateCreated, dateValidation, validatedBy, rejectionReason
+    - [ ] Créer collection Firestore `alumni` avec règles de sécurité
+    - [ ] Créer service `alumniService.ts` (CRUD : create, update, get, list, updateStatus, search, filter)
+    - [ ] Implémenter fonction `createAlumniProfileOnSignup()` (création auto à l'inscription)
+    - [ ] Implémenter fonction `searchAlumni()` (recherche full-text sur nom, bio, expertise)
+    - [ ] Implémenter fonction `filterAlumni()` (filtrage multi-critères)
+    - [ ] Fichiers : `src/types/alumni.ts`, `src/services/alumniService.ts`
+  - [ ] **Phase 1.2 : Interface de complétion/édition de profil Alumni (Flexible & Ouvert)**
+    - [ ] Créer composant `AlumniProfileForm.tsx` (formulaire dynamique avec sections)
+      - **Section 1 : Infos de base** (headline, bio, photo)
+      - **Section 2 : Secteurs & Expertise** (tags dynamiques)
+      - **Section 3 : Professionnel** (company, position, website)
+      - **Section 4 : Portfolio** (ajouter/supprimer projets)
+      - **Section 5 : Services** (ajouter/supprimer services offerts)
+      - **Section 6 : Réseaux sociaux** (linkedin, github, twitter)
+      - **Section 7 : Localisation** (city, country)
+    - [ ] Implémenter upload de photo (Firebase Storage)
+    - [ ] Créer page `CompleteAlumniProfile.tsx` (complétion profil après inscription)
+      - Pré-remplie avec : nom, email, année promo
+      - À compléter : tous les champs optionnels
+      - Statut initial : `pending` (en attente de validation)
+    - [ ] Créer page `EditAlumniProfile.tsx` (édition fiche personnelle)
+      - Permet à l'alumni d'éditer sa fiche
+      - Remet le statut à `pending` si changements majeurs
+    - [ ] Ajouter messages succès/erreur et notifications
+    - [ ] Ajouter bouton "Soumettre pour validation" (change status à `pending`)
+    - [ ] Fichiers : `src/components/alumni/AlumniProfileForm.tsx`, `src/pages/CompleteAlumniProfile.tsx`, `src/pages/EditAlumniProfile.tsx`
+  - [ ] **Phase 1.3 : Annuaire Alumni avec recherche/filtrage avancé (Fiches approuvées)**
+    - [ ] Créer page `AlumniDirectory.tsx` (grille fiches + recherche + filtres)
+      - Afficher UNIQUEMENT les fiches avec status `approved`
+      - Requête Firestore filtrée : `where('status', '==', 'approved')`
+    - [ ] Implémenter barre de recherche (recherche full-text)
+      - Chercher sur : nom, bio, expertise, company, headline
+    - [ ] Ajouter filtres multi-critères (sidebar gauche) :
+      - **Secteur** (Tech, Finance, Design, etc.) - multi-select
+      - **Expertise** (tags libres) - multi-select avec autocomplete
+      - **Année de promo** (range slider)
+      - **Localisation** (city, country) - multi-select
+      - **Type de profil** (Entrepreneur, Collaborateur, Consultant, etc.)
+      - **Services offerts** (si applicable)
+    - [ ] Implémenter tri (nom, date création, pertinence)
+    - [ ] Implémenter pagination (20 fiches/page)
+    - [ ] Créer composant `AlumniCard.tsx` (affichage fiche)
+      - Afficher : photo, headline, bio courte, secteurs, expertise, localisation
+      - Bouton "Voir le profil"
+    - [ ] Créer page détail `AlumniDetail.tsx` (fiche complète)
+      - Afficher tous les champs : bio, portfolio, services, réseaux sociaux
+      - Bouton "Contacter" (email/formulaire)
+      - Bouton "Ajouter à mes favoris" (optionnel)
+    - [ ] Ajouter bouton "Contacter" (email/formulaire de contact)
+    - [ ] Fichiers : `src/pages/AlumniDirectory.tsx`, `src/components/alumni/AlumniCard.tsx`, `src/pages/AlumniDetail.tsx`
+  - [ ] **Phase 1.4 : Système de validation admin pour fiches entrepreneur**
+    - [ ] Créer interface admin `AdminEntrepreneurValidation.tsx` avec :
+      - Liste des fiches en attente (status = `pending`)
+      - Aperçu fiche (infos alumni + infos entrepreneur)
+      - Boutons : Approuver / Rejeter
+      - Champ commentaire (optionnel, visible par l'alumni)
+    - [ ] Implémenter fonction `approveEntrepreneurProfile()` (change status à `approved`)
+    - [ ] Implémenter fonction `rejectEntrepreneurProfile()` (change status à `rejected`)
+    - [ ] Ajouter champs de métadonnées : `validatedBy` (uid admin), `dateValidation` (timestamp), `rejectionReason` (si rejet)
+    - [ ] Implémenter notifications email :
+      - À l'alumni : "Votre fiche a été approuvée" ou "Votre fiche a été rejetée : [raison]"
+      - À l'admin : confirmation de l'action
+    - [ ] Ajouter logs d'activité (qui a validé, quand, action)
+    - [ ] Créer page `MyEntrepreneurProfile.tsx` pour l'alumni :
+      - Affiche son profil et son statut (pending, approved, rejected)
+      - Affiche le commentaire de rejet si applicable
+      - Bouton "Éditer" pour modifier sa fiche
+    - [ ] Fichiers : `src/pages/admin/AdminEntrepreneurValidation.tsx`, `src/pages/MyEntrepreneurProfile.tsx`
+  - [ ] **Phase 1.5 : Export des données et statistiques**
+    - [ ] Créer page `AlumniStats.tsx` (statistiques + graphiques)
+    - [ ] Implémenter export CSV (nom, secteur, expertise, localisation, email)
+    - [ ] Implémenter export PDF (rapport complet)
+    - [ ] Ajouter filtres sur les stats
+    - [ ] Fichiers : `src/pages/AlumniStats.tsx`, `src/utils/exportService.ts`
+  - [ ] **Phase 1.6 : Expérience Alumni & Quick Wins (Valeur perçue immédiate)**
+    - [ ] **Onboarding & Motivation**
+      - [ ] Ajouter section "Pourquoi compléter ta fiche ?" dans `ApplicationsDashboard.tsx`
+        - 3 bénéfices concrets : "Être visible pour missions", "Accès au mentorat", "Opportunités business"
+      - [ ] Ajouter banneau "Nouveaux profils publiés" dans `AlumniDirectory.tsx`
+        - Afficher 3 derniers profils approuvés
+        - Bouton "Découvrir tous les profils"
+      - [ ] Ajouter indicateur de complétion de profil (ex: 60%)
+        - Dans `EditAlumniProfile.tsx`
+        - Encourage à remplir les sections manquantes
+      - [ ] Ajouter mini-callout "En complétant ton profil, tu seras éligible aux futures fonctionnalités : matching mentorat, opportunités business, etc."
+    - [ ] **Networking Passif → Actif**
+      - [ ] Ajouter bouton "Demander un contact / une intro" sur `AlumniDetail.tsx`
+        - Ouvre un formulaire simple (objet + message)
+        - Envoie email à l'alumni + enregistre la demande
+        - ⭐ **Ajouter feedback de confirmation** : "Merci ! Ta demande a été envoyée, on te répond dans les meilleurs délais"
+      - [ ] Ajouter bloc "Je cherche / Je propose" dans le formulaire `AlumniProfileForm.tsx`
+        - Tags simples : "Je cherche collaborateur", "Je propose conseil", "Je cherche mentor", etc.
+        - Affichage dans la fiche
+    - [ ] **Mise en avant & Découverte**
+      - [ ] Créer composant `NewProfilesHighlight.tsx` (3 cartes des derniers profils)
+        - Afficher dans `AlumniDirectory.tsx` en haut
+      - [ ] Ajouter section "À découvrir cette semaine" (profils aléatoires)
+        - Rotation hebdomadaire
+    - [ ] **Notifications & Engagement**
+      - [ ] Envoyer email de bienvenue après validation de profil
+        - "Ton profil est maintenant visible ! Voici comment en tirer profit..."
+      - [ ] Ajouter notification dans `ApplicationsDashboard.tsx` si profil pending
+        - "Ton profil est en attente de validation (X jours)"
+    - [ ] **Copy & Promesse (UX/Messaging)**
+      - [ ] ⭐ Ajouter phrase d'accroche dans `AlumniDirectory.tsx` (en haut)
+        - "Trouve en 2 clics des alumni par secteur, pays, promo ou type d'aide (je cherche / je propose)"
+      - [ ] ⭐ Ajouter phrase d'accroche dans `ApplicationsDashboard.tsx` (section Alumni)
+        - "Connecte-toi avec des alumni : trouve des collaborateurs, des mentors, des opportunités"
+      - [ ] ⭐ Clarifier le CTA du formulaire de contact
+        - Avant : "Envoyer"
+        - Après : "Envoyer ma demande"
+    - [ ] **Fichiers** : `src/components/alumni/NewProfilesHighlight.tsx`, `src/components/alumni/ContactRequestForm.tsx`, modifications `AlumniDirectory.tsx`, `AlumniDetail.tsx`, `AlumniProfileForm.tsx`, `ApplicationsDashboard.tsx`
+  - [ ] **Intégration au Centre d'Applications**
+    - [ ] Ajouter carte "Annuaire Alumni" dans `ApplicationsDashboard.tsx`
+    - [ ] Route `/alumni` pointant vers `AlumniDirectory.tsx`
+
+- **Module opportunités business & emploi**
+  - [ ] Espace pour offres d’emploi et partenariats B2B
+  - [ ] Système de candidatures directes (étudiant ↔ offre)
+  - [ ] Suivi des candidatures (statut, historique)
+  - [ ] Mécanisme de cooptation / recommandation interne
+
+- **Espace mentorat & networking**
+  - [ ] Modèle mentor/mentee (étudiants ↔ alumni)
+  - [ ] Matching basé sur intérêts/parcours
+  - [ ] Calendrier et planification de sessions
+  - [ ] Feedback de mentorat et historique
+  - [ ] Événements de networking virtuels/physiques
+
+- **Intelligence Artificielle communautaire**
+  - [ ] Chatbot IA pour recherche de profils / ressources
+  - [ ] Recommandations de contenus, mentors, opportunités
+  - [ ] Automatisation de notifications, rappels, suggestions
+
+- **Connexion événements & initiatives**
+  - [ ] Calendrier centralisé des événements (webinaires, rencontres, ateliers)
+  - [ ] Gestion des inscriptions
+  - [ ] Suivi des présences et historique de participation
+  - [ ] Statistiques par événement
+
+- **Gestion avancée de la communauté**
+  - [ ] Profils alumni enrichis (certifications, diplômes, projets, expériences)
+  - [ ] Système de réputation/badges
+  - [ ] Groupes thématiques (clubs, promos, domaines)
+  - [ ] Notifications intelligentes par centre d’intérêt
+
+- **Analytics & reporting avancés**
+  - [ ] Tableaux de bord analytiques détaillés (étudiants, alumni, activités)
+  - [ ] Rapports personnalisables (export PDF/Excel)
+  - [ ] Visualisations interactives
+
+- **Améliorations techniques & infrastructure**
+  - [ ] Scalabilité (optimisation requêtes, pagination, index Firestore)
+  - [ ] Recherche full-text (Firestore + éventuellement moteur externe)
+  - [ ] Sécurité renforcée (2FA, audit des accès sensibles)
+  - [ ] API externe pour intégrations tierces
+  - [ ] Application mobile (iOS/Android ou PWA avancée)
+  - [ ] Notifications push mobiles
+
+- **Internationalisation**
+  - [ ] Support complet multilingue (FR/EN/AR, etc.)
+  - [ ] Gestion fuseaux horaires pour événements & notifications
+  - [ ] Gestion devises / localisation si besoin (offres, avantages)
+
+- **Fonctionnalités de croissance de la communauté**
+  - [ ] Gamification (points, badges, défis)
+  - [ ] Systèmes de recommandations (personnes, contenus, offres)
+  - [ ] Parrainage et referral alumni
+
+---
+
+## 3. Suggestions avancées (Backlog / à prioriser)
+
+Ces éléments sont des idées avancées décrites dans la section "Suggestions Fonctionnelles Avancées".
+
+- **Gestion des recommandations écrites & témoignages**
+  - [ ] Système de demandes de recommandations (alumni, employeurs, enseignants, mentors)
+  - [ ] Rédaction et validation de recommandations
+  - [ ] Affichage sur les profils (type LinkedIn)
+
+- **Place de marché de services entre alumni**
+  - [ ] Marketplace interne (missions freelances, coaching, relecture CV, traduction, conseils)
+  - [ ] Système de mise en relation et éventuellement de paiement
+
+- **Module d’aide à la mobilité internationale**
+  - [ ] Guides interactifs spécifiques mobilité (logement, démarches, assurances)
+  - [ ] Système de buddy pour nouveaux arrivants
+
+- **Table ronde vidéo / café virtuel aléatoire**
+  - [ ] Matchmaking aléatoire de participants
+  - [ ] Intégration vidéo (ou lien vers outils tiers) et gestion des sessions
+
+- **Centre d’échange de matériel et bons plans**
+  - [ ] Annonces (vente/don) de matériel d’occasion
+  - [ ] Partage de logements courte durée, bons plans
+
+- **Outils de job hunting avancés**
+  - [ ] Agrégation d’offres externes (LinkedIn, Welcome to the Jungle, etc.)
+  - [ ] Alertes personnalisées IA
+  - [ ] Suggestion automatique de candidatures
+
+- **Portefeuille de projets open source communautaires**
+  - [ ] Espace projets (publication, appel à contributions)
+  - [ ] Suivi des contributions
+
+- **Bibliothèque vidéo d’expériences & retours d’alumni**
+  - [ ] Hébergement/catalogue de mini-vidéos
+  - [ ] Outils de soumission/modération
+
+- **Gestion intelligente des recommandations LinkedIn**
+  - [ ] Automatisation de demandes de recommandations/endorsements LinkedIn
+
+- **Vérification & optimisation de CV (IA/mentors)**
+  - [ ] Analyse IA des CV + scoring
+  - [ ] Workflow revue par mentor
+
+- **Offres “alumni only” (logement, services, avantages)**
+  - [ ] Annuaire offres privées réservées aux alumni
+
+- **Carte interactive mondiale des alumni & buddy system**
+  - [ ] Carte géographique des membres
+  - [ ] Opt-in buddy system
+
+- **Skill matrix & mapping dynamique des compétences**
+  - [ ] Visualisation des compétences de la communauté
+  - [ ] Outil de création rapide d’équipes projet
+
+- **Micro-certifications & badges internes**
+  - [ ] Système de badges/micro-certifications lié aux actions sur la plateforme
+
+- **Bibliothèque podcasts / témoignages audio**
+  - [ ] Système de podcasts/témoignages audio
+
+- **Coaching carrière / entrepreneuriat validé**
+  - [ ] Catalogue de coachs (spécialistes ou alumni)
+  - [ ] Système de réservation/suivi de sessions
+
+- **Donation & levée de fonds à l’association alumni**
+  - [ ] Module de dons en ligne et campagnes
+
+- **Consultation participative & roadmap publique**
+  - [ ] Module de suggestions/vote
+  - [ ] Affichage roadmap publique
+
+- **Marketplace publique d’API pour automatisations**
+  - [ ] Référentiel d’API internes/externes partagées
+
+- **Portefeuille associatif & suivi d’engagement**
+  - [ ] Historique d’engagement associatif dans le profil
+
+- **Bibliothèque d’offres de stages/emplois passés avec évaluations anonymes**
+  - [ ] Base d’offres passées + avis anonymes
+
+---
+
+Ce fichier doit servir de référence centrale pour la roadmap. Pour raffiner, on pourra ajouter des priorités (P0/P1/P2) et des jalons (MVP, V1, V2, etc.).

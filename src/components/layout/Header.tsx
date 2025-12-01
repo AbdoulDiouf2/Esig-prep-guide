@@ -62,18 +62,18 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex items-center md:space-x-4 lg:space-x-8">
             {currentUser && (
               <>
-                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
-                  isScrolled ? 'text-blue-800' : 'text-white'
-                }`}>
-                  <Home className="w-4 h-4 mr-1" />
-                  <span className="md:hidden lg:inline">Accueil</span>
-                  <span className="md:inline lg:hidden">Accueil</span>
-                </Link>
                 <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Grid className="w-4 h-4 mr-1" />
-                  <span>Applications</span>
+                  <span>Centre d'applications</span>
+                </Link>
+                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <Home className="w-4 h-4 mr-1" />
+                  <span className="md:hidden lg:inline">Étudiants CPS</span>
+                  <span className="md:inline lg:hidden">Étudiants CPS</span>
                 </Link>
                 {/* <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
@@ -250,20 +250,20 @@ const Header: React.FC = () => {
                     Profil
                   </Link>
                   <Link 
-                    to="/dashboard" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Home className="w-4 h-4 mr-2" />
-                    <span>Tableau de bord</span>
-                  </Link>
-                  <Link 
                     to="/applications" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <Grid className="w-4 h-4 mr-2" />
-                    <span>Applications</span>
+                    <span>Centre d'applications</span>
+                  </Link>
+                  <Link 
+                    to="/dashboard" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Home className="w-4 h-4 mr-2" />
+                    <span>Module Étudiants CPS</span>
                   </Link>
                   <Link 
                     to="/resources" 

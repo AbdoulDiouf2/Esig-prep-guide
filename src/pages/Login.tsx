@@ -28,7 +28,7 @@ const Login: React.FC = () => {
       setError('');
       setLoading(true);
       await login(email, password);
-      navigate('/dashboard');
+      navigate('/applications');
     } catch (err: unknown) {
       setError('Identifiants invalides. Veuillez réessayer.');
       console.error(err);
@@ -43,7 +43,7 @@ const Login: React.FC = () => {
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/dashboard');
+      navigate('/applications');
     } catch (err: unknown) {
       let message = "Erreur lors de la connexion avec Google.";
       if (err && typeof err === 'object' && 'message' in err) {
@@ -62,7 +62,7 @@ const Login: React.FC = () => {
     setGithubLoading(true);
     try {
       await loginWithGithub();
-      navigate('/dashboard');
+      navigate('/applications');
     } catch (err: unknown) {
       let message = "Erreur lors de la connexion avec GitHub.";
       if (err && typeof err === 'object' && 'message' in err) {
