@@ -53,8 +53,8 @@ const Header: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                <div className="text-blue-900 font-bold text-lg">E.P.G</div>
+              <div className="rounded-full bg-white flex items-center justify-center shadow-sm px-3 py-2">
+                <div className="text-blue-900 font-bold text-lg whitespace-nowrap">E.P.G</div>
               </div>
               <div className={`font-bold text-xl transition-colors duration-300 ${
                 isScrolled ? 'text-blue-900' : 'text-white'
@@ -71,13 +71,13 @@ const Header: React.FC = () => {
                 <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  <Grid className="w-4 h-4 mr-1" />
+                  <Home className="w-4 h-4 mr-1" />
                   <span>Accueil</span>
                 </Link>
                 <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
-                  <Home className="w-4 h-4 mr-1" />
+                  <Grid className="w-4 h-4 mr-1" />                  
                   <span className="md:hidden lg:inline">CPS</span>
                   <span className="md:inline lg:hidden">CPS</span>
                 </Link>
@@ -260,7 +260,7 @@ const Header: React.FC = () => {
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <Grid className="w-4 h-4 mr-2" />
+                    <Home className="w-4 h-4 mr-2" />
                     <span>Accueil</span>
                   </Link>
                   <Link 
@@ -268,7 +268,7 @@ const Header: React.FC = () => {
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <Home className="w-4 h-4 mr-2" />
+                    <Grid className="w-4 h-4 mr-2" />
                     <span>CPS</span>
                   </Link>
                   <Link 
