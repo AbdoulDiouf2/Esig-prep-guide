@@ -11,6 +11,12 @@ const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
+  // Fonction pour extraire le premier prénom
+  const getFirstName = (fullName: string | null | undefined): string => {
+    if (!fullName) return 'Utilisateur';
+    return fullName.trim().split(' ')[0];
+  };
+
   // Add scroll effect
   useEffect(() => {
     const handleScroll = () => {
@@ -48,15 +54,15 @@ const Header: React.FC = () => {
           <Link to="/" className="flex items-center">
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                <div className="text-blue-900 font-bold text-lg">E</div>
+                <div className="text-blue-900 font-bold text-lg">E.P.G</div>
               </div>
               <div className={`font-bold text-xl transition-colors duration-300 ${
                 isScrolled ? 'text-blue-900' : 'text-white'
               }`}>
-                ESIGELEC Prep Guide
               </div>
             </div>
           </Link>
+                {/* ESIGELEC Prep Guide */}
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center md:space-x-4 lg:space-x-8">
@@ -66,14 +72,14 @@ const Header: React.FC = () => {
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Grid className="w-4 h-4 mr-1" />
-                  <span>Centre d'applications</span>
+                  <span>Accueil</span>
                 </Link>
                 <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Home className="w-4 h-4 mr-1" />
-                  <span className="md:hidden lg:inline">Étudiants CPS</span>
-                  <span className="md:inline lg:hidden">Étudiants CPS</span>
+                  <span className="md:hidden lg:inline">CPS</span>
+                  <span className="md:inline lg:hidden">CPS</span>
                 </Link>
                 {/* <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                   isScrolled ? 'text-blue-800' : 'text-white'
@@ -148,10 +154,10 @@ const Header: React.FC = () => {
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {(currentUser.displayName || currentUser.email || 'Utilisateur').charAt(0).toUpperCase()}
+                      {getFirstName(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span>{currentUser.displayName || currentUser.email || 'Utilisateur'}</span>
+                  <span>{getFirstName(currentUser.displayName || currentUser.email)}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
@@ -234,11 +240,11 @@ const Header: React.FC = () => {
                   <div className="py-3 px-2 mb-3 flex items-center border-b border-blue-700">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
                       <span className="text-blue-800 font-medium text-sm">
-                        {currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
+                        {getFirstName(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <span className="text-white font-medium">
-                      {currentUser.displayName || currentUser.email || 'Utilisateur'}
+                      {getFirstName(currentUser.displayName || currentUser.email)}
                     </span>
                   </div>
                   <Link 
@@ -255,7 +261,7 @@ const Header: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <Grid className="w-4 h-4 mr-2" />
-                    <span>Centre d'applications</span>
+                    <span>Accueil</span>
                   </Link>
                   <Link 
                     to="/dashboard" 
@@ -263,7 +269,7 @@ const Header: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <Home className="w-4 h-4 mr-2" />
-                    <span>Module Étudiants CPS</span>
+                    <span>CPS</span>
                   </Link>
                   <Link 
                     to="/resources" 
