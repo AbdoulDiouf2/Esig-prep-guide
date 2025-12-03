@@ -58,27 +58,27 @@ const Home: React.FC = () => {
               <div className="relative w-full max-w-[380px] h-[400px]">
                 {/* Photo CPS (en haut à gauche) avec effet glass */}
                 <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-                  <div className="relative group">
+                  <div className="relative group cursor-pointer">
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Étudiants CPS"
-                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover"
+                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
-                    {/* Glass overlay */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent backdrop-blur-[2px] border border-white/30 shadow-2xl group-hover:from-white/30 transition-all duration-300"></div>
+                    {/* Glass border effect */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
                   </div>
                 </div>
                 
                 {/* Photo ESIGELEC (en bas à droite, chevauche la première) avec effet glass */}
                 <div className={`absolute bottom-0 right-0 z-10 transition-all duration-700 ease-out delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                  <div className="relative group">
+                  <div className="relative group cursor-pointer">
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Campus ESIGELEC"
-                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover"
+                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
-                    {/* Glass overlay */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent backdrop-blur-[2px] border border-white/30 shadow-2xl group-hover:from-white/30 transition-all duration-300"></div>
+                    {/* Glass border effect */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
                   </div>
                 </div>
               </div>
