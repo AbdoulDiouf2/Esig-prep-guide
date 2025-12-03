@@ -53,16 +53,26 @@ const Header: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <div className="flex items-center space-x-2">
-              <div className="rounded-full bg-white flex items-center justify-center shadow-sm px-3 py-2">
-                <div className="text-blue-900 font-bold text-lg whitespace-nowrap">E.P.G</div>
-              </div>
-              <div className={`font-bold text-xl transition-colors duration-300 ${
-                isScrolled ? 'text-blue-900' : 'text-white'
-              }`}>
-              </div>
+              <img 
+                src={isScrolled ? "/cps-connect-alumni-fond-blanc.png" : "/cps-connect-alumni-fond-bleu.png"}
+                alt="CPS Connect Alumni Logo" 
+                className="h-12 w-auto transition-opacity duration-300"
+              />
             </div>
           </Link>
-                {/* ESIGELEC Prep Guide */}
+          {/* ESIGELEC Prep Guide 
+            <Link to="/" className="flex items-center">
+              <div className="flex items-center space-x-2">
+                <div className="rounded-full bg-white flex items-center justify-center shadow-sm px-3 py-2">
+                  <div className="text-blue-900 font-bold text-lg whitespace-nowrap">E.P.G</div>
+                </div>
+                <div className={`font-bold text-xl transition-colors duration-300 ${
+                  isScrolled ? 'text-blue-900' : 'text-white'
+                }`}>
+                </div>
+              </div>
+            </Link>
+          */}
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center md:space-x-4 lg:space-x-8">
