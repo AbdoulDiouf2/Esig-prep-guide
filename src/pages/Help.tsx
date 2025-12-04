@@ -11,7 +11,8 @@ import {
   ExternalLink, 
   ChevronDown, 
   ChevronUp, 
-  Search 
+  Search,
+  Users,
 } from 'lucide-react';
 
 const Help: React.FC = () => {
@@ -169,6 +170,59 @@ const Help: React.FC = () => {
           <p className="mt-2">Pour plus d'informations, consultez notre <Link to="/legal/privacy-policy" className="text-blue-600 hover:underline">Politique de confidentialité</Link>.</p>
         </div>
       )
+    },
+    {
+      id: 'alumni',
+      question: "Comment accéder à l'annuaire alumni et créer mon profil ?",
+      answer: (
+        <div>
+          <p className="mb-2">L'annuaire alumni vous permet de vous connecter avec les anciens étudiants de l'ESIGELEC :</p>
+          <div className="space-y-3 mt-3">
+            <div className="bg-purple-50 p-3 rounded-md">
+              <h4 className="font-semibold text-purple-800 mb-2">Consulter l'annuaire</h4>
+              <ol className="list-decimal ml-5 space-y-1 text-sm">
+                <li>Accédez au <Link to="/applications" className="text-purple-600 hover:underline">Centre d'applications</Link></li>
+                <li>Cliquez sur la catégorie "Alumni" (affichée par défaut)</li>
+                <li>Sélectionnez "Annuaire Alumni"</li>
+                <li>Utilisez les filtres pour rechercher par secteur, pays, ville ou année de promotion</li>
+              </ol>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-md">
+              <h4 className="font-semibold text-blue-800 mb-2">Créer votre profil alumni</h4>
+              <ol className="list-decimal ml-5 space-y-1 text-sm">
+                <li>Dans le centre d'applications, catégorie "Alumni"</li>
+                <li>Cliquez sur "Mon profil Alumni"</li>
+                <li>Remplissez vos informations : entreprise, poste, secteurs, expertises</li>
+                <li>Ajoutez vos réseaux sociaux (LinkedIn, GitHub, Twitter)</li>
+                <li>Soumettez votre profil pour validation</li>
+              </ol>
+              <p className="mt-2 text-sm text-gray-600">Une fois approuvé par un administrateur, votre profil sera visible dans l'annuaire.</p>
+            </div>
+          </div>
+          <p className="mt-3">Vous pouvez également accéder au forum et aux webinaires depuis la catégorie Alumni pour échanger avec la communauté.</p>
+        </div>
+      )
+    },
+    {
+      id: 'alumni-validation',
+      question: "Combien de temps prend la validation de mon profil alumni ?",
+      answer: (
+        <div>
+          <p className="mb-2">Le processus de validation de votre profil alumni :</p>
+          <ul className="list-disc ml-5 space-y-1">
+            <li>Votre profil est soumis à un administrateur pour validation</li>
+            <li>La validation prend généralement entre 24 et 72 heures</li>
+            <li>Vous recevrez une notification par email une fois votre profil approuvé</li>
+            <li>En cas de rejet, vous recevrez un email avec les raisons et pourrez modifier votre profil</li>
+          </ul>
+          <p className="mt-2">Vous pouvez vérifier le statut de votre profil dans le centre d'applications :</p>
+          <ul className="list-disc ml-5 space-y-1 mt-1">
+            <li><span className="text-yellow-600 font-medium">En attente</span> : Votre profil est en cours de validation</li>
+            <li><span className="text-green-600 font-medium">Approuvé</span> : Votre profil est visible dans l'annuaire</li>
+            <li><span className="text-red-600 font-medium">Rejeté</span> : Votre profil nécessite des modifications</li>
+          </ul>
+        </div>
+      )
     }
   ];
 
@@ -215,7 +269,18 @@ const Help: React.FC = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         {/* Section Rapide */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow border-t-4 border-purple-500">
+            <Users className="h-12 w-12 text-purple-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">🆕 Annuaire Alumni</h3>
+            <p className="text-gray-600 mb-4">
+              Découvrez et connectez-vous avec les anciens étudiants.
+            </p>
+            <Link to="/alumni" className="text-purple-600 hover:underline mt-auto">
+              Voir l'annuaire
+            </Link>
+          </div>
+
           <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow">
             <MessageSquare className="h-12 w-12 text-blue-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">FAQ</h3>
@@ -239,7 +304,7 @@ const Help: React.FC = () => {
           </div>
           
           <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow">
-            <Mail className="h-12 w-12 text-purple-500 mb-4" />
+            <Mail className="h-12 w-12 text-indigo-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nous contacter</h3>
             <p className="text-gray-600 mb-4">
               Besoin d'une assistance personnalisée ? Contactez notre équipe.

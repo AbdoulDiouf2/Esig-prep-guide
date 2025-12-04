@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, MapPin, FileText, MessageSquare, User, Download, Search, HelpCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, MapPin, FileText, MessageSquare, User, Download, Search, HelpCircle, Users, Briefcase, Video } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const UserTutorial: React.FC = () => {
@@ -47,6 +47,9 @@ const UserTutorial: React.FC = () => {
           <h3 className="text-lg font-bold text-blue-700 mb-4">Sommaire</h3>
           <ul className="space-y-2">
             <li>
+              <a href="#alumni" className="text-purple-600 hover:underline font-semibold">🆕 Annuaire Alumni & Networking</a>
+            </li>
+            <li>
               <a href="#navigation" className="text-blue-600 hover:underline">1. Navigation par phase</a>
             </li>
             <li>
@@ -62,6 +65,121 @@ const UserTutorial: React.FC = () => {
               <a href="#tips" className="text-blue-600 hover:underline">5. Conseils pratiques</a>
             </li>
           </ul>
+        </div>
+
+        {/* Alumni Section - NEW */}
+        <div id="alumni" className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-purple-500">
+          <div className="flex items-center mb-4">
+            <Users className="w-6 h-6 text-purple-600 mr-2" />
+            <h3 className="text-lg font-bold text-purple-700">🆕 Annuaire Alumni & Networking</h3>
+          </div>
+          
+          <p className="text-gray-700 mb-6">
+            Connectez-vous avec les anciens étudiants de l'ESIGELEC ! L'annuaire alumni vous permet de découvrir 
+            des profils inspirants, de trouver des mentors et de développer votre réseau professionnel.
+          </p>
+          
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-purple-50 rounded-lg p-5">
+              <div className="flex items-center mb-3">
+                <Users className="w-5 h-5 text-purple-600 mr-2" />
+                <h4 className="font-semibold text-purple-800">Annuaire Alumni</h4>
+              </div>
+              <p className="text-gray-700 mb-3">
+                Découvrez les profils des anciens étudiants par secteur, expertise, localisation ou année de promotion.
+              </p>
+              <ul className="list-disc list-inside text-gray-600 space-y-1">
+                <li>Recherche par secteur d'activité</li>
+                <li>Filtrage par pays et ville</li>
+                <li>Tri par année de promotion</li>
+                <li>Consultation des expertises</li>
+              </ul>
+              <Link 
+                to="/alumni" 
+                className="inline-block mt-4 text-purple-600 hover:text-purple-800 font-medium"
+              >
+                Voir l'annuaire →
+              </Link>
+            </div>
+            
+            <div className="bg-blue-50 rounded-lg p-5">
+              <div className="flex items-center mb-3">
+                <Briefcase className="w-5 h-5 text-blue-600 mr-2" />
+                <h4 className="font-semibold text-blue-800">Votre profil Alumni</h4>
+              </div>
+              <p className="text-gray-700 mb-3">
+                Créez et gérez votre profil pour être visible dans l'annuaire et connecter avec d'autres alumni.
+              </p>
+              <ul className="list-disc list-inside text-gray-600 space-y-1">
+                <li>Renseignez votre parcours professionnel</li>
+                <li>Partagez vos expertises</li>
+                <li>Ajoutez vos réseaux sociaux</li>
+                <li>Soyez visible pour les opportunités</li>
+              </ul>
+              <Link 
+                to="/complete-alumni-profile" 
+                className="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Créer mon profil →
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-indigo-50 rounded-lg p-5">
+              <div className="flex items-center mb-3">
+                <MessageSquare className="w-5 h-5 text-indigo-600 mr-2" />
+                <h4 className="font-semibold text-indigo-800">Forum Communautaire</h4>
+              </div>
+              <p className="text-gray-700 mb-3">
+                Participez aux discussions avec les étudiants actuels et les alumni.
+              </p>
+              <ul className="list-disc list-inside text-gray-600 space-y-1">
+                <li>Posez vos questions</li>
+                <li>Partagez vos expériences</li>
+                <li>Trouvez des conseils</li>
+                <li>Créez des discussions</li>
+              </ul>
+              <Link 
+                to="/forum" 
+                className="inline-block mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                Accéder au forum →
+              </Link>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-5">
+              <div className="flex items-center mb-3">
+                <Video className="w-5 h-5 text-green-600 mr-2" />
+                <h4 className="font-semibold text-green-800">Webinaires</h4>
+              </div>
+              <p className="text-gray-700 mb-3">
+                Assistez à des sessions d'information et de partage d'expériences.
+              </p>
+              <ul className="list-disc list-inside text-gray-600 space-y-1">
+                <li>Sessions avec des alumni</li>
+                <li>Conseils de carrière</li>
+                <li>Retours d'expérience</li>
+                <li>Q&A en direct</li>
+              </ul>
+              <Link 
+                to="/webinars" 
+                className="inline-block mt-4 text-green-600 hover:text-green-800 font-medium"
+              >
+                Voir les webinaires →
+              </Link>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 p-4 rounded-md">
+            <p className="text-gray-800 flex items-center">
+              <HelpCircle className="w-5 h-5 text-purple-600 mr-2" />
+              <span>
+                <strong>Nouveau !</strong> Toutes ces fonctionnalités sont maintenant regroupées dans la catégorie 
+                "Alumni" du centre d'applications pour faciliter votre networking et votre intégration dans la communauté ESIGELEC.
+              </span>
+            </p>
+          </div>
         </div>
 
         {/* Navigation Section */}

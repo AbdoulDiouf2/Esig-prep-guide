@@ -49,27 +49,104 @@ const AdminTutorial: React.FC = () => {
               <a href="#dashboard" className="text-blue-600 hover:underline">1. Tableau de bord</a>
             </li>
             <li>
-              <a href="#content" className="text-blue-600 hover:underline">2. Gestion du contenu du guide</a>
+              <a href="#alumni" className="text-purple-600 hover:underline font-semibold">🆕 2. Gestion des profils Alumni</a>
             </li>
             <li>
-              <a href="#faq" className="text-blue-600 hover:underline">3. Gestion des FAQ</a>
+              <a href="#content" className="text-blue-600 hover:underline">3. Gestion du contenu du guide</a>
             </li>
             <li>
-              <a href="#resources" className="text-blue-600 hover:underline">4. Gestion des ressources</a>
+              <a href="#faq" className="text-blue-600 hover:underline">4. Gestion des FAQ</a>
             </li>
             <li>
-              <a href="#dropbox" className="text-blue-600 hover:underline">5. Gestionnaire Dropbox</a>
+              <a href="#resources" className="text-blue-600 hover:underline">5. Gestion des ressources</a>
             </li>
             <li>
-              <a href="#users" className="text-blue-600 hover:underline">6. Gestion des utilisateurs</a>
+              <a href="#dropbox" className="text-blue-600 hover:underline">6. Gestionnaire Dropbox</a>
             </li>
             <li>
-              <a href="#activity" className="text-blue-600 hover:underline">7. Journal d'activité</a>
+              <a href="#users" className="text-blue-600 hover:underline">7. Gestion des utilisateurs</a>
             </li>
             <li>
-              <a href="#tips" className="text-blue-600 hover:underline">8. Conseils et bonnes pratiques</a>
+              <a href="#activity" className="text-blue-600 hover:underline">8. Journal d'activité</a>
+            </li>
+            <li>
+              <a href="#tips" className="text-blue-600 hover:underline">9. Conseils et bonnes pratiques</a>
             </li>
           </ul>
+        </div>
+
+        {/* Alumni Section - NEW */}
+        <div id="alumni" className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-purple-500">
+          <div className="flex items-center mb-4">
+            <Users className="w-6 h-6 text-purple-700 mr-2" />
+            <h3 className="text-lg font-bold text-purple-800">🆕 2. Gestion des profils Alumni</h3>
+          </div>
+          
+          <div className="border-l-4 border-purple-200 pl-4 mb-6">
+            <p className="text-gray-700 mb-4">
+              La gestion des profils alumni est une nouvelle fonctionnalité majeure qui vous permet de valider, gérer et analyser les profils des anciens étudiants de l'ESIGELEC.
+            </p>
+            
+            <h4 className="font-semibold text-purple-700 mb-3">Validation des profils</h4>
+            <p className="text-gray-700 mb-3">
+              Accédez à la page de validation via le tableau de bord (onglet "Alumni") ou directement depuis le menu.
+            </p>
+            <ul className="list-disc list-inside mb-4 text-gray-700 space-y-1">
+              <li><strong>Onglet "À valider"</strong> : Profils en attente de validation</li>
+              <li><strong>Onglet "Validés"</strong> : Profils déjà approuvés et visibles dans l'annuaire</li>
+              <li><strong>Onglet "Tous"</strong> : Vue complète de tous les profils</li>
+            </ul>
+
+            <h4 className="font-semibold text-purple-700 mb-3">Actions disponibles</h4>
+            <div className="bg-purple-50 p-4 rounded-md mb-4">
+              <p className="text-gray-700 mb-2"><strong>Pour les profils en attente :</strong></p>
+              <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                <li><strong className="text-green-600">Approuver</strong> : Valide le profil et le rend visible dans l'annuaire. Un email de confirmation est envoyé à l'utilisateur.</li>
+                <li><strong className="text-red-600">Rejeter</strong> : Refuse le profil avec une raison obligatoire. Un email explicatif est envoyé à l'utilisateur.</li>
+              </ul>
+            </div>
+
+            <div className="bg-red-50 p-4 rounded-md mb-4">
+              <p className="text-gray-700 mb-2"><strong className="text-red-700">🔒 Suppression (Superadmin uniquement) :</strong></p>
+              <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                <li>Seuls les super-administrateurs peuvent supprimer définitivement un profil</li>
+                <li>Une double confirmation est requise avant suppression</li>
+                <li>Les admins simples voient le bouton grisé avec un message d'accès refusé</li>
+              </ul>
+            </div>
+
+            <h4 className="font-semibold text-purple-700 mb-3">Statistiques Alumni</h4>
+            <p className="text-gray-700 mb-3">
+              Accédez aux statistiques détaillées via l'onglet "Alumni" du tableau de bord :
+            </p>
+            <ul className="list-disc list-inside mb-4 text-gray-700 space-y-1">
+              <li>KPIs : Total, Approuvés, En attente, Taux d'approbation</li>
+              <li>Top 5 Secteurs d'activité avec graphiques</li>
+              <li>Top 5 Pays de résidence</li>
+              <li>Top 10 Expertises</li>
+              <li>Distribution par année de promotion</li>
+              <li>Filtres par statut (tous/approuvés/pending/rejetés)</li>
+            </ul>
+
+            <h4 className="font-semibold text-purple-700 mb-3">Export des données</h4>
+            <p className="text-gray-700 mb-3">
+              Deux options d'export sont disponibles dans la page de statistiques :
+            </p>
+            <ul className="list-disc list-inside mb-4 text-gray-700 space-y-1">
+              <li><strong>Export CSV</strong> : Données tabulaires (nom, secteur, expertise, localisation, email)</li>
+              <li><strong>Export PDF</strong> : Rapport complet avec résumé et liste des profils</li>
+            </ul>
+
+            <div className="bg-yellow-50 p-4 rounded-md">
+              <p className="text-gray-800 flex items-start">
+                <HelpCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong>Astuce :</strong> Les compteurs dans les onglets affichent toujours les totaux globaux, 
+                  même lorsque vous filtrez les profils. Cela vous permet de garder une vue d'ensemble tout en travaillant sur un sous-ensemble de profils.
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Dashboard Section */}
@@ -118,7 +195,7 @@ const AdminTutorial: React.FC = () => {
         <div id="content" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <BookOpen className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">2. Gestion du contenu du guide</h3>
+            <h3 className="text-lg font-bold text-blue-800">3. Gestion du contenu du guide</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -178,7 +255,7 @@ const AdminTutorial: React.FC = () => {
         <div id="faq" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <HelpCircle className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">3. Gestion des FAQ</h3>
+            <h3 className="text-lg font-bold text-blue-800">4. Gestion des FAQ</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -224,7 +301,7 @@ const AdminTutorial: React.FC = () => {
         <div id="resources" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <FileText className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">4. Gestion des ressources</h3>
+            <h3 className="text-lg font-bold text-blue-800">5. Gestion des ressources</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -303,7 +380,7 @@ const AdminTutorial: React.FC = () => {
         <div id="dropbox" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Cloud className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">5. Gestionnaire Dropbox</h3>
+            <h3 className="text-lg font-bold text-blue-800">6. Gestionnaire Dropbox</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -398,7 +475,7 @@ const AdminTutorial: React.FC = () => {
         <div id="users" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Users className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">6. Gestion des utilisateurs</h3>
+            <h3 className="text-lg font-bold text-blue-800">7. Gestion des utilisateurs</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -455,7 +532,7 @@ const AdminTutorial: React.FC = () => {
         <div id="activity" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Activity className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">7. Journal d'activité</h3>
+            <h3 className="text-lg font-bold text-blue-800">8. Journal d'activité</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">
@@ -515,7 +592,7 @@ const AdminTutorial: React.FC = () => {
         <div id="tips" className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center mb-4">
             <Settings className="w-6 h-6 text-blue-700 mr-2" />
-            <h3 className="text-lg font-bold text-blue-800">7. Conseils et bonnes pratiques</h3>
+            <h3 className="text-lg font-bold text-blue-800">9. Conseils et bonnes pratiques</h3>
           </div>
           
           <div className="border-l-4 border-blue-200 pl-4 mb-6">

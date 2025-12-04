@@ -302,6 +302,44 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - `window.confirm` → `ConfirmationModal` (danger)
       - `alert` accès refusé → Modal personnalisé (warning)
     - [x] Fichiers : `src/pages/admin/AdminAlumniValidation.tsx`, `src/services/alumniService.ts`, `src/components/ConfirmationModal.tsx`
+  - [x] **Phase 1.5.2 : Mise en avant Alumni dans le centre d'applications**
+    - [x] Création de la catégorie "Alumni" dans ApplicationsDashboard
+      - Icône : Users (violet)
+      - 4 modules : Annuaire Alumni, Mon profil Alumni, Forum, Webinaires
+    - [x] Réorganisation des modules
+      - Forum et Webinaires déplacés de "Étudiants CPS" vers "Alumni"
+      - Catégorie Alumni positionnée en premier
+      - Catégorie Alumni définie par défaut à l'ouverture
+    - [x] Mise à jour du branding
+      - Titre : "Plateforme CPS Connect · Centre d'applications"
+      - Nom d'utilisateur en gras dans le message de bienvenue
+    - [x] Fichier : `src/pages/ApplicationsDashboard.tsx`
+  - [x] **Phase 1.5.3 : Mise à jour de la documentation et des pages d'aide**
+    - [x] Tutoriel utilisateur (UserTutorial.tsx)
+      - Nouvelle section "🆕 Annuaire Alumni & Networking" en première position
+      - 4 sous-sections : Annuaire, Profil Alumni, Forum, Webinaires
+      - Liens directs vers chaque fonctionnalité
+    - [x] Page d'aide (Help.tsx)
+      - Nouvelle carte "🆕 Annuaire Alumni" dans les accès rapides
+      - 2 nouvelles FAQ : "Comment accéder à l'annuaire" et "Validation profil alumni"
+      - Grille passée de 3 à 4 colonnes
+    - [x] Tutoriel admin (AdminTutorial.tsx)
+      - Nouvelle section "🆕 2. Gestion des profils Alumni"
+      - Documentation complète : validation, actions, statistiques, export
+      - Renumérotation des sections suivantes (3 à 9)
+    - [x] Pages légales
+      - Politique de confidentialité : ajout données profil alumni, finalités
+      - CGU : description annuaire alumni, consentement publication
+      - Encadrés informatifs sur les profils alumni
+    - [x] Footer
+      - Colonne "Liens rapides" : ajout Centre d'applications, Annuaire Alumni, Forum
+      - Colonne "Phases" → "Communauté" : Profil Alumni, Webinaires, Aide, Tutoriels
+      - Badge "🆕" sur Annuaire Alumni
+    - [x] Page MyAlumniProfile
+      - Ajout affichage du poste actuel (currentPosition)
+      - Ajout liens sociaux : LinkedIn, GitHub, Twitter, Site web
+      - Boutons colorés avec icônes pour chaque plateforme
+    - [x] Fichiers : `src/pages/UserTutorial.tsx`, `src/pages/Help.tsx`, `src/pages/admin/AdminTutorial.tsx`, `src/pages/legal/PrivacyPolicy.tsx`, `src/pages/legal/CGU.tsx`, `src/components/layout/Footer.tsx`, `src/pages/MyAlumniProfile.tsx`
   - [ ] **Phase 1.6 : Expérience Alumni & Quick Wins (Valeur perçue immédiate)**
     - [ ] **Onboarding & Motivation**
       - [ ] Ajouter section "Pourquoi compléter ta fiche ?" dans `ApplicationsDashboard.tsx`

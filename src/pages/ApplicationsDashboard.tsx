@@ -53,7 +53,7 @@ interface CategoryFeatures {
 const ApplicationsDashboard: React.FC = () => {
   const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
   const [isSuperAdminState, setIsSuperAdminState] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('main');
+  const [activeCategory, setActiveCategory] = useState('alumni');
   const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
   const [loadingAlumni, setLoadingAlumni] = useState(true);
 
@@ -92,8 +92,42 @@ const ApplicationsDashboard: React.FC = () => {
   }, [currentUser]);
 
   const allFeatures: CategoryFeatures = {
+    alumni: {
+      title: "Alumni",
+      icon: <Users className="w-6 h-6 text-purple-500" />,
+      features: [
+        {
+          icon: <Users className="w-8 h-8 text-purple-500" />,
+          title: "Annuaire Alumni",
+          description: "Découvrez et connectez-vous avec les anciens étudiants de l'ESIGELEC",
+          link: "/alumni",
+          roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Briefcase className="w-8 h-8 text-blue-500" />,
+          title: "Mon profil Alumni",
+          description: "Gérez votre profil alumni et soyez visible dans l'annuaire",
+          link: alumniProfile ? "/my-alumni-profile" : "/complete-alumni-profile",
+          roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <MessageSquare className="w-8 h-8 text-purple-500" />,
+          title: "Forum",
+          description: "Participez aux discussions avec les autres étudiants et alumni",
+          link: "/forum",
+          roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Video className="w-8 h-8 text-blue-500" />,
+          title: "Webinaires",
+          description: "Découvrez et inscrivez-vous aux webinaires à venir",
+          link: "/webinars",
+          roles: ["admin", "editor", "user"]
+        }
+      ]
+    },
     main: {
-      title: "Modules étudiants CPS",
+      title: "Etudiants CPS",
       icon: <Star className="w-6 h-6 text-yellow-500" />,
       features: [
         {
@@ -115,20 +149,6 @@ const ApplicationsDashboard: React.FC = () => {
           title: "FAQ",
           description: "Consultez les questions fréquentes ou posez vos questions",
           link: "/faq",
-          roles: ["admin", "editor", "user"]
-        },
-        {
-          icon: <MessageSquare className="w-8 h-8 text-purple-500" />,
-          title: "Forum",
-          description: "Participez aux discussions avec les autres étudiants",
-          link: "/forum",
-          roles: ["admin", "editor", "user"]
-        },
-        {
-          icon: <Video className="w-8 h-8 text-blue-500" />,
-          title: "Webinaires",
-          description: "Découvrez et inscrivez-vous aux webinaires à venir",
-          link: "/webinars",
           roles: ["admin", "editor", "user"]
         },
         {
@@ -382,10 +402,10 @@ const ApplicationsDashboard: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Plateforme ESIG-prep-guide · Centre d'applications</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Plateforme CPS Connect · Centre d'applications</h1>
         <p className="text-gray-600 mt-2">
-          Bienvenue {currentUser?.displayName || 'Utilisateur'}, cet espace centralise l'ensemble des modules et fonctionnalités disponibles pour votre profil
-          (Étudiants CPS, administration, édition, outils et futures fonctionnalités Alumni).
+          Bienvenue <strong>{currentUser?.displayName || 'Utilisateur'}</strong>, cet espace centralise l'ensemble des modules et fonctionnalités disponibles pour votre profil
+          (Étudiants CPS, Alumni, administration, édition, outils et services).
         </p>
       </div>
 

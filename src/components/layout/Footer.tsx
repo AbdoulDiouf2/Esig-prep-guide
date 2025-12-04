@@ -30,8 +30,13 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Liens rapides</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/dashboard" className="text-blue-200 hover:text-white transition-colors">
-                  Tableau de bord
+                <Link to="/applications" className="text-blue-200 hover:text-white transition-colors">
+                  Centre d'applications
+                </Link>
+              </li>
+              <li>
+                <Link to="/alumni" className="text-blue-200 hover:text-white transition-colors">
+                  🆕 Annuaire Alumni
                 </Link>
               </li>
               <li>
@@ -45,30 +50,35 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/feedback" className="text-blue-200 hover:text-white transition-colors">
-                  Feedback
+                <Link to="/forum" className="text-blue-200 hover:text-white transition-colors">
+                  Forum
                 </Link>
               </li>
             </ul>
           </div>
           
-          {/* Phases */}
+          {/* Community */}
           <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4">Phases</h3>
+            <h3 className="text-lg font-semibold mb-4">Communauté</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/resources?phase=post-cps" className="text-blue-200 hover:text-white transition-colors">
-                  Post-CPS
+                <Link to="/complete-alumni-profile" className="text-blue-200 hover:text-white transition-colors">
+                  Créer mon profil Alumni
                 </Link>
               </li>
               <li>
-                <Link to="/resources?phase=during-process" className="text-blue-200 hover:text-white transition-colors">
-                  Pendant les démarches
+                <Link to="/webinars" className="text-blue-200 hover:text-white transition-colors">
+                  Webinaires
                 </Link>
               </li>
               <li>
-                <Link to="/resources?phase=pre-arrival" className="text-blue-200 hover:text-white transition-colors">
-                  Pré-arrivée en France
+                <Link to="/help" className="text-blue-200 hover:text-white transition-colors">
+                  Centre d'aide
+                </Link>
+              </li>
+              <li>
+                <Link to="/tutorial" className="text-blue-200 hover:text-white transition-colors">
+                  Tutoriels
                 </Link>
               </li>
             </ul>

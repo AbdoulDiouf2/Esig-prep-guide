@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   CheckCircle, XCircle, Clock, Edit, AlertCircle,
-  MapPin, Briefcase, Award, Mail, Calendar, Users
+  MapPin, Briefcase, Award, Mail, Calendar, Users,
+  Linkedin, Github, Twitter, Globe
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile } from '../services/alumniService';
@@ -204,6 +205,64 @@ const MyAlumniProfile: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Poste actuel */}
+              {profile.position && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-gray-700">Poste actuel</p>
+                  <p className="text-gray-900">{profile.position}</p>
+                </div>
+              )}
+
+              {/* Liens sociaux */}
+              {(profile.linkedin || profile.github || profile.twitter || profile.website) && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {profile.linkedin && (
+                    <a
+                      href={profile.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 text-sm"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                      LinkedIn
+                    </a>
+                  )}
+                  {profile.github && (
+                    <a
+                      href={profile.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 text-sm"
+                    >
+                      <Github className="w-4 h-4" />
+                      GitHub
+                    </a>
+                  )}
+                  {profile.twitter && (
+                    <a
+                      href={profile.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-sky-50 text-sky-700 rounded-md hover:bg-sky-100 text-sm"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Twitter
+                    </a>
+                  )}
+                  {profile.website && (
+                    <a
+                      href={profile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 text-sm"
+                    >
+                      <Globe className="w-4 h-4" />
+                      Site web
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

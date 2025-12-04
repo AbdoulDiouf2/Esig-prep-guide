@@ -59,7 +59,7 @@ const PrivacyPolicy: React.FC = () => {
             </p>
             <ul>
               <li>
-                <strong>Données d'identification</strong> : nom, prénom, adresse email, identifiant utilisateur
+                <strong>Données d'identification</strong> : nom, prénom, adresse email, identifiant utilisateur, année de promotion
               </li>
               <li>
                 <strong>Données de connexion</strong> : adresse IP, type de navigateur, système d'exploitation, date et heure de connexion
@@ -70,7 +70,19 @@ const PrivacyPolicy: React.FC = () => {
               <li>
                 <strong>Données de profil</strong> : préférences, centres d'intérêt en lien avec votre utilisation de la Plateforme
               </li>
+              <li>
+                <strong>Données de profil Alumni (optionnel)</strong> : entreprise, poste, secteurs d'activité, expertises, localisation (pays, ville), biographie, photo de profil, liens vers réseaux sociaux professionnels (LinkedIn, GitHub, Twitter, site web personnel)
+              </li>
             </ul>
+            
+            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 my-4">
+              <p className="text-sm text-purple-800 mb-2">
+                <strong>🆕 Profils Alumni :</strong>
+              </p>
+              <p className="text-sm text-purple-700">
+                Si vous choisissez de créer un profil alumni, les informations que vous fournissez seront visibles publiquement dans l'annuaire alumni après validation par un administrateur. Vous pouvez à tout moment modifier ou supprimer votre profil alumni depuis votre espace personnel.
+              </p>
+            </div>
 
             <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-4 mt-8">
               <FileText className="w-6 h-6 text-blue-600" />
@@ -106,6 +118,8 @@ const PrivacyPolicy: React.FC = () => {
               <li>Améliorer et développer notre Plateforme</li>
               <li>Assurer la sécurité de la Plateforme et prévenir les fraudes</li>
               <li>Respecter nos obligations légales</li>
+              <li><strong>Gérer l'annuaire alumni</strong> : afficher votre profil dans l'annuaire après validation, faciliter le networking entre anciens étudiants</li>
+              <li><strong>Modération des profils alumni</strong> : valider, approuver ou rejeter les profils soumis pour garantir la qualité de l'annuaire</li>
             </ul>
 
             <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-4 mt-8">

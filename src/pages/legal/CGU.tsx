@@ -56,7 +56,21 @@ const CGU: React.FC = () => {
               <li>Des guides d'information pour les différentes phases du parcours étudiant (post-admission, pendant les démarches, pré-arrivée)</li>
               <li>Une bibliothèque de ressources documentaires</li>
               <li>Une section FAQ permettant aux utilisateurs de poser des questions et de consulter les réponses</li>
+              <li><strong>Un annuaire alumni</strong> permettant aux anciens étudiants de créer un profil professionnel et de se connecter avec la communauté ESIGELEC</li>
+              <li>Un forum de discussion et des webinaires pour favoriser les échanges entre étudiants et alumni</li>
             </ul>
+            
+            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 my-4">
+              <p className="text-sm text-purple-800 mb-2">
+                <strong>🆕 Annuaire Alumni :</strong>
+              </p>
+              <p className="text-sm text-purple-700 mb-2">
+                Les utilisateurs peuvent créer un profil alumni optionnel qui sera visible publiquement dans l'annuaire après validation par un administrateur. En créant un profil alumni, vous acceptez que les informations fournies (nom, entreprise, poste, secteurs, expertises, localisation, biographie, photo, liens professionnels) soient rendues publiques dans l'annuaire.
+              </p>
+              <p className="text-sm text-purple-700">
+                Vous conservez le droit de modifier ou supprimer votre profil alumni à tout moment depuis votre espace personnel.
+              </p>
+            </div>
 
             <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-4 mt-8">
               <UserCheck className="w-6 h-6 text-blue-600" />
