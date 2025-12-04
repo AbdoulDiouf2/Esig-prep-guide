@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getUserProgression, setUserProgression } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent, GuidePhase } from '../contexts/ContentContext';
-import { FileText, CheckCircle, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare, ArrowLeft } from 'lucide-react';
+import { FileText, CheckCircle as CheckCircleIcon, List, CheckSquare, Type, X, Check, Info, Users, MessageSquare, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
 import SubsectionForm from '../components/subsection/SubsectionForm';
 import { 
   getUserSubsectionData, 
@@ -42,7 +42,31 @@ const Dashboard: React.FC = () => {
   const [subsectionDataLoading, setSubsectionDataLoading] = useState<boolean>(true);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [progressLoading, setProgressLoading] = useState<boolean>(true);
+  // État du modal d'information
+  const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
+  const [hasAcceptedInfo, setHasAcceptedInfo] = useState<boolean>(false);
   // État de publication du forum
+
+  // Afficher le modal d'information au chargement de la page
+  useEffect(() => {
+    if (currentUser) {
+      // Vérifier si l'utilisateur a déjà vu le message aujourd'hui
+      const lastSeen = localStorage.getItem(`dashboardInfoSeen_${currentUser.uid}`);
+      const today = new Date().toDateString();
+      
+      if (!lastSeen || new Date(lastSeen).toDateString() !== today) {
+        setShowInfoModal(true);
+      }
+    }
+  }, [currentUser]);
+
+  const handleAcceptInfo = () => {
+    if (currentUser) {
+      localStorage.setItem(`dashboardInfoSeen_${currentUser.uid}`, new Date().toISOString());
+      setHasAcceptedInfo(true);
+      setShowInfoModal(false);
+    }
+  };
 
   // Fermer la bulle d'aide si on clique ailleurs
   useEffect(() => {
@@ -409,7 +433,7 @@ const Dashboard: React.FC = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
         <div className="container mx-auto px-4">
-          <h1 className="text-2xl font-bold mb-2">Tableau de bord</h1>
+          <h1 className="text-2xl font-bold mb-2">CPS Connect · Guide de préparation</h1>
           <p className="text-blue-100">
             Bienvenue, <strong>{currentUser?.displayName || currentUser?.email} !</strong> Suivez votre progression et accédez à vos ressources.
           </p>
@@ -775,6 +799,64 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal d'information important */}
+      {showInfoModal && !hasAcceptedInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-8 w-8 text-yellow-500 mr-2" />
+                  <h2 className="text-2xl font-bold text-gray-900">Information importante</h2>
+                </div>
+                <button
+                  onClick={handleAcceptInfo}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="prose prose-lg text-gray-700 space-y-4">
+                <p>
+                  <strong>Bienvenue sur CPS Connect !</strong> Avant de commencer, il est important de noter que :
+                </p>
+                
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Cette plateforme <strong>ne garantit pas</strong> l'obtention d'un visa ou d'une admission</li>
+                  <li>Les informations fournies sont basées sur des expériences d'anciens étudiants</li>
+                  <li>Les procédures administratives peuvent évoluer - restez informé des mises à jour officielles</li>
+                  <li>L'annuaire alumni facilite le networking mais ne garantit pas de réponse aux demandes de contact</li>
+                  <li>Nous vous recommandons de toujours vérifier les informations auprès des sources officielles (Campus France, ESIGELEC, etc.)</li>
+                </ul>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <CheckCircleIcon className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-700">
+                        En utilisant cette application, vous reconnaissez avoir pris connaissance de ces informations importantes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={handleAcceptInfo}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  J'ai compris, continuer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

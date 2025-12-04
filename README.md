@@ -1,4 +1,4 @@
-# ESIG-prep-guide 📚
+# CPS Connect 📚
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
@@ -20,12 +20,12 @@
 
 ## 🔍 Aperçu
 
-**ESIG-prep-guide** est une plateforme multi-modules conçue pour centraliser les outils et ressources destinés aux étudiants CPS et à la communauté Alumni de l'ESIGELEC.
+**CPS Connect** (anciennement ESIG-prep-guide) est une plateforme multi-modules conçue pour centraliser les outils et ressources destinés aux étudiants CPS et à la communauté Alumni de l'ESIGELEC.
 
 ### Volets actuels et futurs
 
-- **Volet Étudiants CPS** (actuellement disponible) : Accompagne les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen, structuré selon trois phases (post-CPS, démarches administratives, pré-arrivée).
-- **Volet Alumni** (en développement) : Annuaire des entrepreneurs, opportunités business & emploi, mentorat & networking, intelligence artificielle communautaire, et bien d'autres modules pour renforcer la communauté.
+- **Volet Étudiants CPS** ✅ : Accompagne les étudiants des Classes Préparatoires Scientifiques (CPS) de Dakar dans leur transition vers l'ESIGELEC à Rouen, structuré selon trois phases (post-CPS, démarches administratives, pré-arrivée).
+- **Volet Alumni** ✅ : Annuaire alumni avec profils professionnels, système de validation, statistiques, forum communautaire, webinaires, et networking entre anciens étudiants.
 
 ### Objectifs du projet
 
@@ -39,8 +39,9 @@
 
 ### 🏠 Centre d'applications
 - **Hub centralisé** regroupant tous les modules et fonctionnalités disponibles
-- **Navigation intuitive** par catégories (Modules étudiants CPS, Administration, Édition, Outils, Fonctionnalités avancées)
+- **Navigation intuitive** par catégories (Alumni, Modules étudiants CPS, Administration, Édition, Outils, Fonctionnalités avancées)
 - **Filtrage dynamique** selon le rôle de l'utilisateur (étudiant, éditeur, administrateur)
+- **Catégorie Alumni par défaut** pour mettre en avant le networking
 - **Affichage des modules futurs** avec statut "Bientôt disponible"
 
 ### 📚 Gestion des ressources
@@ -81,12 +82,27 @@
 - Système de consentement conforme au RGPD
 - Registre RGPD accessible aux administrateurs
 
+### 👥 Annuaire Alumni (Nouveau !)
+- **Profils alumni complets** : Informations professionnelles, secteurs, expertises, localisation
+- **Système de validation** : Workflow d'approbation/rejet avec notifications email
+- **Recherche et filtrage avancés** : Par secteur, expertise, année de promo, localisation
+- **Statistiques détaillées** : KPIs, top secteurs/pays/expertises, distribution par promo
+- **Export de données** : CSV et PDF pour analyse
+- **Gestion des statuts** : Pending → Approved/Rejected avec possibilité de révocation
+- **Auto-gestion** : Les alumni peuvent modifier ou supprimer leur propre profil
+- **Liens professionnels** : LinkedIn, GitHub, Twitter, site web personnel
+
+### 🎓 Forum & Webinaires
+- **Forum communautaire** : Discussions entre étudiants et alumni
+- **Gestion des webinaires** : Création, inscription, suivi des participants
+- **Propositions d'ateliers** : Les utilisateurs peuvent proposer des ateliers
+
 ### 🚀 Roadmap & Évolutivité
-La plateforme est conçue pour accueillir progressivement de nouveaux modules :
-- **Phase 1** : Annuaire des entrepreneurs (fiches, recherche, filtrage, export)
-- **Phase 2** : Opportunités business & emploi, Mentorat & networking
-- **Phase 3** : Intelligence artificielle communautaire, Connexion événements & initiatives
-- **Futures améliorations** : Internationalisation, Gamification, Analytics avancés, Application mobile
+La plateforme continue d'évoluer avec de nouveaux modules :
+- **Phase 1** ✅ : Annuaire alumni complet avec validation et statistiques
+- **Phase 2** (En cours) : Amélioration de l'expérience utilisateur et quick wins
+- **Phase 3** (Planifié) : Système de matching mentorat, opportunités business ciblées
+- **Futures améliorations** : Intelligence artificielle communautaire, Internationalisation, Gamification, Application mobile
 
 ## 🔧 Technologies
 
@@ -270,4 +286,4 @@ Projet: [https://github.com/AbdoulDiouf2/Esig-prep-guide](https://github.com/Abd
 
 Développé avec ❤️ pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
 
-Dernière mise à jour: 1er Décembre 2025
+Dernière mise à jour: 5 Décembre 2025

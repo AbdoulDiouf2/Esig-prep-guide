@@ -383,6 +383,25 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - Séparation visuelle (bordure, zone de danger)
       - Feedback de chargement pendant la suppression
     - [x] Fichier : `src/pages/MyAlumniProfile.tsx`
+  - [x] **Phase 1.5.6 : Message d'information et branding**
+    - [x] Mise à jour du message d'information important
+      - Nouveau branding : "CPS Connect"
+      - Ajout mention annuaire alumni
+      - Ajout sources officielles (Campus France, ESIGELEC)
+      - 5 points clés au lieu de 4
+    - [x] Déplacement du modal d'information
+      - Suppression du modal à la connexion (App.tsx)
+      - Ajout du modal sur la page Dashboard uniquement
+      - Affichage une fois par jour par utilisateur
+      - localStorage : `dashboardInfoSeen_${uid}`
+    - [x] Mise à jour du titre Dashboard
+      - Ancien : "Tableau de bord"
+      - Nouveau : "CPS Connect · Guide de préparation"
+    - [x] URLs des emails corrigées
+      - Remplacement de `window.location.origin` par constante `PRODUCTION_URL`
+      - URL : `https://esig-prep-guide.vercel.app`
+      - Emails concernés : approbation et rejet de profil alumni
+    - [x] Fichiers : `src/pages/Dashboard.tsx`, `src/App.tsx`, `src/services/alumniService.ts`
   - [ ] **Phase 1.6 : Expérience Alumni & Quick Wins (Valeur perçue immédiate)**
     - [ ] **Onboarding & Motivation**
       - [ ] Ajouter section "Pourquoi compléter ta fiche ?" dans `ApplicationsDashboard.tsx`
