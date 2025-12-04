@@ -55,14 +55,14 @@ const Home: React.FC = () => {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center md:pl-8 mt-6 md:mt-0">
-              <div className="relative w-full max-w-[380px] h-[400px]">
+              <div className="relative w-full max-w-[380px] h-[280px] sm:h-[350px] md:h-[400px]">
                 {/* Photo CPS (en haut à gauche) avec effet glass */}
                 <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                   <div className="relative group cursor-pointer">
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Étudiants CPS"
-                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                      className="rounded-xl w-[180px] sm:w-[220px] md:w-[280px] h-[140px] sm:h-[170px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
                     {/* Glass border effect */}
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
@@ -75,7 +75,7 @@ const Home: React.FC = () => {
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Campus ESIGELEC"
-                      className="rounded-xl w-[240px] md:w-[280px] h-[180px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                      className="rounded-xl w-[180px] sm:w-[220px] md:w-[280px] h-[140px] sm:h-[170px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
                     {/* Glass border effect */}
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
