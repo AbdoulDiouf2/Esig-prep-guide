@@ -47,6 +47,7 @@ import FeedbackAdmin from './pages/admin/FeedbackAdmin';
 import AdminWebinarManager from './pages/admin/AdminWebinarManager';
 import AdminWorkshopProposals from './pages/admin/AdminWorkshopProposals';
 import AdminAlumniValidation from './pages/admin/AdminAlumniValidation';
+import AlumniStats from './pages/admin/AlumniStats';
 import AdminEmailBroadcast from './components/AdminEmailBroadcast';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
@@ -471,6 +472,13 @@ function App() {
                   <AuthWrapper>
                     <AdminRoute>
                       <AdminAlumniValidation />
+                    </AdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/alumni-stats" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AlumniStats />
                     </AdminRoute>
                   </AuthWrapper>
                 } />

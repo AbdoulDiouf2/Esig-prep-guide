@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   deleteField,
   query,
   where,
@@ -543,6 +544,20 @@ export const getAllExpertise = async (): Promise<string[]> => {
     return Array.from(expertiseSet).sort();
   } catch (error) {
     console.error('❌ Erreur lors de la récupération des expertises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Supprimer un profil alumni (admin uniquement)
+ */
+export const deleteAlumniProfile = async (uid: string): Promise<void> => {
+  try {
+    const alumniRef = doc(db, ALUMNI_COLLECTION, uid);
+    await deleteDoc(alumniRef);
+    console.log('✅ Profil alumni supprimé:', uid);
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression du profil alumni:', error);
     throw error;
   }
 };

@@ -1,27 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin } from 'lucide-react';
-import { getPendingAlumniProfiles, updateAlumniStatus } from '../../services/alumniService';
+import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin, Trash2 } from 'lucide-react';
+import { getPendingAlumniProfiles, getApprovedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AlumniProfile } from '../../types/alumni';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const AdminAlumniValidation: React.FC = () => {
   const { currentUser } = useAuth();
   const [profiles, setProfiles] = useState<AlumniProfile[]>([]);
+  const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]); // Pour les compteurs
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<AlumniProfile | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'all'>('pending');
+  
+  // États pour les modals de confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAccessDeniedModal, setShowAccessDeniedModal] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState<AlumniProfile | null>(null);
 
   useEffect(() => {
-    loadPendingProfiles();
-  }, []);
+    loadProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
-  const loadPendingProfiles = async () => {
+  const loadProfiles = async () => {
     setLoading(true);
     try {
-      const data = await getPendingAlumniProfiles();
-      setProfiles(data);
+      // Toujours charger tous les profils pour les compteurs
+      const [pending, approved] = await Promise.all([
+        getPendingAlumniProfiles(),
+        getApprovedAlumniProfiles('dateCreated', 1000)
+      ]);
+      const all = [...pending, ...approved];
+      setAllProfiles(all);
+      
+      // Filtrer selon l'onglet actif
+      if (activeTab === 'pending') {
+        setProfiles(pending);
+      } else if (activeTab === 'approved') {
+        setProfiles(approved);
+      } else {
+        setProfiles(all);
+      }
     } catch (error) {
       console.error('Erreur chargement profils:', error);
     } finally {
@@ -44,7 +67,7 @@ const AdminAlumniValidation: React.FC = () => {
       setTimeout(() => setSuccessMessage(''), 3000);
       
       // Recharger la liste
-      await loadPendingProfiles();
+      await loadProfiles();
       setSelectedProfile(null);
     } catch (error) {
       console.error('Erreur approbation:', error);
@@ -73,12 +96,47 @@ const AdminAlumniValidation: React.FC = () => {
       setTimeout(() => setSuccessMessage(''), 3000);
       
       // Recharger la liste
-      await loadPendingProfiles();
+      await loadProfiles();
       setSelectedProfile(null);
       setRejectionReason('');
     } catch (error) {
       console.error('Erreur rejet:', error);
       alert('Erreur lors du rejet du profil');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = (profile: AlumniProfile) => {
+    // Vérifier si l'utilisateur est superadmin
+    if (!currentUser?.isSuperAdmin) {
+      setShowAccessDeniedModal(true);
+      return;
+    }
+
+    // Ouvrir le modal de confirmation
+    setProfileToDelete(profile);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!profileToDelete) return;
+
+    setActionLoading(true);
+    try {
+      await deleteAlumniProfile(profileToDelete.uid);
+      
+      setSuccessMessage(`Profil de ${profileToDelete.name} supprimé définitivement`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Recharger la liste
+      await loadProfiles();
+      setSelectedProfile(null);
+      setProfileToDelete(null);
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      setSuccessMessage('');
+      alert('Erreur lors de la suppression du profil');
     } finally {
       setActionLoading(false);
     }
@@ -101,8 +159,32 @@ const AdminAlumniValidation: React.FC = () => {
             Validation des profils Alumni
           </h1>
           <p className="mt-2 text-gray-600">
-            {profiles.length} profil{profiles.length > 1 ? 's' : ''} en attente de validation
+            Gérer les profils alumni de l'annuaire
           </p>
+        </div>
+
+        {/* Onglets */}
+        <div className="mb-6">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <button
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'pending' ? 'bg-yellow-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('pending')}
+            >
+              À valider ({allProfiles.filter(p => p.status === 'pending').length})
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'approved' ? 'bg-green-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('approved')}
+            >
+              Validés ({allProfiles.filter(p => p.status === 'approved').length})
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'all' ? 'bg-purple-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('all')}
+            >
+              Tous ({allProfiles.length})
+            </button>
+          </div>
         </div>
 
         {/* Message de succès */}
@@ -145,9 +227,17 @@ const AdminAlumniValidation: React.FC = () => {
                     )}
                     
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {profile.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                          {profile.name}
+                        </h3>
+                        {profile.status === 'approved' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Validé
+                          </span>
+                        )}
+                      </div>
                       {profile.headline && (
                         <p className="text-sm text-gray-600 line-clamp-1">
                           {profile.headline}
@@ -259,6 +349,7 @@ const AdminAlumniValidation: React.FC = () => {
                   )}
 
                   {/* Actions */}
+                  {selectedProfile.status === 'pending' ? (
                   <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Actions</h3>
                     
@@ -296,6 +387,37 @@ const AdminAlumniValidation: React.FC = () => {
                       {actionLoading ? 'Traitement...' : 'Rejeter le profil'}
                     </button>
                   </div>
+                  ) : (
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center mb-4">
+                      <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-green-800 font-medium">Profil déjà validé</p>
+                      <p className="text-green-600 text-sm mt-1">Ce profil est visible dans l'annuaire alumni</p>
+                    </div>
+                  </div>
+                  )}
+                  
+                  {/* Bouton de suppression (superadmin uniquement) */}
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <button
+                      onClick={() => handleDelete(selectedProfile)}
+                      disabled={actionLoading || !currentUser?.isSuperAdmin}
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium ${
+                        currentUser?.isSuperAdmin
+                          ? 'bg-red-600 text-white hover:bg-red-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      } disabled:opacity-50`}
+                      title={!currentUser?.isSuperAdmin ? 'Réservé aux super-administrateurs' : ''}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      {actionLoading ? 'Suppression...' : 'Supprimer définitivement ce profil'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      {currentUser?.isSuperAdmin 
+                        ? '⚠️ Cette action est irréversible' 
+                        : '🔒 Réservé aux super-administrateurs'}
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -309,6 +431,51 @@ const AdminAlumniValidation: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setProfileToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Supprimer ce profil ?"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement le profil de ${profileToDelete?.name} ?\n\nCette action est irréversible et supprimera toutes les données associées.`}
+        confirmButtonText="Supprimer définitivement"
+        cancelButtonText="Annuler"
+        type="danger"
+      />
+
+      {/* Modal d'accès refusé */}
+      {showAccessDeniedModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-yellow-200 flex items-center">
+              <XCircle className="mr-2 h-5 w-5 text-yellow-500" />
+              <h3 className="text-lg font-medium text-yellow-800">Accès refusé</h3>
+            </div>
+            
+            <div className="px-6 py-4">
+              <p className="text-gray-700">
+                Seuls les super-administrateurs peuvent supprimer des profils alumni.
+              </p>
+              <p className="text-gray-700 mt-2">
+                Contactez un super-admin si vous avez besoin de supprimer ce profil.
+              </p>
+            </div>
+            
+            <div className="px-6 py-3 bg-gray-50 flex justify-end">
+              <button
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                onClick={() => setShowAccessDeniedModal(false)}
+              >
+                J'ai compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

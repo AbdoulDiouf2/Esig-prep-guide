@@ -259,12 +259,49 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - Intégré dans `updateAlumniStatus()` avec gestion d'erreur (n'empêche pas la validation)
       - Utilise `NotificationService.sendCustomEmail()` existant
     - [x] Fichier : `src/services/alumniService.ts`
-  - [ ] **Phase 1.5 : Export des données et statistiques (visible que pour l'admin)**
-    - [ ] Créer page `AlumniStats.tsx` (statistiques + graphiques)
-    - [ ] Implémenter export CSV (nom, secteur, expertise, localisation, email)
-    - [ ] Implémenter export PDF (rapport complet)
-    - [ ] Ajouter filtres sur les stats
-    - [ ] Fichiers : `src/pages/AlumniStats.tsx`, `src/utils/exportService.ts`
+  - [x] **Phase 1.5 : Export des données et statistiques (visible que pour l'admin)**
+    - [x] Créer page `AlumniStats.tsx` (statistiques + graphiques)
+      - KPIs : Total, Approuvés, En attente, Taux d'approbation
+      - Top 5 Secteurs avec barres de progression
+      - Top 5 Pays avec barres de progression
+      - Top 10 Expertises
+      - Distribution par année de promotion
+      - Filtres : Tous, Approuvés, En attente, Rejetés
+    - [x] Implémenter export CSV (nom, secteur, expertise, localisation, email)
+      - Fonction `exportToCSV()` avec encodage UTF-8
+      - Téléchargement automatique du fichier
+    - [x] Implémenter export PDF (rapport complet)
+      - Fonction `exportToPDF()` générant un rapport HTML imprimable
+      - Résumé, liste des profils, footer
+      - Bouton d'impression intégré
+    - [x] Ajouter filtres sur les stats
+      - Filtrage par statut (tous/approuvés/pending/rejetés)
+      - Recalcul automatique des stats selon le filtre
+    - [x] Intégration dans AdminDashboard
+      - Composant AlumniStats affiché dans l'onglet Alumni
+      - Route `/admin/alumni-stats` également disponible
+      - Boutons d'action : "Valider des profils", "Voir l'annuaire", "Retour"
+    - [x] Fichiers : `src/pages/admin/AlumniStats.tsx`, `src/utils/exportService.ts`, `src/App.tsx`, `src/pages/admin/AdminDashboard.tsx`
+  - [x] **Phase 1.5.1 : Améliorations page de validation**
+    - [x] Système d'onglets dans AdminAlumniValidation
+      - Onglet "À valider" (profils pending)
+      - Onglet "Validés" (profils approved)
+      - Onglet "Tous" (tous les profils)
+      - Compteurs dynamiques toujours basés sur les totaux
+    - [x] Badge de statut sur les profils validés
+    - [x] Actions conditionnelles selon le statut
+      - Profils pending : boutons Approuver/Rejeter
+      - Profils approved : message "Profil déjà validé"
+    - [x] Fonction de suppression de profil (superadmin uniquement)
+      - Service `deleteAlumniProfile()` dans `alumniService.ts`
+      - Vérification du rôle superadmin
+      - Modal de confirmation personnalisé (ConfirmationModal)
+      - Modal d'accès refusé pour les admins simples
+      - Bouton grisé avec indicateur 🔒 pour non-superadmins
+    - [x] Remplacement des popups natives
+      - `window.confirm` → `ConfirmationModal` (danger)
+      - `alert` accès refusé → Modal personnalisé (warning)
+    - [x] Fichiers : `src/pages/admin/AdminAlumniValidation.tsx`, `src/services/alumniService.ts`, `src/components/ConfirmationModal.tsx`
   - [ ] **Phase 1.6 : Expérience Alumni & Quick Wins (Valeur perçue immédiate)**
     - [ ] **Onboarding & Motivation**
       - [ ] Ajouter section "Pourquoi compléter ta fiche ?" dans `ApplicationsDashboard.tsx`

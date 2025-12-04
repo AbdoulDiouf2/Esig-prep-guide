@@ -27,7 +27,7 @@ import {
   BarChart
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
-import { getPendingAlumniProfiles, getApprovedAlumniProfiles } from '../../services/alumniService';
+import AlumniStats from './AlumniStats';
 
 import type { LogActivityParams } from './adminActivityLog';
 
@@ -68,12 +68,8 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
-  // Alumni KPIs
-  const [alumniPending, setAlumniPending] = useState<number>(0);
-  const [alumniApproved, setAlumniApproved] = useState<number>(0);
-  const [loadingAlumni, setLoadingAlumni] = useState<boolean>(true);
   // Tabs
-  const [activeTab, setActiveTab] = useState<'general' | 'cps'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps'>('general');
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -91,26 +87,6 @@ const AdminDashboard: React.FC = () => {
       setLoadingProgress(false);
     };
     fetchProgressions();
-  }, []);
-
-  // Charger les KPIs Alumni (pending/approved)
-  useEffect(() => {
-    const loadAlumniKpis = async () => {
-      try {
-        setLoadingAlumni(true);
-        const [pending, approved] = await Promise.all([
-          getPendingAlumniProfiles(),
-          getApprovedAlumniProfiles('dateCreated', 1_000),
-        ]);
-        setAlumniPending(pending.length);
-        setAlumniApproved(approved.length);
-      } catch (e) {
-        console.error('Erreur chargement KPIs alumni', e);
-      } finally {
-        setLoadingAlumni(false);
-      }
-    };
-    loadAlumniKpis();
   }, []);
 
   // Vérifier les messages non lus au chargement et s'abonner aux mises à jour
@@ -181,42 +157,6 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        {/* Section prioritaire: Alumni Annuaire */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-purple-700" />
-              Alumni · Annuaire (priorité)
-            </h2>
-            <div className="flex gap-2">
-              <Link to="/admin/alumni-validation" className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-purple-600 text-white hover:bg-purple-700">
-                <Award className="w-4 h-4 mr-1" /> Valider des profils
-              </Link>
-              <Link to="/alumni" className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-white border border-purple-200 text-purple-800 hover:bg-purple-50">
-                <Users className="w-4 h-4 mr-1" /> Voir l'annuaire
-              </Link>
-            </div>
-          </div>
-          {loadingAlumni ? (
-            <div className="text-gray-500">Chargement des indicateurs...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-4 rounded-lg bg-purple-50">
-                <div className="text-3xl font-bold text-purple-800">{alumniPending}</div>
-                <div className="text-sm text-gray-600">Profils en attente</div>
-              </div>
-              <div className="p-4 rounded-lg bg-green-50">
-                <div className="text-3xl font-bold text-green-800">{alumniApproved}</div>
-                <div className="text-sm text-gray-600">Profils approuvés</div>
-              </div>
-              <div className="p-4 rounded-lg bg-blue-50">
-                <div className="text-3xl font-bold text-blue-800">{alumniApproved + alumniPending}</div>
-                <div className="text-sm text-gray-600">Total profils suivis</div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Onglets */}
         <div className="mb-6">
           <div className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -227,6 +167,12 @@ const AdminDashboard: React.FC = () => {
               Général
             </button>
             <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'alumni' ? 'bg-purple-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('alumni')}
+            >
+              Alumni
+            </button>
+            <button
               className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'cps' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
               onClick={() => setActiveTab('cps')}
             >
@@ -234,6 +180,11 @@ const AdminDashboard: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Section Alumni (affiché uniquement onglet Alumni) */}
+        {activeTab === 'alumni' && (
+          <AlumniStats />
+        )}
 
         {/* Quick action buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
