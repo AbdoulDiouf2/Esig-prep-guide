@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApprovedAlumniProfiles, getPendingAlumniProfiles } from '../../services/alumniService';
+import { getApprovedAlumniProfiles, getPendingAlumniProfiles, getRejectedAlumniProfiles } from '../../services/alumniService';
 import { AlumniProfile } from '../../types/alumni';
 import { exportToCSV, exportToPDF, calculateAlumniStats } from '../../utils/exportService';
 import { 
@@ -29,11 +29,12 @@ const AlumniStats: React.FC = () => {
   const loadProfiles = async () => {
     try {
       setLoading(true);
-      const [approved, pending] = await Promise.all([
+      const [approved, pending, rejected] = await Promise.all([
         getApprovedAlumniProfiles('dateCreated', 1000),
-        getPendingAlumniProfiles()
+        getPendingAlumniProfiles(),
+        getRejectedAlumniProfiles()
       ]);
-      setProfiles([...approved, ...pending]);
+      setProfiles([...approved, ...pending, ...rejected]);
     } catch (error) {
       console.error('Erreur lors du chargement des profils:', error);
     } finally {
@@ -77,29 +78,31 @@ const AlumniStats: React.FC = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Statistiques Alumni</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Statistiques Alumni</h1>
               <p className="text-gray-600 mt-1">Vue d'ensemble et export des données</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Link
                 to="/admin/alumni-validation"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
               >
                 <Award className="w-4 h-4 mr-2" />
-                Valider des profils
+                <span className="hidden sm:inline">Valider des profils</span>
+                <span className="sm:hidden">Validation</span>
               </Link>
               <Link
                 to="/alumni"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 <Users className="w-4 h-4 mr-2" />
-                Voir l'annuaire
+                <span className="hidden sm:inline">Voir l'annuaire</span>
+                <span className="sm:hidden">Annuaire</span>
               </Link>
               <Link
                 to="/admin"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 ← Retour
               </Link>
@@ -107,14 +110,16 @@ const AlumniStats: React.FC = () => {
           </div>
 
           {/* Filtres et Export */}
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filtrer :</span>
-              <div className="flex gap-2">
+          <div className="flex flex-col gap-4 bg-white p-4 rounded-lg shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filtrer :</span>
+              </div>
+              <div className="grid grid-cols-2 sm:flex gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                  className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium ${
                     filter === 'all'
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -124,7 +129,7 @@ const AlumniStats: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilter('approved')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                  className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium ${
                     filter === 'approved'
                       ? 'bg-green-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -134,7 +139,7 @@ const AlumniStats: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilter('pending')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                  className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium ${
                     filter === 'pending'
                       ? 'bg-yellow-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -144,7 +149,7 @@ const AlumniStats: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilter('rejected')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                  className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium ${
                     filter === 'rejected'
                       ? 'bg-red-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -155,17 +160,17 @@ const AlumniStats: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleExportCSV}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </button>
               <button
                 onClick={handleExportPDF}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Export PDF
