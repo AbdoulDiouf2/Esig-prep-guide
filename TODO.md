@@ -134,6 +134,9 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
   - [ ] **Phase 1.0.1 : Formulaire d'inscription dynamique et progressif**
     - [ ] Restructurer `Register.tsx` en formulaire multi-étapes :
       - **Étape 1 (Basique)** : Email, mot de passe, nom, année de promotion (OBLIGATOIRE pour tous)
+        - Année de promotion = **Année de sortie de prépa** (fin 2ème année)
+        - Dropdown : 2020-2030
+        - Helper text : "Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée."
       - **Étape 2 (Décision)** : Question "Êtes-vous entrepreneur/alumni ?" (Oui/Non)
         - Si OUI → Étape 3
         - Si NON → Créer compte basique + redirection /applications
@@ -150,6 +153,26 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - Afficher notification UNIQUEMENT si profil entrepreneur pending
       - Bouton "Compléter mon profil entrepreneur" → `/complete-entrepreneur-profile`
     - [ ] Fichiers : `src/pages/Register.tsx`, `src/components/forms/MultiStepForm.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/ApplicationsDashboard.tsx`
+  - [ ] **Phase 1.0.2 : Migration des utilisateurs existants**
+    - [ ] Ajouter champ `profileComplete?: boolean` au type `AppUser` dans `src/types/user.ts`
+    - [ ] Ajouter champ `yearPromo?: number` au type `AppUser` (optionnel pour compatibilité)
+    - [ ] Créer page `CompleteUserProfile.tsx` (migration utilisateurs existants)
+      - Formulaire simple : Année de promotion (dropdown 2020-2030, obligatoire)
+        - Label : "Année de promotion (année de sortie de prépa)"
+        - Helper text : "Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée."
+      - Question : "Veux-tu créer ton profil alumni ?" (Oui/Non)
+      - Si Oui → Redirection vers `/complete-alumni-profile`
+      - Si Non → Sauvegarder année promo + `profileComplete = true` + redirection `/applications`
+    - [ ] Ajouter middleware dans `AuthContext.tsx` pour détecter profils incomplets
+      - Si `currentUser.profileComplete === false` ou `!currentUser.yearPromo` → Redirection `/complete-profile`
+    - [ ] Implémenter fonction `completeUserProfile(uid, yearPromo, createAlumniProfile)` dans `userService.ts`
+      - Met à jour `yearPromo` et `profileComplete = true`
+      - Si `createAlumniProfile === true`, appeler `createAlumniProfileOnSignup()`
+    - [ ] Ajouter banner de notification dans `ApplicationsDashboard.tsx` (si profil incomplet)
+      - "🎉 Nouvelle fonctionnalité ! Complète ton profil pour accéder à l'annuaire alumni"
+      - Bouton "Compléter maintenant"
+    - [ ] Tester le flux de migration avec utilisateurs existants
+    - [ ] Fichiers : `src/pages/CompleteUserProfile.tsx`, `src/types/user.ts`, `src/contexts/AuthContext.tsx`, `src/services/userService.ts`, `src/pages/ApplicationsDashboard.tsx`
   - [ ] **Phase 1.1 : Modèle de données et structure Firestore (Flexible & Ouvert)**
     - [ ] Créer type TypeScript `AlumniProfile` avec champs :
       - **Infos personnelles** : nom, email, année promo, photo, headline (titre professionnel)
