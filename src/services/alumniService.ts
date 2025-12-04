@@ -28,6 +28,7 @@ import {
 } from '../types/alumni';
 
 const ALUMNI_COLLECTION = 'alumni';
+const PRODUCTION_URL = 'https://esig-prep-guide.vercel.app';
 
 /**
  * Créer un profil alumni automatiquement lors de l'inscription
@@ -168,7 +169,7 @@ Vous pouvez dès à présent :
 • Être contacté par d'autres alumni
 • Profiter de toutes les fonctionnalités de l'annuaire
 
-Pour voir votre profil : ${window.location.origin}/#/alumni/${uid}
+Pour voir votre profil : ${PRODUCTION_URL}/#/alumni/${uid}
 
 Merci de faire partie de notre communauté !
 
@@ -197,7 +198,7 @@ Que faire maintenant ?
 
 Nous examinerons votre profil dès que possible après vos modifications.
 
-Pour modifier votre profil : ${window.location.origin}/#/my-alumni-profile
+Pour modifier votre profil : ${PRODUCTION_URL}/#/my-alumni-profile
 
 Si vous avez des questions, n'hésitez pas à nous contacter.
 
@@ -215,6 +216,29 @@ Ceci est une notification automatique, merci de ne pas y répondre directement.
     }
   } catch (error) {
     console.error('❌ Erreur lors de la mise à jour du statut:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupérer tous les profils alumni rejetés (admin uniquement)
+ */
+export const getRejectedAlumniProfiles = async (): Promise<AlumniProfile[]> => {
+  try {
+    const alumniRef = collection(db, ALUMNI_COLLECTION);
+    const q = query(
+      alumniRef,
+      where('status', '==', 'rejected'),
+      orderBy('dateUpdated', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      uid: doc.id,
+      ...doc.data(),
+    })) as AlumniProfile[];
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des profils rejetés:', error);
     throw error;
   }
 };

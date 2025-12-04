@@ -336,10 +336,53 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - Colonne "Phases" → "Communauté" : Profil Alumni, Webinaires, Aide, Tutoriels
       - Badge "🆕" sur Annuaire Alumni
     - [x] Page MyAlumniProfile
-      - Ajout affichage du poste actuel (currentPosition)
+      - Ajout affichage du poste actuel (position)
       - Ajout liens sociaux : LinkedIn, GitHub, Twitter, Site web
       - Boutons colorés avec icônes pour chaque plateforme
     - [x] Fichiers : `src/pages/UserTutorial.tsx`, `src/pages/Help.tsx`, `src/pages/admin/AdminTutorial.tsx`, `src/pages/legal/PrivacyPolicy.tsx`, `src/pages/legal/CGU.tsx`, `src/components/layout/Footer.tsx`, `src/pages/MyAlumniProfile.tsx`
+  - [x] **Phase 1.5.4 : Gestion complète des statuts de profils alumni**
+    - [x] Nouvel onglet "Rejetés" dans AdminAlumniValidation
+      - Affichage du nombre de profils rejetés
+      - Liste des profils avec statut "rejected"
+    - [x] Service getRejectedAlumniProfiles
+      - Fonction dans `alumniService.ts`
+      - Récupération des profils rejetés triés par date
+    - [x] Révocation des profils approuvés
+      - Section "Révoquer l'approbation" pour profils validés
+      - Champ raison obligatoire
+      - Bouton "Révoquer et rejeter le profil"
+      - Profil retiré immédiatement de l'annuaire
+    - [x] Ré-approbation des profils rejetés
+      - Affichage de la raison du rejet
+      - Section "Ré-approuver ce profil"
+      - Bouton pour approuver un profil précédemment rejeté
+    - [x] Flux complet de gestion des statuts
+      - Pending → Approved (approuver)
+      - Pending → Rejected (rejeter)
+      - Approved → Rejected (révoquer et rejeter)
+      - Rejected → Approved (ré-approuver)
+      - Any → Deleted (supprimer - superadmin uniquement)
+    - [x] Fichiers : `src/pages/admin/AdminAlumniValidation.tsx`, `src/services/alumniService.ts`
+  - [x] **Phase 1.5.5 : Auto-gestion du profil alumni par l'utilisateur**
+    - [x] Suppression de profil par l'alumni lui-même
+      - Section "Zone de danger" dans MyAlumniProfile
+      - Bouton "Supprimer mon profil alumni" (rouge avec icône Trash2)
+      - Avertissement clair sur l'irréversibilité
+    - [x] Modal de confirmation personnalisé
+      - Titre : "Supprimer votre profil alumni ?"
+      - Message détaillé sur les conséquences
+      - Bouton confirmer (danger) : "Oui, supprimer mon profil"
+      - Bouton annuler : "Annuler"
+      - État de chargement : "Suppression..."
+    - [x] Fonction handleDeleteProfile
+      - Appel à `deleteAlumniProfile(uid)`
+      - Redirection vers `/complete-alumni-profile` après suppression
+      - Gestion des erreurs avec feedback utilisateur
+    - [x] Sécurité et UX
+      - Double confirmation (bouton + modal)
+      - Séparation visuelle (bordure, zone de danger)
+      - Feedback de chargement pendant la suppression
+    - [x] Fichier : `src/pages/MyAlumniProfile.tsx`
   - [ ] **Phase 1.6 : Expérience Alumni & Quick Wins (Valeur perçue immédiate)**
     - [ ] **Onboarding & Motivation**
       - [ ] Ajouter section "Pourquoi compléter ta fiche ?" dans `ApplicationsDashboard.tsx`

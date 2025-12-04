@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin, Trash2 } from 'lucide-react';
-import { getPendingAlumniProfiles, getApprovedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
+import { getPendingAlumniProfiles, getApprovedAlumniProfiles, getRejectedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AlumniProfile } from '../../types/alumni';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -14,7 +14,7 @@ const AdminAlumniValidation: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'all'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   
   // États pour les modals de confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -30,11 +30,12 @@ const AdminAlumniValidation: React.FC = () => {
     setLoading(true);
     try {
       // Toujours charger tous les profils pour les compteurs
-      const [pending, approved] = await Promise.all([
+      const [pending, approved, rejected] = await Promise.all([
         getPendingAlumniProfiles(),
-        getApprovedAlumniProfiles('dateCreated', 1000)
+        getApprovedAlumniProfiles('dateCreated', 1000),
+        getRejectedAlumniProfiles()
       ]);
-      const all = [...pending, ...approved];
+      const all = [...pending, ...approved, ...rejected];
       setAllProfiles(all);
       
       // Filtrer selon l'onglet actif
@@ -42,6 +43,8 @@ const AdminAlumniValidation: React.FC = () => {
         setProfiles(pending);
       } else if (activeTab === 'approved') {
         setProfiles(approved);
+      } else if (activeTab === 'rejected') {
+        setProfiles(rejected);
       } else {
         setProfiles(all);
       }
@@ -177,6 +180,12 @@ const AdminAlumniValidation: React.FC = () => {
               onClick={() => setActiveTab('approved')}
             >
               Validés ({allProfiles.filter(p => p.status === 'approved').length})
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'rejected' ? 'bg-red-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('rejected')}
+            >
+              Rejetés ({allProfiles.filter(p => p.status === 'rejected').length})
             </button>
             <button
               className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'all' ? 'bg-purple-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
@@ -387,12 +396,74 @@ const AdminAlumniValidation: React.FC = () => {
                       {actionLoading ? 'Traitement...' : 'Rejeter le profil'}
                     </button>
                   </div>
+                  ) : selectedProfile.status === 'rejected' ? (
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center mb-4">
+                      <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                      <p className="text-red-800 font-medium">Profil rejeté</p>
+                      {selectedProfile.rejectionReason && (
+                        <div className="mt-3 p-3 bg-white rounded border border-red-200 text-left">
+                          <p className="text-sm font-medium text-gray-900 mb-1">Raison du rejet :</p>
+                          <p className="text-sm text-gray-700">{selectedProfile.rejectionReason}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Option pour ré-approuver */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-green-800 mb-3">Ré-approuver ce profil</h4>
+                      <p className="text-sm text-green-700 mb-3">
+                        Si le profil a été corrigé ou si le rejet était une erreur, vous pouvez l'approuver maintenant.
+                      </p>
+                      
+                      <button
+                        onClick={() => handleApprove(selectedProfile)}
+                        disabled={actionLoading}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 font-medium"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                        {actionLoading ? 'Traitement...' : 'Approuver le profil'}
+                      </button>
+                    </div>
+                  </div>
                   ) : (
                   <div className="border-t border-gray-200 pt-6">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center mb-4">
                       <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
                       <p className="text-green-800 font-medium">Profil déjà validé</p>
                       <p className="text-green-600 text-sm mt-1">Ce profil est visible dans l'annuaire alumni</p>
+                    </div>
+
+                    {/* Option pour révoquer l'approbation */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <h4 className="text-sm font-medium text-yellow-800 mb-3">Révoquer l'approbation</h4>
+                      <p className="text-sm text-yellow-700 mb-3">
+                        Si ce profil ne respecte plus les critères, vous pouvez le rejeter. Il ne sera plus visible dans l'annuaire.
+                      </p>
+                      
+                      {/* Raison de rejet */}
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Raison du rejet (obligatoire)
+                        </label>
+                        <textarea
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          rows={3}
+                          placeholder="Ex: Informations obsolètes, contenu inapproprié..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+
+                      {/* Bouton Rejeter */}
+                      <button
+                        onClick={() => handleReject(selectedProfile)}
+                        disabled={actionLoading || !rejectionReason.trim()}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 font-medium"
+                      >
+                        <XCircle className="w-5 h-5" />
+                        {actionLoading ? 'Traitement...' : 'Révoquer et rejeter le profil'}
+                      </button>
                     </div>
                   </div>
                   )}

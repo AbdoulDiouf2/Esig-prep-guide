@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, XCircle, Clock, Edit, AlertCircle,
   MapPin, Briefcase, Award, Mail, Calendar, Users,
-  Linkedin, Github, Twitter, Globe
+  Linkedin, Github, Twitter, Globe, Trash2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAlumniProfile } from '../services/alumniService';
+import { getAlumniProfile, deleteAlumniProfile } from '../services/alumniService';
 import type { AlumniProfile } from '../types/alumni';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const MyAlumniProfile: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<AlumniProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -32,6 +36,23 @@ const MyAlumniProfile: React.FC = () => {
 
     loadProfile();
   }, [currentUser]);
+
+  const handleDeleteProfile = async () => {
+    if (!currentUser || !profile) return;
+
+    setDeleting(true);
+    try {
+      await deleteAlumniProfile(profile.uid);
+      setShowDeleteModal(false);
+      // Rediriger vers la page de création de profil
+      navigate('/complete-alumni-profile');
+    } catch (error) {
+      console.error('Erreur suppression profil:', error);
+      alert('Erreur lors de la suppression du profil');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -346,6 +367,21 @@ const MyAlumniProfile: React.FC = () => {
               Voir l'annuaire
             </Link>
           </div>
+
+          {/* Section suppression */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">Zone de danger</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              La suppression de votre profil est définitive et irréversible. Vous ne serez plus visible dans l'annuaire.
+            </p>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer mon profil alumni
+            </button>
+          </div>
         </div>
 
         {/* Info supplémentaire */}
@@ -363,6 +399,18 @@ const MyAlumniProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteProfile}
+        title="Supprimer votre profil alumni ?"
+        message="Cette action est irréversible. Votre profil sera définitivement supprimé de l'annuaire et toutes vos informations seront perdues. Êtes-vous sûr de vouloir continuer ?"
+        confirmButtonText={deleting ? "Suppression..." : "Oui, supprimer mon profil"}
+        cancelButtonText="Annuler"
+        type="danger"
+      />
     </div>
   );
 };
