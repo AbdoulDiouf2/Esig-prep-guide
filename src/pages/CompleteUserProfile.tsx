@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { createAlumniProfileOnSignup } from '../services/alumniService';
 
 const CompleteUserProfile: React.FC = () => {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   
   const [yearPromo, setYearPromo] = useState<number>(new Date().getFullYear() + 1);
@@ -56,8 +58,8 @@ const CompleteUserProfile: React.FC = () => {
         });
       }
 
-      // Forcer le rechargement pour mettre à jour le contexte Auth
-      window.location.href = '/#/applications';
+      // Redirection vers le centre d'applications
+      navigate('/applications');
     } catch (err) {
       console.error('Erreur lors de la mise à jour du profil:', err);
       setError('Une erreur est survenue lors de la mise à jour de votre profil');
