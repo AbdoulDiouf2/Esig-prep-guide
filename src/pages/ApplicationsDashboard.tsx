@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getAlumniProfile } from '../services/alumniService';
+import type { AlumniProfile } from '../types/alumni';
 import { 
   BookOpen, 
   FileText, 
@@ -52,6 +54,8 @@ const ApplicationsDashboard: React.FC = () => {
   const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
   const [isSuperAdminState, setIsSuperAdminState] = useState(false);
   const [activeCategory, setActiveCategory] = useState('main');
+  const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
+  const [loadingAlumni, setLoadingAlumni] = useState(true);
 
   // Vérifier si l'utilisateur est superadmin
   useEffect(() => {
@@ -68,6 +72,24 @@ const ApplicationsDashboard: React.FC = () => {
 
     checkSuperAdmin();
   }, [currentUser, isSuperAdmin]);
+
+  // Vérifier si l'utilisateur a un profil alumni
+  useEffect(() => {
+    const checkAlumniProfile = async () => {
+      if (currentUser) {
+        try {
+          const profile = await getAlumniProfile(currentUser.uid);
+          setAlumniProfile(profile);
+        } catch (error) {
+          console.error("Erreur lors de la récupération du profil alumni:", error);
+        } finally {
+          setLoadingAlumni(false);
+        }
+      }
+    };
+
+    checkAlumniProfile();
+  }, [currentUser]);
 
   const allFeatures: CategoryFeatures = {
     main: {
@@ -366,6 +388,67 @@ const ApplicationsDashboard: React.FC = () => {
           (Étudiants CPS, administration, édition, outils et futures fonctionnalités Alumni).
         </p>
       </div>
+
+      {/* Notification profil alumni en attente */}
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'pending' && (
+        <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+          <div className="flex items-start">
+            <Clock className="w-5 h-5 text-yellow-600 mt-0.5 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Profil alumni en attente de validation
+              </h3>
+              <p className="mt-1 text-sm text-yellow-700">
+                Votre profil alumni a été soumis et est en cours de validation par un administrateur. 
+                Vous serez notifié dès qu'il sera approuvé et visible dans l'annuaire.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification profil alumni approuvé */}
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'approved' && (
+        <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-md">
+          <div className="flex items-start">
+            <Bell className="w-5 h-5 text-green-600 mt-0.5 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-green-800">
+                ✅ Profil alumni validé !
+              </h3>
+              <p className="mt-1 text-sm text-green-700">
+                Votre profil est maintenant visible dans l'annuaire alumni. 
+                <Link to="/alumni" className="font-medium underline ml-1">
+                  Voir l'annuaire →
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification profil alumni rejeté */}
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'rejected' && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+          <div className="flex items-start">
+            <Bell className="w-5 h-5 text-red-600 mt-0.5 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                Profil alumni non validé
+              </h3>
+              <p className="mt-1 text-sm text-red-700">
+                Votre profil n'a pas été validé. Raison : {alumniProfile.rejectionReason || 'Non spécifiée'}
+              </p>
+              <Link 
+                to="/edit-alumni-profile" 
+                className="mt-2 inline-block text-sm font-medium text-red-800 underline"
+              >
+                Modifier mon profil →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Category Navigation */}
       <div className="mb-8 flex flex-wrap gap-2">

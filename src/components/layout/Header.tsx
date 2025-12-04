@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit, Grid } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit, Grid, Users } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
@@ -121,6 +121,12 @@ const Header: React.FC = () => {
                   <HelpCircle className="w-4 h-4 mr-1" />
                   <span>Aide</span>
                 </Link>
+                <Link to="/alumni" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <Users className="w-4 h-4 mr-1" />
+                  <span>Annuaire</span>
+                </Link>
                 <SuperAdminCheck>
                   <Link to="/chat-ai" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
                     isScrolled ? 'text-blue-800' : 'text-white'
@@ -179,6 +185,13 @@ const Header: React.FC = () => {
                     >
                       <User className="w-4 h-4 mr-2" />
                       <span>Profil</span>
+                    </Link>
+                    <Link 
+                      to="/my-alumni-profile" 
+                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      <span>Mon profil alumni</span>
                     </Link>
                     {isAdmin() && (
                       <Link 
@@ -266,6 +279,14 @@ const Header: React.FC = () => {
                     Profil
                   </Link>
                   <Link 
+                    to="/my-alumni-profile" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Mon profil alumni
+                  </Link>
+                  <Link 
                     to="/applications" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
@@ -312,6 +333,14 @@ const Header: React.FC = () => {
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
                     <span>Aide</span>
+                  </Link>
+                  <Link 
+                    to="/alumni" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    <span>Annuaire Alumni</span>
                   </Link>
                   <SuperAdminCheck>
                     <Link 

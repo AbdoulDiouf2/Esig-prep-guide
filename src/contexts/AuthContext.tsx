@@ -23,6 +23,8 @@ export type AppUser = {
   isAdmin: boolean;
   isSuperAdmin?: boolean;
   isEditor?: boolean;
+  yearPromo?: number; // Année de promotion (année de sortie de prépa)
+  profileComplete?: boolean; // Indique si le profil est complet (pour migration)
   createdAt?: Date;
   lastLogin?: Date;
   photoURL?: string;
@@ -38,7 +40,7 @@ export type AppUser = {
 type AuthContextType = {
   currentUser: AppUser | null;
   loading: boolean;
-  register: (email: string, password: string, name: string) => Promise<FirebaseUser>;
+  register: (email: string, password: string, name: string, yearPromo: number) => Promise<FirebaseUser>;
   login: (email: string, password: string) => Promise<AppUser | null>;
   loginWithGoogle: () => Promise<AppUser | null>;
   loginWithGithub: () => Promise<AppUser | null>;
@@ -75,6 +77,8 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     isAdmin: userData?.isAdmin || false,
     isSuperAdmin: userData?.isSuperAdmin || false,
     isEditor: userData?.isEditor || false,
+    yearPromo: userData?.yearPromo,
+    profileComplete: userData?.profileComplete,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
     createdAt: userData?.createdAt?.toDate(),
     lastLogin: userData?.lastLogin?.toDate(),
@@ -125,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Enregistrer un nouvel utilisateur
-  const register = async (email: string, password: string, displayName: string) => {
+  const register = async (email: string, password: string, displayName: string, yearPromo: number) => {
     try {
       // 1. Créer l'utilisateur avec Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -144,6 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         emailVerified: user.emailVerified,
         isAdmin: false, // Par défaut, l'utilisateur n'est pas admin
         isEditor: false, // Par défaut, l'utilisateur n'est pas éditeur
+        yearPromo: yearPromo, // Année de promotion (année de sortie de prépa)
+        profileComplete: true, // Profil complété lors de l'inscription
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         ...(displayName ? { displayName } : {}),

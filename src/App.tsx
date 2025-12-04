@@ -18,6 +18,12 @@ import { Analytics } from './components/analytics/VercelAnalytics';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import CompleteUserProfile from './pages/CompleteUserProfile';
+import CompleteAlumniProfile from './pages/CompleteAlumniProfile';
+import EditAlumniProfile from './pages/EditAlumniProfile';
+import MyAlumniProfile from './pages/MyAlumniProfile';
+import AlumniDirectory from './pages/AlumniDirectory';
+import AlumniDetail from './pages/AlumniDetail';
 import Dashboard from './pages/Dashboard';
 import ResourceLibrary from './pages/ResourceLibrary';
 import FAQ from './pages/FAQ';
@@ -40,6 +46,7 @@ import TestFirebase from './pages/TestFirebase';
 import FeedbackAdmin from './pages/admin/FeedbackAdmin';
 import AdminWebinarManager from './pages/admin/AdminWebinarManager';
 import AdminWorkshopProposals from './pages/admin/AdminWorkshopProposals';
+import AdminAlumniValidation from './pages/admin/AdminAlumniValidation';
 import AdminEmailBroadcast from './components/AdminEmailBroadcast';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
@@ -214,6 +221,13 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Rediriger vers la page de complétion de profil si nécessaire
+  // Ne pas rediriger si on est déjà sur la page de complétion
+  if (location.pathname !== '/complete-profile' && 
+      (currentUser.profileComplete === false || !currentUser.yearPromo)) {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
   return (
     <>
       <WelcomeModal />
@@ -262,6 +276,12 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
                 <Route path="/register" element={<RedirectIfAuthenticated><Register /></RedirectIfAuthenticated>} />
+                <Route path="/complete-profile" element={<AuthWrapper><CompleteUserProfile /></AuthWrapper>} />
+                <Route path="/complete-alumni-profile" element={<AuthWrapper><CompleteAlumniProfile /></AuthWrapper>} />
+                <Route path="/edit-alumni-profile" element={<AuthWrapper><EditAlumniProfile /></AuthWrapper>} />
+                <Route path="/my-alumni-profile" element={<AuthWrapper><MyAlumniProfile /></AuthWrapper>} />
+                <Route path="/alumni" element={<AuthWrapper><AlumniDirectory /></AuthWrapper>} />
+                <Route path="/alumni/:uid" element={<AuthWrapper><AlumniDetail /></AuthWrapper>} />
                 <Route path="/reset-password" element={<RedirectIfAuthenticated><ResetPassword /></RedirectIfAuthenticated>} />
                 <Route path="/test-firebase" element={<TestFirebase />} />
                 
@@ -444,6 +464,13 @@ function App() {
                   <AuthWrapper>
                     <AdminRoute>
                       <AdminWorkshopProposals />
+                    </AdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/alumni-validation" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AdminAlumniValidation />
                     </AdminRoute>
                   </AuthWrapper>
                 } />

@@ -582,6 +582,26 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <span>Gérer les utilisateurs</span>
               </Link>
+              
+              <Link
+                to="/admin/alumni-validation"
+                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-md bg-purple-100 text-purple-800 mr-3">
+                  <Award className="h-5 w-5" />
+                </div>
+                <span>Valider profils alumni</span>
+              </Link>
+              
+              <Link
+                to="/alumni"
+                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-md bg-purple-100 text-purple-800 mr-3">
+                  <Users className="h-5 w-5" />
+                </div>
+                <span>Voir l'annuaire alumni</span>
+              </Link>
             </div>
           </div>
                     

@@ -304,6 +304,59 @@ service cloud.firestore {
       );
     }
     
+    // Règles pour la collection alumni (Annuaire Alumni)
+    match /alumni/{alumniId} {
+      // Lecture : tout le monde peut voir les profils approuvés
+      allow read: if resource.data.status == 'approved';
+      
+      // Lecture : l'alumni peut voir son propre profil (tous statuts)
+      allow read: if isOwner(alumniId);
+      
+      // Lecture : les admins et super admins peuvent tout voir
+      allow read: if isAdmin() || isSuperAdmin();
+      
+      // Création : l'alumni peut créer son propre profil
+      allow create: if isAuthenticated() && 
+                      request.auth.uid == alumniId &&
+                      request.resource.data.uid == alumniId &&
+                      request.resource.data.status == 'pending';
+      
+      // Mise à jour : l'alumni peut modifier son propre profil
+      // Mais ne peut pas changer le statut, dateValidation, validatedBy
+      allow update: if isOwner(alumniId) && 
+                      !request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['status', 'dateValidation', 'validatedBy', 'uid']);
+      
+      // Mise à jour : les admins et super admins peuvent tout modifier (validation)
+      allow update: if isAdmin() || isSuperAdmin();
+      
+      // Suppression : seuls les super admins peuvent supprimer
+      allow delete: if isSuperAdmin();
+    }
+    
+    // Règles pour les demandes de contact entre alumni
+    match /contactRequests/{requestId} {
+      // Lecture : l'expéditeur ou le destinataire peut lire
+      allow read: if isAuthenticated() && (
+                    resource.data.fromUid == request.auth.uid ||
+                    resource.data.toUid == request.auth.uid
+                  );
+      
+      // Lecture : les admins peuvent tout voir
+      allow read: if isAdmin() || isSuperAdmin();
+      
+      // Création : l'expéditeur peut créer une demande
+      allow create: if isAuthenticated() && 
+                      request.resource.data.fromUid == request.auth.uid;
+      
+      // Mise à jour : seuls les admins peuvent modifier le statut
+      allow update: if isAdmin() || isSuperAdmin();
+      
+      // Suppression : l'expéditeur ou les admins peuvent supprimer
+      allow delete: if isAuthenticated() && resource.data.fromUid == request.auth.uid ||
+                      isAdmin() || isSuperAdmin();
+    }
+    
     // Règle par défaut - bloquer tout autre accès
     match /{document=**} {
       allow read, write: if false;

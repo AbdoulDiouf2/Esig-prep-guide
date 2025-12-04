@@ -1,72 +1,464 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { MultiStepForm, Step } from '../components/forms/MultiStepForm';
+import { Eye, EyeOff } from 'lucide-react';
+import { createAlumniProfileOnSignup } from '../services/alumniService';
 
 const Register: React.FC = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // États pour les données du formulaire
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    yearPromo: new Date().getFullYear() + 1, // Année par défaut
+    isEntrepreneur: false,
+    // Données entrepreneur
+    company: '',
+    sector: '',
+    city: '',
+    country: '',
+    description: '',
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [githubLoading, setGithubLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  
   const navigate = useNavigate();
-  const { register, loginWithGoogle, loginWithGithub } = useAuth();
+  const { register } = useAuth();
 
-  const handleGoogleSignup = async () => {
-    setError('');
-    setGoogleLoading(true);
-    try {
-      await loginWithGoogle();
-      navigate('/applications');
-    } catch (err) {
-      setError("Erreur lors de l'inscription avec Google");
-      console.error(err);
-    } finally {
-      setGoogleLoading(false);
-    }
+  // Fonction pour mettre à jour les données du formulaire
+  const updateFormData = (field: string, value: string | number | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleGithubSignup = async () => {
-    setError('');
-    setGithubLoading(true);
-    try {
-      await loginWithGithub();
-      navigate('/applications');
-    } catch (err) {
-      setError("Erreur lors de l'inscription avec GitHub");
-      console.error(err);
-    } finally {
-      setGithubLoading(false);
+  // Validation Étape 1 : Informations de base
+  const validateStep1 = (): boolean => {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Tous les champs sont obligatoires');
+      return false;
     }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères');
+      return false;
+    }
+    if (!formData.yearPromo) {
+      setError('L\'année de promotion est obligatoire');
+      return false;
+    }
+    if (!termsAccepted) {
+      setError('Vous devez accepter les conditions d\'utilisation');
+      return false;
+    }
+    setError('');
+    return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      return setError('Les mots de passe ne correspondent pas');
+  // Validation Étape 2 : Choix entrepreneur
+  const validateStep2 = (): boolean => {
+    if (formData.isEntrepreneur === false || formData.isEntrepreneur === true) {
+      setError('');
+      return true;
     }
-    
+    setError('Veuillez sélectionner une option');
+    return false;
+  };
+
+  // Validation Étape 3 : Données entrepreneur
+  const validateStep3 = (): boolean => {
+    if (!formData.company || !formData.sector) {
+      setError('Le nom de l\'entreprise et le secteur sont obligatoires');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  // Gestion de la complétion du formulaire
+  const handleComplete = async () => {
     try {
       setError('');
-      setLoading(true);
-      await register(email, password, name);
+      
+      // Créer le compte utilisateur
+      const user = await register(formData.email, formData.password, formData.name, formData.yearPromo);
+      
+      // Si entrepreneur, créer le profil alumni
+      if (formData.isEntrepreneur) {
+        await createAlumniProfileOnSignup({
+          uid: user.uid,
+          name: formData.name,
+          email: formData.email,
+          yearPromo: formData.yearPromo,
+          company: formData.company,
+          sectors: formData.sector ? [formData.sector] : [],
+          expertise: [],
+          bio: formData.description,
+        });
+        console.log('✅ Profil alumni créé avec succès');
+      }
+      
+      // Redirection
       navigate('/applications');
-    } catch {
+    } catch (err) {
       setError('Erreur lors de la création du compte');
-      console.error();
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
+
+  // Étape 1 : Informations de base
+  const Step1Component = (
+    <div className="space-y-4">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-600 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          Nom complet *
+        </label>
+        <input
+          id="name"
+          type="text"
+          required
+          value={formData.name}
+          onChange={(e) => updateFormData('name', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          Adresse email *
+        </label>
+        <input
+          id="email"
+          type="email"
+          required
+          value={formData.email}
+          onChange={(e) => updateFormData('email', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="yearPromo" className="block text-sm font-medium text-gray-700 mb-1">
+          Année de promotion (année de sortie de prépa) *
+        </label>
+        <input
+          id="yearPromo"
+          type="number"
+          required
+          min="2000"
+          max="2050"
+          value={formData.yearPromo}
+          onChange={(e) => updateFormData('yearPromo', parseInt(e.target.value))}
+          placeholder="Ex: 2022"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          Mot de passe *
+        </label>
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            required
+            value={formData.password}
+            onChange={(e) => updateFormData('password', e.target.value)}
+            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+          Confirmez le mot de passe *
+        </label>
+        <div className="relative">
+          <input
+            id="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            required
+            value={formData.confirmPassword}
+            onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-start">
+        <input
+          id="terms"
+          type="checkbox"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          className="h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
+          J'accepte les{' '}
+          <Link to="/legal/CGU" className="font-medium text-blue-600 hover:text-blue-500" target="_blank">
+            conditions d'utilisation
+          </Link>
+          {' '}*
+        </label>
+      </div>
+    </div>
+  );
+
+  // Étape 2 : Décision entrepreneur
+  const Step2Component = (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Souhaitez-vous créer un profil alumni ?
+        </h3>
+        <p className="text-sm text-gray-600">
+          Le profil alumni vous permet d'être visible dans l'annuaire et de vous connecter avec d'autres alumni.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => updateFormData('isEntrepreneur', false)}
+          className={`p-6 border-2 rounded-lg transition-all ${
+            formData.isEntrepreneur === false
+              ? 'border-blue-600 bg-blue-50'
+              : 'border-gray-300 hover:border-gray-400'
+          }`}
+        >
+          <div className="text-center">
+            <div className="text-4xl mb-2">👤</div>
+            <div className="font-medium text-gray-900">Non</div>
+            <div className="text-sm text-gray-600 mt-1">
+              Compte basique uniquement
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => updateFormData('isEntrepreneur', true)}
+          className={`p-6 border-2 rounded-lg transition-all ${
+            formData.isEntrepreneur === true
+              ? 'border-blue-600 bg-blue-50'
+              : 'border-gray-300 hover:border-gray-400'
+          }`}
+        >
+          <div className="text-center">
+            <div className="text-4xl mb-2">🚀</div>
+            <div className="font-medium text-gray-900">Oui</div>
+            <div className="text-sm text-gray-600 mt-1">
+              Créer mon profil alumni
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <p className="text-sm text-gray-500 text-center mt-4">
+        {formData.isEntrepreneur === null 
+          ? 'Sélectionnez une option pour continuer' 
+          : formData.isEntrepreneur 
+            ? '✓ Vous allez créer un profil alumni' 
+            : '✓ Vous créez un compte basique'}
+      </p>
+    </div>
+  );
+
+  // Étape 3 : Données entrepreneur
+  const Step3Component = (
+    <div className="space-y-4">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-600 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div>
+        <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+          Nom de l'entreprise / Projet *
+        </label>
+        <input
+          id="company"
+          type="text"
+          required
+          value={formData.company}
+          onChange={(e) => updateFormData('company', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="sector" className="block text-sm font-medium text-gray-700 mb-1">
+          Secteur d'activité *
+        </label>
+        <select
+          id="sector"
+          required
+          value={formData.sector}
+          onChange={(e) => updateFormData('sector', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Sélectionnez un secteur</option>
+          <option value="Tech">Tech / IT</option>
+          <option value="Finance">Finance</option>
+          <option value="Design">Design</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Consulting">Consulting</option>
+          <option value="Education">Éducation</option>
+          <option value="Santé">Santé</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+            Ville
+          </label>
+          <input
+            id="city"
+            type="text"
+            value={formData.city}
+            onChange={(e) => updateFormData('city', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+            Pays
+          </label>
+          <input
+            id="country"
+            type="text"
+            value={formData.country}
+            onChange={(e) => updateFormData('country', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          Description courte
+        </label>
+        <textarea
+          id="description"
+          rows={3}
+          value={formData.description}
+          onChange={(e) => updateFormData('description', e.target.value)}
+          placeholder="Décris brièvement ton activité..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
+  );
+
+  // Étape 4 : Résumé
+  const Step4Component = (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border-l-4 border-blue-600 p-4">
+        <p className="text-sm text-blue-700">
+          Vérifiez vos informations avant de créer votre compte.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Informations personnelles</h4>
+          <div className="bg-gray-50 p-4 rounded-md space-y-2 text-sm">
+            <p><span className="font-medium">Nom :</span> {formData.name}</p>
+            <p><span className="font-medium">Email :</span> {formData.email}</p>
+            <p><span className="font-medium">Promotion :</span> {formData.yearPromo}</p>
+          </div>
+        </div>
+
+        {formData.isEntrepreneur && (
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Profil alumni</h4>
+            <div className="bg-gray-50 p-4 rounded-md space-y-2 text-sm">
+              <p><span className="font-medium">Entreprise :</span> {formData.company}</p>
+              <p><span className="font-medium">Secteur :</span> {formData.sector}</p>
+              {formData.city && <p><span className="font-medium">Ville :</span> {formData.city}</p>}
+              {formData.country && <p><span className="font-medium">Pays :</span> {formData.country}</p>}
+              {formData.description && (
+                <p><span className="font-medium">Description :</span> {formData.description}</p>
+              )}
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+              ⏳ Votre profil alumni sera soumis pour validation avant d'être visible dans l'annuaire.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Définition des étapes
+  const steps: Step[] = [
+    {
+      id: 1,
+      title: 'Informations de base',
+      component: Step1Component,
+      validation: validateStep1,
+    },
+    {
+      id: 2,
+      title: 'Profil alumni',
+      component: Step2Component,
+      validation: validateStep2,
+    },
+    ...(formData.isEntrepreneur
+      ? [
+          {
+            id: 3,
+            title: 'Détails entrepreneur',
+            component: Step3Component,
+            validation: validateStep3,
+          },
+        ]
+      : []),
+    {
+      id: 4,
+      title: 'Résumé',
+      component: Step4Component,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8">
         <div className="mx-auto w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center shadow-sm">
           <div className="text-white font-bold text-lg">E</div>
         </div>
@@ -81,165 +473,13 @@ const Register: React.FC = () => {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-6">
-              <div className="flex">
-                <div>
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3 mb-6">
-            <button
-              type="button"
-              onClick={handleGoogleSignup}
-              disabled={googleLoading}
-              className={`w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${googleLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.3 3.4-4.6 5.9-8.3 5.9-5 0-9-4-9-9s4-9 9-9c2.2 0 4.2.8 5.8 2.1l6.6-6.6C36.3 8.1 30.5 6 24 6 12.9 6 4 14.9 4 26s8.9 20 20 20c11.1 0 20-8.9 20-20 0-1.3-.1-2.5-.4-3.7z"/><path fill="#34A853" d="M6.3 14.7l6.6 4.8C15.5 16.4 19.5 14 24 14c2.2 0 4.2.8 5.8 2.1l6.6-6.6C36.3 8.1 30.5 6 24 6c-7.5 0-13.9 4.1-17.7 10.7z"/><path fill="#FBBC05" d="M24 44c6.5 0 12.1-2.1 16.1-5.8l-7.4-6c-2.1 1.4-4.7 2.2-7.7 2.2-3.7 0-7-2.5-8.3-5.9H6.3C10.1 39.9 16.5 44 24 44z"/><path fill="#EA4335" d="M43.6 20.5h-1.9V20H24v8h11.3c-.5 1.4-1.3 2.7-2.4 3.7l7.4 6C41.7 40.2 44 33.7 44 26c0-1.3-.1-2.5-.4-3.7z"/></g></svg>
-              {googleLoading ? 'Inscription Google en cours...' : 'S\'inscrire avec Google'}
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleGithubSignup}
-              disabled={githubLoading}
-              className={`w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${githubLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-              {githubLoading ? 'Inscription GitHub en cours...' : 'S\'inscrire avec GitHub'}
-            </button>
-          </div>
-
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Nom complet
-              </label>
-              <div className="mt-1">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Adresse email
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Mot de passe
-              </label>
-              <div className="mt-1">
-                <div className="relative">
-  <input
-    id="password"
-    name="password"
-    type={showPassword ? "text" : "password"}
-    autoComplete="new-password"
-    required
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pr-10"
-  />
-  <button
-    type="button"
-    tabIndex={-1}
-    onClick={() => setShowPassword((v) => !v)}
-    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-700 focus:outline-none"
-    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-  >
-    {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125 4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-  </button>
-</div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirmez le mot de passe
-              </label>
-              <div className="mt-1">
-                <div className="relative">
-  <input
-    id="confirmPassword"
-    name="confirmPassword"
-    type={showConfirmPassword ? "text" : "password"}
-    autoComplete="new-password"
-    required
-    value={confirmPassword}
-    onChange={(e) => setConfirmPassword(e.target.value)}
-    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pr-10"
-  />
-  <button
-    type="button"
-    tabIndex={-1}
-    onClick={() => setShowConfirmPassword((v) => !v)}
-    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-700 focus:outline-none"
-    aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-  >
-    {showConfirmPassword ? <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125-4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125-4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125-4.575m-2.53 2.53A9.956 9.956 0 0112 21c-5.523 0-10-4.477-10-10 0-1.657.402-3.216 1.125-4.575m2.53-2.53A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 1.657-.402 3.216-1.125-4.575" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-  </button>
-</div>
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                J'accepte les{' '}
-                <Link to="/legal/CGU" className="font-medium text-blue-600 hover:text-blue-500">
-                  conditions d'utilisation
-                </Link>
-              </label>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading ? 'Création en cours...' : 'Créer un compte'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <MultiStepForm
+        steps={steps}
+        currentStepIndex={currentStep}
+        onStepChange={setCurrentStep}
+        onComplete={handleComplete}
+        onCancel={() => navigate('/login')}
+      />
     </div>
   );
 };

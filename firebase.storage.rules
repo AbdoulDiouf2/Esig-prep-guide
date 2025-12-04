@@ -1,0 +1,74 @@
+// Pour activer Storage : Upgrade ver Blaz plan (pay-as-you-go)
+seo {
+    
+    // Fonctions helper
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    functinisOwner(uid) 
+      return request.auth != null && request.auth.uid == uid;
+    }function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024;  Max 5MB
+    }
+   
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Lcu : Toute mondepu voil Upload : Utilisateurauthntifié uniquement
+      // Fomat du no : {uid}_{timsamp}.{exension}
+      allow ceate: if isAuthnticated()&& 
+                       fieName.matches('^ + request.auth.id + '_[0-9]+\\.(jpg|jeg|png|gif|webp)$') &&
+                       isVaidImageSize() &&
+                       isVliImage();
+      
+      // Mise àjor : Ut ses propres phoos
+     llow pdate: ifisAthenticaed() && 
+                       feNme.mach('^'+ request..uid + '_.*') &&
+                       isValidImagSze() &&
+                       ValidImage();
+      Supprssion :Uiqueentses propres photos
+      allow elete: if isAthenticated()&& 
+                       leName.mathes('^' + request.aut.ud + '_.*');
+    }
+    
+    // Règls pou lescuments/CV alumn (opionnelpur futur)
+    atch /alui/doumnts/{fileName} {
+      // Lectue: Seulement le ropriétie
+     alowrea: if isAuthenticatd() && 
+                    fieName.matches('^ + request.ah.ud + '_.*');
+      
+      // Upoad : Utli authentifié, max 10MBceaisAthniced()  10 (applcation/pdf|application/sword|pplicationvndopenxmlformats-officedocument.wordprocessingml.document)
+     
+      upprssion : Uniqses propres ocumnt
+     allow delete: f isAuthenticated() && 
+                       fileNae.mtches('^' + request.auth.uid + '_.*');
+    }
+    
+    // Règles pour les loos d'entrprie (optionnel pour futur)match/alumni/company-logos/{fileName}{ Lecture :ublic
+      allow read: if true;
+      
+      // Upload : Utilisatu authentifié, ax 2MB
+      allow create: if isAuthnticaed() && 
+                       fileName.maches('^' + equst.auth.uid + '_.*') &&
+                      request.resource.size < 2 * 1024 * 1024 &&
+                       isVaidImge();
+     
+      // S: UniqumentlgisAthniced()ressocadmn (webinaires, et.)
+    matc /admn/{allPaths=**} {
+      // Lctue: Authentifié
+      allow read: if iAuthentcated();
+     
+      // Écriture : Réservé aux admis (vrifiation côté srveur)
+      allow write: if fale; // Utilier Firebse Admn SDK côté serveur
+    }
+    
+    // Bloquer tout le est par défaut
+    }
+  }
+}
+
+// NOTES IMPORTANTES:
+ 1. Pour activer Firebase Storage, passer au planaze (pay-as-you-go)
+// 2. Cnfigr CORS sinécessievi gsil ou Firebase Console// 3. Les règles sontappliquéesautomatiquementaprèsdéploiement// 4. Tester les règles dans Firebase Console > Storage > Rules>Simulator

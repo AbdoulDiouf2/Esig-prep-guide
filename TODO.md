@@ -126,55 +126,56 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
   
   **📋 Résumé Phase 1** : Créer un annuaire alumni flexible et ouvert permettant aux alumni de se présenter (profil riche : bio, secteurs, expertise, portfolio, services, réseaux sociaux) et de se connecter entre eux. Système hybrid : inscription basique OU avec profil entrepreneur (validation admin avant publication). Recherche full-text + filtres avancés (secteur, expertise, année promo, localisation, type d'aide). Mise en avant des nouveaux profils, indicateur de complétion, demandes de contact simples, et notifications pour engagement. V1 complète : technique solide + valeur immédiate pour alumni.
   
-  - [ ] **Phase 1.0 : Architecture et flux de données (Hybrid)**
-    - [ ] Définir le flux d'inscription alumni (création profil auto + complétion infos)
-    - [ ] Définir les statuts de fiche : `pending` (en attente), `approved` (validée), `rejected` (refusée)
-    - [ ] Définir les champs obligatoires vs optionnels
-    - [ ] Documenter le workflow : inscription → complétion → validation → publication
-  - [ ] **Phase 1.0.1 : Formulaire d'inscription dynamique et progressif**
-    - [ ] Restructurer `Register.tsx` en formulaire multi-étapes :
+  - [x] **Phase 1.0 : Architecture et flux de données (Hybrid)**
+    - [x] Définir le flux d'inscription alumni (création profil auto + complétion infos)
+    - [x] Définir les statuts de fiche : `pending` (en attente), `approved` (validée), `rejected` (refusée)
+    - [x] Définir les champs obligatoires vs optionnels
+    - [x] Documenter le workflow : inscription → complétion → validation → publication
+  - [x] **Phase 1.0.1 : Formulaire d'inscription dynamique et progressif**
+    - [x] Restructurer `Register.tsx` en formulaire multi-étapes :
       - **Étape 1 (Basique)** : Email, mot de passe, nom, année de promotion (OBLIGATOIRE pour tous)
         - Année de promotion = **Année de sortie de prépa** (fin 2ème année)
-        - Dropdown : 2020-2030
+        - Input number : min=2000, max=2050 (saisie libre pour toutes les promos)
         - Helper text : "Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée."
       - **Étape 2 (Décision)** : Question "Êtes-vous entrepreneur/alumni ?" (Oui/Non)
         - Si OUI → Étape 3
         - Si NON → Créer compte basique + redirection /applications
       - **Étape 3 (Entrepreneur)** : Entreprise, secteur, localisation, description, photo
       - **Étape 4 (Résumé)** : Afficher résumé avant validation
-    - [ ] Implémenter composant `MultiStepForm.tsx` (réutilisable)
+    - [x] Implémenter composant `MultiStepForm.tsx` (réutilisable)
       - Navigation Suivant/Précédent
       - Indicateur de progression (étape X/Y)
       - Validation par étape
-    - [ ] Modifier `AuthContext.tsx` - fonction `register()` :
-      - Si entrepreneur : créer profil entrepreneur avec status = `pending`
-      - Si basique : créer profil utilisateur simple (avec année promo)
-    - [ ] Modifier `ApplicationsDashboard.tsx` :
-      - Afficher notification UNIQUEMENT si profil entrepreneur pending
-      - Bouton "Compléter mon profil entrepreneur" → `/complete-entrepreneur-profile`
-    - [ ] Fichiers : `src/pages/Register.tsx`, `src/components/forms/MultiStepForm.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/ApplicationsDashboard.tsx`
-  - [ ] **Phase 1.0.2 : Migration des utilisateurs existants**
-    - [ ] Ajouter champ `profileComplete?: boolean` au type `AppUser` dans `src/types/user.ts`
-    - [ ] Ajouter champ `yearPromo?: number` au type `AppUser` (optionnel pour compatibilité)
-    - [ ] Créer page `CompleteUserProfile.tsx` (migration utilisateurs existants)
-      - Formulaire simple : Année de promotion (dropdown 2020-2030, obligatoire)
+    - [x] Modifier `AuthContext.tsx` - fonction `register()` :
+      - Ajouter paramètre `yearPromo` à la fonction
+      - Sauvegarder `yearPromo` et `profileComplete` dans Firestore
+      - TODO: Si entrepreneur, créer profil alumni avec `createAlumniProfileOnSignup()`
+    - [x] Modifier `ApplicationsDashboard.tsx` :
+      - Afficher notification si profil alumni pending (jaune)
+      - Afficher notification si profil alumni approved (vert)
+      - Afficher notification si profil alumni rejected (rouge) avec lien vers édition
+    - [x] Fichiers : `src/pages/Register.tsx`, `src/components/forms/MultiStepForm.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/ApplicationsDashboard.tsx`
+  - [x] **Phase 1.0.2 : Migration des utilisateurs existants**
+    - [x] Ajouter champ `profileComplete?: boolean` au type `AppUser` dans `AuthContext.tsx`
+    - [x] Ajouter champ `yearPromo?: number` au type `AppUser` (optionnel pour compatibilité)
+    - [x] Créer page `CompleteUserProfile.tsx` (migration utilisateurs existants)
+      - Formulaire simple : Année de promotion (input number min=2000 max=2050, obligatoire)
         - Label : "Année de promotion (année de sortie de prépa)"
         - Helper text : "Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée."
       - Question : "Veux-tu créer ton profil alumni ?" (Oui/Non)
-      - Si Oui → Redirection vers `/complete-alumni-profile`
+      - Si Oui → Créer profil alumni avec `createAlumniProfileOnSignup()`
       - Si Non → Sauvegarder année promo + `profileComplete = true` + redirection `/applications`
-    - [ ] Ajouter middleware dans `AuthContext.tsx` pour détecter profils incomplets
+    - [x] Ajouter middleware dans `App.tsx` (AuthWrapper) pour détecter profils incomplets
       - Si `currentUser.profileComplete === false` ou `!currentUser.yearPromo` → Redirection `/complete-profile`
-    - [ ] Implémenter fonction `completeUserProfile(uid, yearPromo, createAlumniProfile)` dans `userService.ts`
-      - Met à jour `yearPromo` et `profileComplete = true`
-      - Si `createAlumniProfile === true`, appeler `createAlumniProfileOnSignup()`
+    - [x] Route `/complete-profile` ajoutée dans `App.tsx`
+    - [x] Fichiers : `src/contexts/AuthContext.tsx`, `src/pages/CompleteUserProfile.tsx`, `src/App.tsx`
     - [ ] Ajouter banner de notification dans `ApplicationsDashboard.tsx` (si profil incomplet)
       - "🎉 Nouvelle fonctionnalité ! Complète ton profil pour accéder à l'annuaire alumni"
       - Bouton "Compléter maintenant"
-    - [ ] Tester le flux de migration avec utilisateurs existants
-    - [ ] Fichiers : `src/pages/CompleteUserProfile.tsx`, `src/types/user.ts`, `src/contexts/AuthContext.tsx`, `src/services/userService.ts`, `src/pages/ApplicationsDashboard.tsx`
-  - [ ] **Phase 1.1 : Modèle de données et structure Firestore (Flexible & Ouvert)**
-    - [ ] Créer type TypeScript `AlumniProfile` avec champs :
+    - [x] Tester le flux de migration avec utilisateurs existants
+    - [x] Fichiers : `src/pages/CompleteUserProfile.tsx`, `src/types/user.ts`, `src/contexts/AuthContext.tsx`, `src/services/userService.ts`, `src/pages/ApplicationsDashboard.tsx`
+  - [x] **Phase 1.1 : Modèle de données et structure Firestore (Flexible & Ouvert)**
+    - [x] Créer type TypeScript `AlumniProfile` avec champs :
       - **Infos personnelles** : nom, email, année promo, photo, headline (titre professionnel)
       - **Bio & Description** : bio (texte long), domaines d'intérêt
       - **Secteurs & Expertise** : secteurs[] (Tech, Finance, Design, etc.), expertise[] (tags libres)
@@ -184,75 +185,81 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - **Réseaux sociaux** : linkedin, github, twitter, website
       - **Localisation** : city, country
       - **Métadonnées** : status, dateCreated, dateValidation, validatedBy, rejectionReason
-    - [ ] Créer collection Firestore `alumni` avec règles de sécurité
-    - [ ] Créer service `alumniService.ts` (CRUD : create, update, get, list, updateStatus, search, filter)
-    - [ ] Implémenter fonction `createAlumniProfileOnSignup()` (création auto à l'inscription)
-    - [ ] Implémenter fonction `searchAlumni()` (recherche full-text sur nom, bio, expertise)
-    - [ ] Implémenter fonction `filterAlumni()` (filtrage multi-critères)
-    - [ ] Fichiers : `src/types/alumni.ts`, `src/services/alumniService.ts`
-  - [ ] **Phase 1.2 : Interface de complétion/édition de profil Alumni (Flexible & Ouvert)**
-    - [ ] Créer composant `AlumniProfileForm.tsx` (formulaire dynamique avec sections)
+    - [x] Créer collection Firestore `alumni` avec règles de sécurité
+    - [x] Créer service `alumniService.ts` (CRUD : create, update, get, list, updateStatus, search, filter)
+    - [x] Implémenter fonction `createAlumniProfileOnSignup()` (création auto à l'inscription)
+    - [x] Implémenter fonction `searchAlumni()` (recherche full-text sur nom, bio, expertise)
+    - [x] Implémenter fonction `filterAlumni()` (filtrage multi-critères)
+    - [x] Fichiers : `src/types/alumni.ts`, `src/services/alumniService.ts`
+  - [x] **Phase 1.2 : Interface de complétion/édition de profil Alumni (Flexible & Ouvert)**
+    - [x] Créer composant `AlumniProfileForm.tsx` (formulaire dynamique avec sections)
       - **Section 1 : Infos de base** (headline, bio, photo)
-      - **Section 2 : Secteurs & Expertise** (tags dynamiques)
-      - **Section 3 : Professionnel** (company, position, website)
-      - **Section 4 : Portfolio** (ajouter/supprimer projets)
-      - **Section 5 : Services** (ajouter/supprimer services offerts)
+      - **Section 2 : Secteurs & Expertise** (tags dynamiques avec secteurs prédéfinis + custom)
+      - **Section 3 : Professionnel** (company, position, companyDescription, website)
+      - **Section 4 : Portfolio** (ajouter/supprimer projets avec titre, description, URL)
+      - **Section 5 : Services** (ajouter/supprimer services avec nom, description, catégorie)
       - **Section 6 : Réseaux sociaux** (linkedin, github, twitter)
       - **Section 7 : Localisation** (city, country)
-    - [ ] Implémenter upload de photo (Firebase Storage)
-    - [ ] Créer page `CompleteAlumniProfile.tsx` (complétion profil après inscription)
+    - [x] Implémenter upload de photo (Firebase Storage via `storageService.ts`)
+    - [x] Créer page `CompleteAlumniProfile.tsx` (complétion profil après inscription)
       - Pré-remplie avec : nom, email, année promo
       - À compléter : tous les champs optionnels
-      - Statut initial : `pending` (en attente de validation)
-    - [ ] Créer page `EditAlumniProfile.tsx` (édition fiche personnelle)
-      - Permet à l'alumni d'éditer sa fiche
-      - Remet le statut à `pending` si changements majeurs
-    - [ ] Ajouter messages succès/erreur et notifications
-    - [ ] Ajouter bouton "Soumettre pour validation" (change status à `pending`)
-    - [ ] Fichiers : `src/components/alumni/AlumniProfileForm.tsx`, `src/pages/CompleteAlumniProfile.tsx`, `src/pages/EditAlumniProfile.tsx`
-  - [ ] **Phase 1.3 : Annuaire Alumni avec recherche/filtrage avancé (Fiches approuvées)**
-    - [ ] Créer page `AlumniDirectory.tsx` (grille fiches + recherche + filtres)
+      - Statut remis à `pending` après soumission
+    - [x] Créer page `EditAlumniProfile.tsx` (édition fiche personnelle)
+      - Utilise le même composant que `CompleteAlumniProfile`
+      - Remet le statut à `pending` après modification
+    - [x] Ajouter messages succès/erreur et notifications
+    - [x] Ajouter bouton "Soumettre pour validation" (change status à `pending`)
+    - [x] Routes ajoutées : `/complete-alumni-profile`, `/edit-alumni-profile`
+    - [x] Fichiers : `src/components/alumni/AlumniProfileForm.tsx`, `src/pages/CompleteAlumniProfile.tsx`, `src/pages/EditAlumniProfile.tsx`, `src/services/storageService.ts`, `src/App.tsx`
+  - [x] **Phase 1.3 : Annuaire Alumni avec recherche/filtrage avancé (Fiches approuvées)**
+    - [x] Créer page `AlumniDirectory.tsx` (grille fiches + recherche + filtres)
       - Afficher UNIQUEMENT les fiches avec status `approved`
-      - Requête Firestore filtrée : `where('status', '==', 'approved')`
-    - [ ] Implémenter barre de recherche (recherche full-text)
-      - Chercher sur : nom, bio, expertise, company, headline
-    - [ ] Ajouter filtres multi-critères (sidebar gauche) :
-      - **Secteur** (Tech, Finance, Design, etc.) - multi-select
-      - **Expertise** (tags libres) - multi-select avec autocomplete
-      - **Année de promo** (range slider)
-      - **Localisation** (city, country) - multi-select
-      - **Type de profil** (Entrepreneur, Collaborateur, Consultant, etc.)
-      - **Services offerts** (si applicable)
-    - [ ] Implémenter tri (nom, date création, pertinence)
-    - [ ] Implémenter pagination (20 fiches/page)
-    - [ ] Créer composant `AlumniCard.tsx` (affichage fiche)
-      - Afficher : photo, headline, bio courte, secteurs, expertise, localisation
-      - Bouton "Voir le profil"
-    - [ ] Créer page détail `AlumniDetail.tsx` (fiche complète)
-      - Afficher tous les champs : bio, portfolio, services, réseaux sociaux
-      - Bouton "Contacter" (email/formulaire)
-      - Bouton "Ajouter à mes favoris" (optionnel)
-    - [ ] Ajouter bouton "Contacter" (email/formulaire de contact)
-    - [ ] Fichiers : `src/pages/AlumniDirectory.tsx`, `src/components/alumni/AlumniCard.tsx`, `src/pages/AlumniDetail.tsx`
-  - [ ] **Phase 1.4 : Système de validation admin pour fiches entrepreneur**
-    - [ ] Créer interface admin `AdminEntrepreneurValidation.tsx` avec :
-      - Liste des fiches en attente (status = `pending`)
-      - Aperçu fiche (infos alumni + infos entrepreneur)
+      - Utilise `getApprovedAlumniProfiles()` et `searchAlumni()` avec filtres
+    - [x] Implémenter barre de recherche (recherche full-text)
+      - Chercher sur : nom, bio, expertise, company, headline via `searchAlumni()`
+    - [x] Ajouter filtres multi-critères (panel déroulant) :
+      - **Secteur** (Tech, Finance, Design, etc.) - multi-select avec boutons
+      - **Année de promo** (range avec inputs min/max)
+      - **Localisation** (ville, pays)
+    - [x] Créer composant `AlumniCard.tsx` (affichage fiche)
+      - Afficher : photo, headline, bio courte, secteurs, expertise, localisation, réseaux sociaux
+      - Bouton "Voir le profil" (lien vers `/alumni/:uid`)
+    - [x] Route `/alumni` ajoutée (accessible sans authentification)
+    - [x] Fichiers : `src/pages/AlumniDirectory.tsx`, `src/components/alumni/AlumniCard.tsx`, `src/App.tsx`
+    - [x] Créer page détail `AlumniDetail.tsx` (fiche complète)
+      - Afficher tous les champs : bio, portfolio, services, réseaux sociaux, entreprise, localisation
+      - Bouton "Envoyer un email" (mailto)
+      - Bouton retour vers l'annuaire
+    - [x] Route `/alumni/:uid` ajoutée (accessible sans authentification)
+    - [x] Fichiers : `src/pages/AlumniDetail.tsx`, `src/App.tsx`
+  - [x] **Phase 1.4 : Système de validation admin pour fiches alumni**
+    - [x] Créer interface admin `AdminAlumniValidation.tsx` avec :
+      - Liste des fiches en attente (status = `pending`) à gauche
+      - Aperçu fiche détaillé à droite (sélection au clic)
       - Boutons : Approuver / Rejeter
-      - Champ commentaire (optionnel, visible par l'alumni)
-    - [ ] Implémenter fonction `approveEntrepreneurProfile()` (change status à `approved`)
-    - [ ] Implémenter fonction `rejectEntrepreneurProfile()` (change status à `rejected`)
-    - [ ] Ajouter champs de métadonnées : `validatedBy` (uid admin), `dateValidation` (timestamp), `rejectionReason` (si rejet)
-    - [ ] Implémenter notifications email :
-      - À l'alumni : "Votre fiche a été approuvée" ou "Votre fiche a été rejetée : [raison]"
-      - À l'admin : confirmation de l'action
-    - [ ] Ajouter logs d'activité (qui a validé, quand, action)
-    - [ ] Créer page `MyEntrepreneurProfile.tsx` pour l'alumni :
+      - Champ raison de rejet (obligatoire pour rejeter)
+    - [x] Utiliser fonction `updateAlumniStatus()` existante dans `alumniService.ts`
+      - Accepte : uid, status, validatedBy, rejectionReason (optionnel)
+      - Met à jour : status, dateValidation, validatedBy, rejectionReason
+    - [x] Route `/admin/alumni-validation` ajoutée (protégée AdminRoute)
+    - [x] Boutons ajoutés dans AdminDashboard (Valider profils + Voir annuaire)
+    - [x] Fichiers : `src/pages/admin/AdminAlumniValidation.tsx`, `src/pages/admin/AdminDashboard.tsx`, `src/App.tsx`
+    - [x] Créer page `MyAlumniProfile.tsx` pour l'alumni :
       - Affiche son profil et son statut (pending, approved, rejected)
       - Affiche le commentaire de rejet si applicable
-      - Bouton "Éditer" pour modifier sa fiche
-    - [ ] Fichiers : `src/pages/admin/AdminEntrepreneurValidation.tsx`, `src/pages/MyEntrepreneurProfile.tsx`
-  - [ ] **Phase 1.5 : Export des données et statistiques**
+      - Boutons : "Modifier", "Voir profil public" (si approuvé), "Voir annuaire"
+      - Badges de statut colorés (vert/rouge/jaune)
+    - [x] Route `/my-alumni-profile` ajoutée (protégée AuthWrapper)
+    - [x] Lien "Mon profil alumni" ajouté dans le menu déroulant du header (desktop + mobile)
+    - [x] Fichiers : `src/pages/MyAlumniProfile.tsx`, `src/App.tsx`, `src/components/layout/Header.tsx`
+    - [x] Implémenter notifications email :
+      - Email d'approbation : "Votre profil alumni a été approuvé !" avec lien vers profil public
+      - Email de rejet : "Votre profil alumni nécessite des modifications" avec raison + lien pour modifier
+      - Intégré dans `updateAlumniStatus()` avec gestion d'erreur (n'empêche pas la validation)
+      - Utilise `NotificationService.sendCustomEmail()` existant
+    - [x] Fichier : `src/services/alumniService.ts`
+  - [ ] **Phase 1.5 : Export des données et statistiques (visible que pour l'admin)**
     - [ ] Créer page `AlumniStats.tsx` (statistiques + graphiques)
     - [ ] Implémenter export CSV (nom, secteur, expertise, localisation, email)
     - [ ] Implémenter export PDF (rapport complet)
