@@ -1,15 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Book, Workflow, Map, Users, GraduationCap, Award } from 'lucide-react';
+import { ArrowRight, Book, Workflow, Map, Users, GraduationCap, Award, Briefcase, MapPin, Star, TrendingUp, Building2, Handshake } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import InfiniteLogoScroll from '../components/InfiniteLogoScroll';
 
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
   const [isVisible, setIsVisible] = React.useState(false);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
 
   React.useEffect(() => {
     setIsVisible(true);
+  }, []);
+
+  // Auto-slide for mobile carousel
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -55,14 +64,63 @@ const Home: React.FC = () => {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center md:pl-8 mt-6 md:mt-0">
-              <div className="relative w-full max-w-[380px] h-[280px] sm:h-[350px] md:h-[400px]">
+              {/* Mobile Carousel */}
+              <div className="md:hidden w-full px-4">
+                <div className="relative w-full max-w-[320px] mx-auto">
+                  <div className="overflow-hidden rounded-xl">
+                    <div 
+                      className="flex transition-transform duration-500 ease-out"
+                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                    >
+                      {/* Slide 1 - CPS */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
+                            alt="Étudiants CPS"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
+                      {/* Slide 2 - ESIGELEC */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
+                            alt="Campus ESIGELEC"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Dots indicator */}
+                  <div className="flex justify-center mt-4 space-x-2">
+                    <button
+                      onClick={() => setCurrentSlide(0)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSlide === 0 ? 'bg-white w-8' : 'bg-white/50'}`}
+                      aria-label="Slide 1"
+                    />
+                    <button
+                      onClick={() => setCurrentSlide(1)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSlide === 1 ? 'bg-white w-8' : 'bg-white/50'}`}
+                      aria-label="Slide 2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Overlapping Images */}
+              <div className="hidden md:block relative w-full max-w-[380px] h-[400px]">
                 {/* Photo CPS (en haut à gauche) avec effet glass */}
                 <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                   <div className="relative group cursor-pointer">
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Étudiants CPS"
-                      className="rounded-xl w-[180px] sm:w-[220px] md:w-[280px] h-[140px] sm:h-[170px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                      className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
                     {/* Glass border effect */}
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
@@ -75,7 +133,7 @@ const Home: React.FC = () => {
                     <img
                       src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
                       alt="Campus ESIGELEC"
-                      className="rounded-xl w-[180px] sm:w-[220px] md:w-[280px] h-[140px] sm:h-[170px] md:h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                      className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
                     {/* Glass border effect */}
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
@@ -346,6 +404,184 @@ const Home: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Alumni Directory Preview Section */}
+      <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-24">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Découvre les alumni de la communauté CPS
+            </h2>
+          </div>
+
+          {/* Alumni Cards Grid with Blur Effect */}
+          <div className="relative max-w-6xl mx-auto mb-8">
+            {/* Blurred Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 blur-sm pointer-events-none select-none">
+              {/* Alumni Card 1 */}
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="flex items-start space-x-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                    AM
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-lg mb-1">Abdou Mbaye</h3>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <GraduationCap className="w-4 h-4 mr-1" />
+                      <span>ESIGELEC 2020</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <Briefcase className="w-4 h-4 mr-1" />
+                      <span>Ingénieur Data • Tech</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>Paris, France</span>
+                    </div>
+                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                      <Star className="w-3 h-3 mr-1" />
+                      Disponible pour mentorat
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alumni Card 2 */}
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="flex items-start space-x-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                    FD
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-lg mb-1">Fatou Diop</h3>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <GraduationCap className="w-4 h-4 mr-1" />
+                      <span>Centrale Lyon 2019</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <Briefcase className="w-4 h-4 mr-1" />
+                      <span>Product Manager • Startup</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>Lyon, France</span>
+                    </div>
+                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                      <Star className="w-3 h-3 mr-1" />
+                      Disponible pour mentorat
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alumni Card 3 */}
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="flex items-start space-x-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                    MS
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-lg mb-1">Moussa Sarr</h3>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <GraduationCap className="w-4 h-4 mr-1" />
+                      <span>INSA Toulouse 2021</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <Briefcase className="w-4 h-4 mr-1" />
+                      <span>Consultant • Finance</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>Toulouse, France</span>
+                    </div>
+                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                      <Star className="w-3 h-3 mr-1" />
+                      Disponible pour mentorat
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay Message */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-12 max-w-md mx-4 text-center border-2 border-blue-200">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  +{currentUser ? '1000' : '25'} alumni disponibles
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {currentUser 
+                    ? "Découvre tous les profils alumni et connecte-toi avec eux !"
+                    : "Inscris-toi gratuitement pour accéder à l'annuaire complet et contacter les alumni"
+                  }
+                </p>
+                <Link
+                  to={currentUser ? "/alumni-directory" : "/register"}
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-300"
+                >
+                  {currentUser ? "Voir l'annuaire" : "S'inscrire gratuitement"}
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">
+              La communauté CPS Connect en chiffres
+            </h2>
+            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+              Une communauté grandissante qui connecte étudiants et alumni
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            {/* Stat 1 - Étudiants */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mb-2">50+</div>
+              <div className="text-blue-100 font-medium">Étudiants CPS actifs</div>
+            </div>
+
+            {/* Stat 2 - Alumni */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mb-2">25+</div>
+              <div className="text-blue-100 font-medium">Alumni dans l'annuaire</div>
+            </div>
+
+            {/* Stat 3 - Écoles */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mb-2">8+</div>
+              <div className="text-blue-100 font-medium">Écoles représentées</div>
+            </div>
+
+            {/* Stat 4 - Connexions */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Handshake className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mb-2">30+</div>
+              <div className="text-blue-100 font-medium">Connexions mentorat</div>
             </div>
           </div>
         </div>
