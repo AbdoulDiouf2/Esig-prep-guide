@@ -567,52 +567,52 @@ const Home: React.FC = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
               La communauté CPS Connect en chiffres
             </h2>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Une communauté grandissante qui connecte étudiants et alumni
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
             {/* Stat 1 - Étudiants */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-blue-200">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl md:text-5xl font-bold mb-2">50+</div>
-              <div className="text-blue-100 font-medium">Étudiants CPS actifs</div>
+              <div className="text-4xl md:text-5xl font-bold text-blue-900 mb-2">50+</div>
+              <div className="text-blue-700 font-medium">Étudiants CPS actifs</div>
             </div>
 
             {/* Stat 2 - Alumni */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-green-200">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl md:text-5xl font-bold mb-2">25+</div>
-              <div className="text-blue-100 font-medium">Alumni dans l'annuaire</div>
+              <div className="text-4xl md:text-5xl font-bold text-green-900 mb-2">25+</div>
+              <div className="text-green-700 font-medium">Alumni dans l'annuaire</div>
             </div>
 
             {/* Stat 3 - Écoles */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-purple-200">
+              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl md:text-5xl font-bold mb-2">8+</div>
-              <div className="text-blue-100 font-medium">Écoles représentées</div>
+              <div className="text-4xl md:text-5xl font-bold text-purple-900 mb-2">8+</div>
+              <div className="text-purple-700 font-medium">Écoles représentées</div>
             </div>
 
             {/* Stat 4 - Connexions */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-orange-200">
+              <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Handshake className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl md:text-5xl font-bold mb-2">30+</div>
-              <div className="text-blue-100 font-medium">Connexions mentorat</div>
+              <div className="text-4xl md:text-5xl font-bold text-orange-900 mb-2">30+</div>
+              <div className="text-orange-700 font-medium">Connexions mentorat</div>
             </div>
           </div>
         </div>

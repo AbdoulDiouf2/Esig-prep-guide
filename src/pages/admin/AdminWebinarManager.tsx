@@ -84,6 +84,12 @@ const AdminWebinarManager: React.FC = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [pendingDeletion, setPendingDeletion] = useState<string | null>(null);
   
+  // États pour le modal de confirmation de création avec notification
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [pendingWebinarData, setPendingWebinarData] = useState<Partial<Webinar> | null>(null);
+  const [recipientsList, setRecipientsList] = useState<Array<{name: string, email: string}>>([]);
+  const [sendNotifications, setSendNotifications] = useState(true);
+  
   // États pour les inscriptions
   const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
   const [registrations, setRegistrations] = useState<WebinarRegistration[]>([]);
@@ -380,16 +386,20 @@ const AdminWebinarManager: React.FC = () => {
           }
         });
         
-        // Envoi d'emails à tous les étudiants pour les notifier du nouveau webinaire
-        try {
-          const notificationResult = await NotificationService.sendWebinarCreationNotification(newWebinar);
-          console.log(`Notifications envoyées - Succès: ${notificationResult.success}, Échecs: ${notificationResult.failed}`);
-          // Afficher le modal de succès avec les informations sur les notifications
-          setModalMessage(`Webinaire créé avec succès. Notifications envoyées à ${notificationResult.success} utilisateur(s).`);
-        } catch (error) {
-          console.error('Erreur lors de l\'envoi des notifications:', error);
-          // Afficher le modal de succès mais mentionner l'erreur de notification
-          setModalMessage('Webinaire créé avec succès, mais l\'envoi des notifications a échoué.');
+        // Envoi d'emails uniquement si l'option est activée
+        if (sendNotifications) {
+          try {
+            const notificationResult = await NotificationService.sendWebinarCreationNotification(newWebinar);
+            console.log(`Notifications envoyées - Succès: ${notificationResult.success}, Échecs: ${notificationResult.failed}`);
+            // Afficher le modal de succès avec les informations sur les notifications
+            setModalMessage(`Webinaire créé avec succès. Notifications envoyées à ${notificationResult.success} utilisateur(s).`);
+          } catch (error) {
+            console.error('Erreur lors de l\'envoi des notifications:', error);
+            // Afficher le modal de succès mais mentionner l'erreur de notification
+            setModalMessage('Webinaire créé avec succès, mais l\'envoi des notifications a échoué.');
+          }
+        } else {
+          setModalMessage('Webinaire créé avec succès. Aucune notification envoyée.');
         }
         setShowSuccessModal(true);
       }
@@ -627,6 +637,49 @@ const AdminWebinarManager: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Fonction pour récupérer la liste des utilisateurs qui recevront la notification
+  const fetchRecipients = async () => {
+    try {
+      const usersRef = collection(db, 'users');
+      const usersQuery = query(usersRef);
+      const querySnapshot = await getDocs(usersQuery);
+      
+      const users: Array<{name: string, email: string}> = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.email) {
+          users.push({
+            name: data.displayName || data.email.split('@')[0],
+            email: data.email
+          });
+        }
+      });
+      
+      return users;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
+      return [];
+    }
+  };
+
+  // Fonction pour préparer la création du webinaire avec modal de confirmation
+  const prepareWebinarCreation = async (webinarData: Partial<Webinar>) => {
+    // Récupérer la liste des destinataires
+    const recipients = await fetchRecipients();
+    setRecipientsList(recipients);
+    setPendingWebinarData(webinarData);
+    setSendNotifications(true); // Par défaut, on coche "Envoyer les notifications"
+    setShowNotificationModal(true);
+  };
+
+  // Fonction pour confirmer la création du webinaire
+  const confirmWebinarCreation = () => {
+    if (pendingWebinarData) {
+      setShowNotificationModal(false);
+      handleSaveWebinar(pendingWebinarData);
+    }
   };
 
   return (
@@ -869,12 +922,14 @@ const AdminWebinarManager: React.FC = () => {
               <form className="space-y-6" onSubmit={(e) => {
                 e.preventDefault();
                 if (selectedWebinar) {
+                  // Pour la modification, pas besoin de modal de notification
                   handleSaveWebinar({
                     ...selectedWebinar,
                     ...formData,
                   });
                 } else {
-                  handleSaveWebinar({
+                  // Pour la création, afficher le modal de confirmation
+                  prepareWebinarCreation({
                     ...formData
                   });
                 }
@@ -1302,6 +1357,105 @@ const AdminWebinarManager: React.FC = () => {
               >
                 Fermer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de confirmation de notification */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Users className="text-blue-600 mr-2" size={24} />
+                  <h3 className="text-xl font-bold text-gray-900">Confirmation de création du webinaire</h3>
+                </div>
+                <button
+                  onClick={() => setShowNotificationModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  Vous êtes sur le point de créer le webinaire <strong>"{pendingWebinarData?.title}"</strong>.
+                </p>
+                
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                  <div className="flex items-start">
+                    <Users className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 mb-1">
+                        {recipientsList.length} utilisateur(s) recevront une notification par email
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Les utilisateurs seront informés de la création de ce nouveau webinaire.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Liste des destinataires */}
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      const list = document.getElementById('recipients-list');
+                      if (list) {
+                        list.classList.toggle('hidden');
+                      }
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Voir la liste des destinataires ({recipientsList.length})
+                  </button>
+                  
+                  <div id="recipients-list" className="hidden mt-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+                    <div className="divide-y divide-gray-200">
+                      {recipientsList.map((recipient, index) => (
+                        <div key={index} className="px-3 py-2 hover:bg-gray-50">
+                          <p className="text-sm font-medium text-gray-900">{recipient.name}</p>
+                          <p className="text-xs text-gray-500">{recipient.email}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Option pour envoyer ou non les notifications */}
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-md">
+                  <input
+                    type="checkbox"
+                    id="sendNotifications"
+                    checked={sendNotifications}
+                    onChange={(e) => setSendNotifications(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="sendNotifications" className="text-sm font-medium text-gray-900 cursor-pointer">
+                    Envoyer les notifications par email aux utilisateurs
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowNotificationModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={confirmWebinarCreation}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {sendNotifications ? 'Créer et notifier' : 'Créer sans notifier'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
