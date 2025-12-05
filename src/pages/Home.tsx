@@ -13,10 +13,10 @@ const Home: React.FC = () => {
     setIsVisible(true);
   }, []);
 
-  // Auto-slide for mobile carousel
+  // Auto-slide for mobile carousel (5 slides)
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+      setCurrentSlide((prev) => (prev + 1) % 5);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
@@ -72,18 +72,7 @@ const Home: React.FC = () => {
                       className="flex transition-transform duration-500 ease-out"
                       style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                     >
-                      {/* Slide 1 - CPS */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
-                            alt="Étudiants CPS"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                      {/* Slide 2 - ESIGELEC */}
+                      {/* Slide 1 - Campus */}
                       <div className="w-full flex-shrink-0">
                         <div className="relative group">
                           <img
@@ -94,20 +83,62 @@ const Home: React.FC = () => {
                           <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
                         </div>
                       </div>
+                      {/* Slide 2 - Étudiants */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://scontent-cdg4-3.cdninstagram.com/v/t51.82787-15/589119822_17941717707086573_8171928204936619206_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&ig_cache_key=Mzc3NDYwNzU0Njk5MzQwMDU1Ng%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjk2MHgxMjgwLnNkci5DMyJ9&_nc_ohc=qDBGhWpuJ38Q7kNvwHzvRAK&_nc_oc=Adlx3Q8m5L6w1szJMZXEJ_PJFCQVL_PhREY-b8lb3fighWPgEcj4CyXmjpqHldt9f80&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-cdg4-3.cdninstagram.com&_nc_gid=9kjGyAxtiF3oWq7RQTruPg&oh=00_Afmw-0JYQv2mpTAJeXXmz7XKUcNV71NJF7_AO_E2PzO38Q&oe=6938E201"
+                            alt="Prepa"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
+                      {/* Slide 3 - Laboratoire */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://imgs.search.brave.com/TfuVQndwQnhqjuioKEAKgagCmlFw6ilFLNCseatl5XA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93ZWxj/b21lLWVzaWdlbGVj/LmZyL3dwLWNvbnRl/bnQvdXBsb2Fkcy8y/MDI1LzA0L0VTSUdF/TEVDLVJvdWVuLTEw/MjR4NjgzLmpwZw"
+                            alt="ESIGELEC Interior"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
+                      {/* Slide 4 - Vie étudiante */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://scontent-cdg4-1.cdninstagram.com/v/t51.29350-15/404966355_1023161122300001_4309406724163321536_n.heic?stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0uaW1hZ2VfdXJsZ2VuLjk2MHg5NjAuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlLmMyIn0&_nc_ht=scontent-cdg4-1.cdninstagram.com&_nc_cat=105&_nc_oc=Q6cZ2QFBiGMtPGzxbIaM7H_quehh310TPeMvkcbqztGVCUJ6FmtWXhaKUeuE0J2uYt-__Gk&_nc_ohc=6k9GrgKvDQcQ7kNvwEfbtIQ&_nc_gid=97xUphyqJmksdIkqSFsaqQ&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzI0NTU3NDI2NzEwMTAwODQ2Nw%3D%3D.3-ccb7-5&oh=00_AfkpJkhjcPL6rBOH3E6bSYStNgKe0TVaz8d-N9ubx1Bc2A&oe=6937CC7E&_nc_sid=22de04"
+                            alt="Cérémonie d'ouverture Prépa"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
+                      {/* Slide 5 - Networking */}
+                      <div className="w-full flex-shrink-0">
+                        <div className="relative group">
+                          <img
+                            src="https://imgs.search.brave.com/x9VPPz4yvbZZEVamO9HNdE3giVYZADtBa6TxHhF0omE/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9saDUu/Z29vZ2xldXNlcmNv/bnRlbnQuY29tL3Av/QUYxUWlwTTN1c09U/TEVkV01PYWRjNW5j/M1pKc3ZtZEF4c2dC/dFRzbmRXVHA9dzQ0/Ny1oMjk4LWstbm8"
+                            alt="ESMT"
+                            className="w-full h-[240px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   {/* Dots indicator */}
                   <div className="flex justify-center mt-4 space-x-2">
-                    <button
-                      onClick={() => setCurrentSlide(0)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSlide === 0 ? 'bg-white w-8' : 'bg-white/50'}`}
-                      aria-label="Slide 1"
-                    />
-                    <button
-                      onClick={() => setCurrentSlide(1)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSlide === 1 ? 'bg-white w-8' : 'bg-white/50'}`}
-                      aria-label="Slide 2"
-                    />
+                    {[0, 1, 2, 3, 4].map((index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`h-2 rounded-full transition-all duration-300 ${currentSlide === index ? 'bg-white w-8' : 'bg-white/50 w-2'}`}
+                        aria-label={`Slide ${index + 1}`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -118,7 +149,7 @@ const Home: React.FC = () => {
                 <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                   <div className="relative group cursor-pointer">
                     <img
-                      src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
+                      src="https://scontent-cdg4-1.cdninstagram.com/v/t51.29350-15/404966355_1023161122300001_4309406724163321536_n.heic?stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0uaW1hZ2VfdXJsZ2VuLjk2MHg5NjAuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlLmMyIn0&_nc_ht=scontent-cdg4-1.cdninstagram.com&_nc_cat=105&_nc_oc=Q6cZ2QFBiGMtPGzxbIaM7H_quehh310TPeMvkcbqztGVCUJ6FmtWXhaKUeuE0J2uYt-__Gk&_nc_ohc=6k9GrgKvDQcQ7kNvwEfbtIQ&_nc_gid=97xUphyqJmksdIkqSFsaqQ&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzI0NTU3NDI2NzEwMTAwODQ2Nw%3D%3D.3-ccb7-5&oh=00_AfkpJkhjcPL6rBOH3E6bSYStNgKe0TVaz8d-N9ubx1Bc2A&oe=6937CC7E&_nc_sid=22de04"
                       alt="Étudiants CPS"
                       className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
