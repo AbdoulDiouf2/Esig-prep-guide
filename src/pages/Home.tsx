@@ -149,7 +149,7 @@ const Home: React.FC = () => {
                 <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                   <div className="relative group cursor-pointer">
                     <img
-                      src="https://scontent-cdg4-1.cdninstagram.com/v/t51.29350-15/404966355_1023161122300001_4309406724163321536_n.heic?stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0uaW1hZ2VfdXJsZ2VuLjk2MHg5NjAuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlLmMyIn0&_nc_ht=scontent-cdg4-1.cdninstagram.com&_nc_cat=105&_nc_oc=Q6cZ2QFBiGMtPGzxbIaM7H_quehh310TPeMvkcbqztGVCUJ6FmtWXhaKUeuE0J2uYt-__Gk&_nc_ohc=6k9GrgKvDQcQ7kNvwEfbtIQ&_nc_gid=97xUphyqJmksdIkqSFsaqQ&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzI0NTU3NDI2NzEwMTAwODQ2Nw%3D%3D.3-ccb7-5&oh=00_AfkpJkhjcPL6rBOH3E6bSYStNgKe0TVaz8d-N9ubx1Bc2A&oe=6937CC7E&_nc_sid=22de04"
+                      src="https://scontent-cdg4-2.cdninstagram.com/v/t51.29350-15/432203570_806701814631685_8940426918178114366_n.heic?stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0uaW1hZ2VfdXJsZ2VuLjc1MHg5Mzcuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlLmMyIn0&_nc_ht=scontent-cdg4-2.cdninstagram.com&_nc_cat=101&_nc_oc=Q6cZ2QHwbUiuoAInEuMwHy1zJO8fyuL-qpBx8HXDAbk60S1HNXcZXj28RMuWzsfZViabduo&_nc_ohc=F6P--5Py7rcQ7kNvwHJ8par&_nc_gid=LNDiS_gYXjYtDlwJxPPzgA&edm=AOmX9WgBAAAA&ccb=7-5&ig_cache_key=MzMyMDc0ODMyODExMzk4OTcwNw%3D%3D.3-ccb7-5&oh=00_AfkngMD4UGrWyudW7TtIwbYsz3tcIuU5VgJVgA4AprHzQQ&oe=6938ED8A&_nc_sid=bfaa47"
                       alt="Étudiants CPS"
                       className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
                     />
