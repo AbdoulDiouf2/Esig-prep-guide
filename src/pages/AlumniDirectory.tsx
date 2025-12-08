@@ -114,8 +114,11 @@ const AlumniDirectory: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">
             Annuaire Alumni
           </h1>
-          <p className="mt-2 text-gray-600">
-            Découvrez et connectez-vous avec les alumni de la communauté ESIG
+          <p className="mt-2 text-lg text-gray-700">
+            Trouve en 2 clics des alumni par secteur, pays, promo ou type d'aide (je cherche / je propose)
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Découvrez et connectez-vous avec les alumni de la communauté CPS Connect
           </p>
         </div>
 

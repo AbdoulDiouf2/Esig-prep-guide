@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
+import { CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile, updateAlumniProfile } from '../services/alumniService';
 import { uploadAlumniPhoto } from '../services/storageService';
 import { db } from '../firebase';
 import AlumniProfileForm, { AlumniProfileFormData } from '../components/alumni/AlumniProfileForm';
 import type { AlumniProfile } from '../types/alumni';
+import { calculateProfileCompletion, getCompletionMessage, getProfileSuggestions } from '../utils/profileCompletion';
 
 const CompleteAlumniProfile: React.FC = () => {
   const { currentUser } = useAuth();
@@ -64,6 +66,8 @@ const CompleteAlumniProfile: React.FC = () => {
         website: data.website,
         portfolio: data.portfolio,
         services: data.services,
+        seeking: data.seeking,
+        offering: data.offering,
         linkedin: data.linkedin,
         github: data.github,
         twitter: data.twitter,
@@ -118,6 +122,11 @@ const CompleteAlumniProfile: React.FC = () => {
     );
   }
 
+  // Calculer le pourcentage de complétion
+  const completionPercentage = alumniProfile ? calculateProfileCompletion(alumniProfile) : 0;
+  const completionInfo = getCompletionMessage(completionPercentage);
+  const suggestions = alumniProfile ? getProfileSuggestions(alumniProfile) : [];
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,6 +143,78 @@ const CompleteAlumniProfile: React.FC = () => {
               <strong>Informations pré-remplies :</strong> Nom : {alumniProfile.name}, Email : {alumniProfile.email}, Année de promo : {alumniProfile.yearPromo}
             </p>
           </div>
+        </div>
+
+        {/* Indicateur de complétion */}
+        <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Complétion de ton profil
+                </h3>
+                <p className={`text-sm font-medium ${completionInfo.color}`}>
+                  {completionInfo.message}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-gray-900">
+                {completionPercentage}%
+              </div>
+              <p className="text-xs text-gray-500">complété</p>
+            </div>
+          </div>
+
+          {/* Barre de progression */}
+          <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+
+          {/* Suggestions */}
+          {suggestions.length > 0 && completionPercentage < 90 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-start space-x-2 mb-2">
+                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Pour améliorer ton profil :
+                  </h4>
+                  <ul className="space-y-1">
+                    {suggestions.slice(0, 3).map((suggestion, index) => (
+                      <li key={index} className="text-sm text-gray-600 flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>{suggestion}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {suggestions.length > 3 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Et {suggestions.length - 3} autre{suggestions.length - 3 > 1 ? 's' : ''} suggestion{suggestions.length - 3 > 1 ? 's' : ''}...
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Message de motivation */}
+          {completionPercentage >= 90 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center space-x-2 text-green-600">
+                <CheckCircle className="w-5 h-5" />
+                <p className="text-sm font-medium">
+                  En complétant ton profil, tu seras éligible aux futures fonctionnalités : matching mentorat, opportunités business, et bien plus !
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Messages */}
@@ -165,6 +246,8 @@ const CompleteAlumniProfile: React.FC = () => {
             website: alumniProfile.website,
             portfolio: alumniProfile.portfolio || [],
             services: alumniProfile.services || [],
+            seeking: alumniProfile.seeking || [],
+            offering: alumniProfile.offering || [],
             linkedin: alumniProfile.linkedin,
             github: alumniProfile.github,
             twitter: alumniProfile.twitter,

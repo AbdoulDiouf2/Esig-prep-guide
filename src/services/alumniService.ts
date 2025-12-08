@@ -585,3 +585,81 @@ export const deleteAlumniProfile = async (uid: string): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Envoyer une demande de contact entre alumni
+ */
+export const sendContactRequest = async (data: {
+  fromUid: string;
+  fromName: string;
+  fromEmail: string;
+  toUid: string;
+  toName: string;
+  toEmail: string;
+  subject: string;
+  message: string;
+}): Promise<void> => {
+  try {
+    // Créer l'enregistrement de la demande dans Firestore
+    const contactRequestsRef = collection(db, 'contactRequests');
+    const newRequestRef = doc(contactRequestsRef);
+
+    const contactRequest = {
+      id: newRequestRef.id,
+      fromUid: data.fromUid,
+      fromName: data.fromName,
+      fromEmail: data.fromEmail,
+      toUid: data.toUid,
+      toName: data.toName,
+      toEmail: data.toEmail,
+      subject: data.subject,
+      message: data.message,
+      status: 'pending' as const,
+      dateCreated: Timestamp.now(),
+    };
+
+    await setDoc(newRequestRef, contactRequest);
+
+    // Envoyer l'email au destinataire
+    try {
+      await NotificationService.sendCustomEmail(
+        data.toEmail,
+        `Nouvelle demande de contact : ${data.subject}`,
+        `
+Bonjour ${data.toName},
+
+Vous avez reçu une nouvelle demande de contact via l'annuaire alumni CPS Connect.
+
+👤 De : ${data.fromName}
+📧 Email : ${data.fromEmail}
+📋 Objet : ${data.subject}
+
+💬 Message :
+${data.message}
+
+---
+
+Vous pouvez répondre directement à ${data.fromEmail} pour donner suite à cette demande.
+
+Pour voir le profil de ${data.fromName} : ${PRODUCTION_URL}/#/alumni/${data.fromUid}
+
+---
+Ceci est une notification automatique de CPS Connect.
+        `.trim(),
+        data.toName
+      );
+
+      // Mettre à jour le statut à 'sent'
+      await updateDoc(newRequestRef, { status: 'sent' });
+      console.log('✅ Demande de contact envoyée avec succès');
+    } catch (emailError) {
+      console.error('⚠️ Erreur lors de l\'envoi de l\'email:', emailError);
+      // Mettre à jour le statut à 'failed'
+      await updateDoc(newRequestRef, { status: 'failed' });
+      throw new Error('Échec de l\'envoi de l\'email');
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'envoi de la demande de contact:', error);
+    throw error;
+  }
+};

@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   MapPin, Briefcase, Award, Linkedin, Github, Twitter, 
-  ExternalLink, Mail, ArrowLeft, Package, Users 
+  ExternalLink, Mail, ArrowLeft, Package, Users, MessageCircle 
 } from 'lucide-react';
 import { getAlumniProfile } from '../services/alumniService';
+import { useAuth } from '../contexts/AuthContext';
+import ContactRequestForm from '../components/alumni/ContactRequestForm';
 import type { AlumniProfile } from '../types/alumni';
 
 const AlumniDetail: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [profile, setProfile] = useState<AlumniProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showContactForm, setShowContactForm] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -314,16 +318,91 @@ const AlumniDetail: React.FC = () => {
           </div>
         )}
 
-        {/* Bouton de contact */}
+        {/* Je cherche / Je propose */}
+        {((profile.seeking && profile.seeking.length > 0) || (profile.offering && profile.offering.length > 0)) && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-purple-600" />
+              Je cherche / Je propose
+            </h2>
+            
+            {profile.seeking && profile.seeking.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">🔍 Je cherche</h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.seeking.map((item, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {profile.offering && profile.offering.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">💡 Je propose</h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.offering.map((item, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Section de contact */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Contacter {profile.name.split(' ')[0]}</h2>
-          <a
-            href={`mailto:${profile.email}?subject=Contact depuis l'annuaire ESIG Alumni`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-          >
-            <Mail className="w-5 h-5" />
-            Envoyer un email
-          </a>
+          
+          {currentUser && currentUser.uid !== profile.uid ? (
+            <>
+              {!showContactForm ? (
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setShowContactForm(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Demander un contact / une intro
+                  </button>
+                  <a
+                    href={`mailto:${profile.email}?subject=Contact depuis l'annuaire CPS Connect`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-medium"
+                  >
+                    <Mail className="w-5 h-5" />
+                    Envoyer un email direct
+                  </a>
+                </div>
+              ) : (
+                <div>
+                  <ContactRequestForm
+                    targetProfile={profile}
+                    onClose={() => setShowContactForm(false)}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-gray-600">
+              <p>Vous consultez votre propre profil.</p>
+              <Link
+                to="/my-alumni-profile"
+                className="inline-flex items-center gap-2 mt-3 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Modifier mon profil →
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -32,6 +32,10 @@ interface AlumniProfileFormData {
     category: string;
   }[];
   
+  // Je cherche / Je propose
+  seeking?: string[];
+  offering?: string[];
+  
   // Réseaux sociaux
   linkedin?: string;
   github?: string;
@@ -67,6 +71,8 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     website: initialData?.website,
     portfolio: initialData?.portfolio || [],
     services: initialData?.services || [],
+    seeking: initialData?.seeking || [],
+    offering: initialData?.offering || [],
     linkedin: initialData?.linkedin,
     github: initialData?.github,
     twitter: initialData?.twitter,
@@ -76,7 +82,36 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
 
   const [newSector, setNewSector] = useState('');
   const [newExpertise, setNewExpertise] = useState('');
+  const [newSeeking, setNewSeeking] = useState('');
+  const [newOffering, setNewOffering] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Options prédéfinies pour "Je cherche / Je propose"
+  const seekingOptions = [
+    'Collaborateur',
+    'Développeur',
+    'Designer',
+    'Mentor',
+    'Opportunité',
+    'Stage',
+    'Emploi',
+    'Partenaire',
+    'Investisseur',
+    'Conseil',
+  ];
+
+  const offeringOptions = [
+    'Mentorat',
+    'Conseil',
+    'Collaboration',
+    'Service',
+    'Formation',
+    'Recrutement',
+    'Partenariat',
+    'Investissement',
+    'Expertise technique',
+    'Réseau',
+  ];
 
   // Secteurs prédéfinis
   const predefinedSectors = [
@@ -155,6 +190,36 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
       services: prev.services.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       ),
+    }));
+  };
+
+  // Fonctions pour "Je cherche"
+  const handleAddSeeking = (item: string) => {
+    if (item && !formData.seeking?.includes(item)) {
+      setFormData(prev => ({ ...prev, seeking: [...(prev.seeking || []), item] }));
+      setNewSeeking('');
+    }
+  };
+
+  const handleRemoveSeeking = (item: string) => {
+    setFormData(prev => ({
+      ...prev,
+      seeking: prev.seeking?.filter(s => s !== item) || [],
+    }));
+  };
+
+  // Fonctions pour "Je propose"
+  const handleAddOffering = (item: string) => {
+    if (item && !formData.offering?.includes(item)) {
+      setFormData(prev => ({ ...prev, offering: [...(prev.offering || []), item] }));
+      setNewOffering('');
+    }
+  };
+
+  const handleRemoveOffering = (item: string) => {
+    setFormData(prev => ({
+      ...prev,
+      offering: prev.offering?.filter(o => o !== item) || [],
     }));
   };
 
@@ -530,7 +595,146 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
         </div>
       </div>
 
-      {/* Section 6 : Réseaux sociaux */}
+      {/* Section 6 : Je cherche / Je propose */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Users className="w-5 h-5 mr-2 text-purple-600" />
+          Je cherche / Je propose
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Indique ce que tu cherches et ce que tu proposes pour faciliter le networking et les opportunités.
+        </p>
+
+        <div className="space-y-6">
+          {/* Je cherche */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              🔍 Je cherche
+            </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {formData.seeking?.map((item, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                >
+                  {item}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSeeking(item)}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {seekingOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleAddSeeking(option)}
+                  disabled={formData.seeking?.includes(option)}
+                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    formData.seeking?.includes(option)
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700'
+                  }`}
+                >
+                  + {option}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newSeeking}
+                onChange={(e) => setNewSeeking(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSeeking(newSeeking);
+                  }
+                }}
+                placeholder="Ou ajoute un élément personnalisé..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddSeeking(newSeeking)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
+
+          {/* Je propose */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              💡 Je propose
+            </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {formData.offering?.map((item, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                >
+                  {item}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOffering(item)}
+                    className="ml-2 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {offeringOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleAddOffering(option)}
+                  disabled={formData.offering?.includes(option)}
+                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    formData.offering?.includes(option)
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
+                  }`}
+                >
+                  + {option}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newOffering}
+                onChange={(e) => setNewOffering(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddOffering(newOffering);
+                  }
+                }}
+                placeholder="Ou ajoute un élément personnalisé..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddOffering(newOffering)}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 7 : Réseaux sociaux */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
           <LinkIcon className="w-5 h-5 mr-2 text-blue-600" />

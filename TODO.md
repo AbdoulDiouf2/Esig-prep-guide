@@ -409,37 +409,76 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - [ ] Ajouter banneau "Nouveaux profils publiés" dans `AlumniDirectory.tsx`
         - Afficher 3 derniers profils approuvés
         - Bouton "Découvrir tous les profils"
-      - [ ] Ajouter indicateur de complétion de profil (ex: 60%)
-        - Dans `EditAlumniProfile.tsx`
+      - [x] Ajouter indicateur de complétion de profil (ex: 60%)
+        - Dans `CompleteAlumniProfile.tsx` (EditAlumniProfile redirige vers ce composant)
         - Encourage à remplir les sections manquantes
-      - [ ] Ajouter mini-callout "En complétant ton profil, tu seras éligible aux futures fonctionnalités : matching mentorat, opportunités business, etc."
+        - Barre de progression visuelle
+        - Suggestions d'amélioration du profil
+        - Calcul automatique du pourcentage via `profileCompletion.ts`
+      - [x] Ajouter mini-callout "En complétant ton profil, tu seras éligible aux futures fonctionnalités : matching mentorat, opportunités business, etc."
+        - Intégré dans l'indicateur de complétion
     - [ ] **Networking Passif → Actif**
       - [ ] Ajouter bouton "Demander un contact / une intro" sur `AlumniDetail.tsx`
         - Ouvre un formulaire simple (objet + message)
         - Envoie email à l'alumni + enregistre la demande
         - ⭐ **Ajouter feedback de confirmation** : "Merci ! Ta demande a été envoyée, on te répond dans les meilleurs délais"
-      - [ ] Ajouter bloc "Je cherche / Je propose" dans le formulaire `AlumniProfileForm.tsx`
-        - Tags simples : "Je cherche collaborateur", "Je propose conseil", "Je cherche mentor", etc.
-        - Affichage dans la fiche
-    - [ ] **Mise en avant & Découverte**
-      - [ ] Créer composant `NewProfilesHighlight.tsx` (3 cartes des derniers profils)
-        - Afficher dans `AlumniDirectory.tsx` en haut
+      - [x] Ajouter bloc "Je cherche / Je propose" dans le formulaire `AlumniProfileForm.tsx`
+        - Tags prédéfinis : "Collaborateur", "Développeur", "Designer", "Mentor", "Opportunité", etc.
+        - Tags personnalisés possibles
+        - Affichage avec badges colorés (bleu pour "Je cherche", vert pour "Je propose")
+        - Intégré dans CompleteAlumniProfile.tsx
+    - [x] **Mise en avant & Découverte**
+      - [x] Créer composant `NewProfilesHighlight.tsx` (3 cartes des derniers profils)
+        - Affiche les 3 derniers profils approuvés
+        - Design responsive avec cartes
+        - Liens vers les profils détaillés
+        - État de chargement
+      - [x] Intégrer `NewProfilesHighlight` dans `ApplicationsDashboard.tsx` (section Alumni)
+        - Affichage conditionnel uniquement dans la catégorie alumni
+        - Meilleur contexte : découverte avant d'accéder à l'annuaire complet
       - [ ] Ajouter section "À découvrir cette semaine" (profils aléatoires)
         - Rotation hebdomadaire
-    - [ ] **Notifications & Engagement**
-      - [ ] Envoyer email de bienvenue après validation de profil
+    - [x] **Système de Contact**
+      - [x] Créer composant `ContactRequestForm.tsx`
+        - Formulaire avec objet et message
+        - Validation des champs
+        - Message de succès après envoi
+        - Gestion d'erreurs
+      - [x] Créer fonction `sendContactRequest` dans `alumniService.ts`
+        - Enregistrement dans Firestore (collection `contactRequests`)
+        - Envoi d'email au destinataire
+        - Statuts : pending, sent, failed
+      - [x] Intégrer dans `AlumniDetail.tsx`
+        - Bouton "Demander un contact / une intro"
+        - Formulaire intégré avec toggle
+        - Email direct en option secondaire
+        - Affichage de "Je cherche / Je propose"
+    - [x] **Notifications & Engagement**
+      - [ ] Envoyer email de bienvenue après validation de profil (futur)
         - "Ton profil est maintenant visible ! Voici comment en tirer profit..."
-      - [ ] Ajouter notification dans `ApplicationsDashboard.tsx` si profil pending
-        - "Ton profil est en attente de validation (X jours)"
-    - [ ] **Copy & Promesse (UX/Messaging)**
-      - [ ] ⭐ Ajouter phrase d'accroche dans `AlumniDirectory.tsx` (en haut)
+      - [x] Ajouter notification dans `ApplicationsDashboard.tsx` si profil pending
+        - Notification jaune pour profil en attente
+        - Notification verte pour profil approuvé
+        - Notification rouge pour profil rejeté
+    - [x] **Copy & Promesse (UX/Messaging)**
+      - [x] ⭐ Ajouter phrase d'accroche dans `AlumniDirectory.tsx` (en haut)
         - "Trouve en 2 clics des alumni par secteur, pays, promo ou type d'aide (je cherche / je propose)"
-      - [ ] ⭐ Ajouter phrase d'accroche dans `ApplicationsDashboard.tsx` (section Alumni)
+      - [x] ⭐ Ajouter phrase d'accroche dans `ApplicationsDashboard.tsx` (section Alumni)
         - "Connecte-toi avec des alumni : trouve des collaborateurs, des mentors, des opportunités"
-      - [ ] ⭐ Clarifier le CTA du formulaire de contact
+      - [x] ⭐ Clarifier le CTA du formulaire de contact
         - Avant : "Envoyer"
-        - Après : "Envoyer ma demande"
-    - [ ] **Fichiers** : `src/components/alumni/NewProfilesHighlight.tsx`, `src/components/alumni/ContactRequestForm.tsx`, modifications `AlumniDirectory.tsx`, `AlumniDetail.tsx`, `AlumniProfileForm.tsx`, `ApplicationsDashboard.tsx`
+        - Après : "Envoyer ma demande" (intégré dans ContactRequestForm.tsx)
+    - [x] **Fichiers créés** :
+      - [x] `src/components/alumni/NewProfilesHighlight.tsx`
+      - [x] `src/components/alumni/ContactRequestForm.tsx`
+      - [x] `src/utils/profileCompletion.ts`
+    - [x] **Fichiers modifiés** :
+      - [x] `src/components/alumni/AlumniProfileForm.tsx` (ajout seeking/offering)
+      - [x] `src/pages/CompleteAlumniProfile.tsx` (indicateur de complétion)
+      - [x] `src/services/alumniService.ts` (fonction sendContactRequest)
+      - [x] `src/pages/AlumniDirectory.tsx` (copy + NewProfilesHighlight)
+      - [x] `src/pages/AlumniDetail.tsx` (intégration ContactRequestForm + seeking/offering)
+      - [x] `src/pages/ApplicationsDashboard.tsx` (copy + notifications)
   - [ ] **Intégration au Centre d'Applications**
     - [ ] Ajouter carte "Annuaire Alumni" dans `ApplicationsDashboard.tsx`
     - [ ] Route `/alumni` pointant vers `AlumniDirectory.tsx`

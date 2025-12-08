@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile } from '../services/alumniService';
+import NewProfilesHighlight from '../components/alumni/NewProfilesHighlight';
 import type { AlumniProfile } from '../types/alumni';
 import { 
   BookOpen, 
@@ -99,14 +100,14 @@ const ApplicationsDashboard: React.FC = () => {
         {
           icon: <Users className="w-8 h-8 text-purple-500" />,
           title: "Annuaire Alumni",
-          description: "Découvrez et connectez-vous avec les anciens étudiants de l'ESIGELEC",
+          description: "Connecte-toi avec des alumni : trouve des collaborateurs, des mentors, des opportunités",
           link: "/alumni",
           roles: ["admin", "editor", "user"]
         },
         {
           icon: <Briefcase className="w-8 h-8 text-blue-500" />,
           title: "Mon profil Alumni",
-          description: "Gérez votre profil alumni et soyez visible dans l'annuaire",
+          description: "Complète ton profil pour être visible et accéder aux opportunités de mentorat et business",
           link: alumniProfile ? "/my-alumni-profile" : "/complete-alumni-profile",
           roles: ["admin", "editor", "user"]
         },
@@ -487,6 +488,13 @@ const ApplicationsDashboard: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {/* Nouveaux profils alumni (uniquement dans la catégorie alumni) */}
+      {activeCategory === 'alumni' && (
+        <div className="mb-8">
+          <NewProfilesHighlight />
+        </div>
+      )}
 
       {/* Features Grid */}
       <div className="mb-12">
