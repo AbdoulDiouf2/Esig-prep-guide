@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, updateDoc } from 'firebase/firestore';
-import { CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, TrendingUp, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAlumniProfile, updateAlumniProfile } from '../services/alumniService';
+import { getAlumniProfile, updateAlumniProfile, submitAlumniProfileForValidation } from '../services/alumniService';
 import { uploadAlumniPhoto } from '../services/storageService';
-import { db } from '../firebase';
 import AlumniProfileForm, { AlumniProfileFormData } from '../components/alumni/AlumniProfileForm';
 import type { AlumniProfile } from '../types/alumni';
 import { calculateProfileCompletion, getCompletionMessage, getProfileSuggestions } from '../utils/profileCompletion';
@@ -15,8 +13,10 @@ const CompleteAlumniProfile: React.FC = () => {
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -53,7 +53,7 @@ const CompleteAlumniProfile: React.FC = () => {
     setError('');
 
     try {
-      // Mettre à jour le profil alumni avec les nouvelles données
+      // Mettre à jour le profil alumni avec les nouvelles données (reste en draft)
       await updateAlumniProfile(currentUser.uid, {
         headline: data.headline,
         bio: data.bio,
@@ -74,22 +74,51 @@ const CompleteAlumniProfile: React.FC = () => {
         city: data.city,
         country: data.country,
       });
-      
-      // Remettre le statut à pending pour validation
-      await updateAlumniProfile(currentUser.uid, {});
-      const alumniRef = doc(db, 'alumni', currentUser.uid);
-      await updateDoc(alumniRef, { status: 'pending' });
+
+      // Recharger le profil pour avoir les données à jour
+      const updatedProfile = await getAlumniProfile(currentUser.uid);
+      setAlumniProfile(updatedProfile);
 
       setSuccess(true);
       
-      // Redirection après 2 secondes
+      // Masquer le message après 3 secondes
       setTimeout(() => {
-        navigate('/applications');
-      }, 2000);
+        setSuccess(false);
+      }, 3000);
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
       setError('Une erreur est survenue lors de la mise à jour de votre profil');
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmitForValidation = async () => {
+    if (!currentUser || !alumniProfile) {
+      setError('Profil alumni introuvable');
+      return;
+    }
+
+    if (completionPercentage < 50) {
+      setError('Veuillez compléter au moins 50% de votre profil avant de le soumettre');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+      await submitAlumniProfileForValidation(currentUser.uid);
+      setSubmitSuccess(true);
+      
+      // Redirection après 3 secondes
+      setTimeout(() => {
+        navigate('/applications');
+      }, 3000);
+    } catch (err) {
+      console.error('Erreur lors de la soumission:', err);
+      setError('Une erreur est survenue lors de la soumission de votre profil');
+      setSubmitting(false);
     }
   };
 
@@ -136,7 +165,11 @@ const CompleteAlumniProfile: React.FC = () => {
             Complète ton profil alumni
           </h1>
           <p className="mt-2 text-gray-600">
-            Remplis les informations ci-dessous pour enrichir ton profil. Ton profil sera soumis pour validation avant d'être publié dans l'annuaire.
+            {alumniProfile.status === 'draft' 
+              ? 'Remplis les informations ci-dessous pour enrichir ton profil. Une fois satisfait, soumets-le pour validation.'
+              : alumniProfile.status === 'pending'
+              ? 'Ton profil est en attente de validation par un administrateur.'
+              : 'Modifie les informations de ton profil ci-dessous.'}
           </p>
           <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
             <p className="text-sm text-blue-700">
@@ -227,7 +260,15 @@ const CompleteAlumniProfile: React.FC = () => {
         {success && (
           <div className="mb-6 bg-green-50 border-l-4 border-green-600 p-4 rounded">
             <p className="text-sm text-green-700">
-              ✅ Profil mis à jour avec succès ! Ton profil est maintenant en attente de validation. Redirection...
+              ✅ Profil sauvegardé avec succès !
+            </p>
+          </div>
+        )}
+
+        {submitSuccess && (
+          <div className="mb-6 bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
+            <p className="text-sm text-blue-700">
+              🎉 Profil soumis pour validation ! Un administrateur va examiner ton profil. Tu seras notifié par email dès qu'il sera approuvé. Redirection...
             </p>
           </div>
         )}
@@ -258,6 +299,47 @@ const CompleteAlumniProfile: React.FC = () => {
           onPhotoUpload={handlePhotoUpload}
           loading={loading}
         />
+
+        {/* Bouton de soumission pour validation (uniquement si status = draft) */}
+        {alumniProfile.status === 'draft' && !submitSuccess && (
+          <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <Send className="w-8 h-8 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Prêt à soumettre ton profil ?
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Une fois soumis, ton profil sera examiné par un administrateur. 
+                  {completionPercentage < 50 && (
+                    <span className="text-orange-600 font-medium">
+                      {' '}Attention : ton profil est complété à {completionPercentage}%. Nous recommandons au moins 50% pour une meilleure chance d'approbation.
+                    </span>
+                  )}
+                </p>
+                <button
+                  onClick={handleSubmitForValidation}
+                  disabled={submitting || completionPercentage < 30}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                    submitting || completionPercentage < 30
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md'
+                  }`}
+                >
+                  <Send className="w-5 h-5" />
+                  {submitting ? 'Soumission en cours...' : 'Soumettre pour validation'}
+                </button>
+                {completionPercentage < 30 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Minimum 30% de complétion requis pour soumettre
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -319,19 +319,23 @@ service cloud.firestore {
       allow create: if isAuthenticated() && 
                       request.auth.uid == alumniId &&
                       request.resource.data.uid == alumniId &&
-                      request.resource.data.status == 'pending';
+                      request.resource.data.status == 'draft';
       
       // Mise à jour : l'alumni peut modifier son propre profil
-      // Mais ne peut pas changer le statut, dateValidation, validatedBy
+      // Mais ne peut pas changer le statut (sauf de draft à pending), dateValidation, validatedBy
       allow update: if isOwner(alumniId) && 
                       !request.resource.data.diff(resource.data).affectedKeys()
-                        .hasAny(['status', 'dateValidation', 'validatedBy', 'uid']);
+                        .hasAny(['dateValidation', 'validatedBy', 'uid']) &&
+                      (
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
+                        (resource.data.status == 'draft' && request.resource.data.status == 'pending')
+                      );
       
       // Mise à jour : les admins et super admins peuvent tout modifier (validation)
       allow update: if isAdmin() || isSuperAdmin();
       
-      // Suppression : seuls les super admins peuvent supprimer
-      allow delete: if isSuperAdmin();
+      // Suppression : l'utilisateur peut supprimer son propre profil, ou les super admins
+      allow delete: if isOwner(alumniId) || isSuperAdmin();
     }
     
     // Règles pour les demandes de contact entre alumni

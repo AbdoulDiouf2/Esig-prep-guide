@@ -2,11 +2,12 @@ import { Timestamp } from 'firebase/firestore';
 
 /**
  * Statut du profil alumni
- * - pending: En attente de validation admin
+ * - draft: Brouillon, en cours de complétion par l'utilisateur (non soumis)
+ * - pending: En attente de validation admin (soumis)
  * - approved: Validé par admin, visible dans l'annuaire
  * - rejected: Rejeté par admin, non visible
  */
-export type AlumniProfileStatus = 'pending' | 'approved' | 'rejected';
+export type AlumniProfileStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
 /**
  * Item de portfolio

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users } from 'lucide-react';
 
 interface AlumniProfileFormData {
@@ -59,6 +60,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   onPhotoUpload,
   loading = false,
 }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<AlumniProfileFormData>({
     headline: initialData?.headline || '',
     bio: initialData?.bio || '',
@@ -824,8 +826,15 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
         </div>
       </div>
 
-      {/* Bouton de soumission */}
-      <div className="flex justify-end">
+      {/* Boutons de soumission */}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/my-alumni-profile')}
+          className="px-6 py-3 rounded-md text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          Annuler
+        </button>
         <button
           type="submit"
           disabled={loading}
@@ -835,7 +844,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
               : 'bg-blue-600 hover:bg-blue-700'
           }`}
         >
-          {loading ? 'Enregistrement...' : 'Soumettre pour validation'}
+          {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </button>
       </div>
     </form>

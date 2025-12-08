@@ -51,7 +51,7 @@ export const createAlumniProfileOnSignup = async (
       expertise: data.expertise || [],
       company: data.company || '',
       position: data.position || '',
-      status: 'pending',
+      status: 'draft', // Brouillon par défaut, l'utilisateur doit compléter puis soumettre
       dateCreated: Timestamp.now(),
     };
 
@@ -59,6 +59,40 @@ export const createAlumniProfileOnSignup = async (
     console.log('✅ Profil alumni créé avec succès:', data.uid);
   } catch (error) {
     console.error('❌ Erreur lors de la création du profil alumni:', error);
+    throw error;
+  }
+};
+
+/**
+ * Soumettre un profil alumni pour validation
+ * Passe le statut de 'draft' à 'pending'
+ */
+export const submitAlumniProfileForValidation = async (uid: string): Promise<void> => {
+  try {
+    const alumniRef = doc(db, ALUMNI_COLLECTION, uid);
+    const alumniSnap = await getDoc(alumniRef);
+
+    if (!alumniSnap.exists()) {
+      throw new Error('Profil alumni introuvable');
+    }
+
+    const profile = alumniSnap.data() as AlumniProfile;
+
+    if (profile.status !== 'draft') {
+      throw new Error('Seuls les profils en brouillon peuvent être soumis');
+    }
+
+    // Mettre à jour le statut
+    await updateDoc(alumniRef, {
+      status: 'pending',
+      dateUpdated: Timestamp.now(),
+    });
+
+    console.log('✅ Profil soumis pour validation:', uid);
+
+    // TODO: Envoyer une notification à l'admin (optionnel)
+  } catch (error) {
+    console.error('❌ Erreur lors de la soumission du profil:', error);
     throw error;
   }
 };

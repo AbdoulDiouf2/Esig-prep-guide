@@ -30,7 +30,8 @@ import {
   Server,
   CalendarCheck,
   Phone,
-  CreditCard
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 
 interface AppFeature {
@@ -409,6 +410,29 @@ const ApplicationsDashboard: React.FC = () => {
           (Étudiants CPS, Alumni, administration, édition, outils et services).
         </p>
       </div>
+
+      {/* Notification profil alumni brouillon */}
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'draft' && (
+        <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-blue-800">
+                Complète ton profil alumni
+              </h3>
+              <p className="mt-1 text-sm text-blue-700">
+                Ton profil est en brouillon. Complète-le et soumets-le pour validation afin d'être visible dans l'annuaire.
+              </p>
+              <Link 
+                to="/complete-alumni-profile" 
+                className="mt-2 inline-block text-sm font-medium text-blue-800 underline hover:text-blue-900"
+              >
+                Compléter mon profil →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification profil alumni en attente */}
       {!loadingAlumni && alumniProfile && alumniProfile.status === 'pending' && (

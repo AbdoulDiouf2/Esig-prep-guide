@@ -101,6 +101,16 @@ const MyAlumniProfile: React.FC = () => {
   // Déterminer le statut et les couleurs
   const getStatusConfig = () => {
     switch (profile.status) {
+      case 'draft':
+        return {
+          icon: <AlertCircle className="w-6 h-6" />,
+          color: 'blue',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-600',
+          textColor: 'text-blue-700',
+          title: 'Profil en brouillon',
+          message: 'Votre profil n\'a pas encore été soumis. Complétez-le et soumettez-le pour validation.',
+        };
       case 'approved':
         return {
           icon: <CheckCircle className="w-6 h-6" />,
