@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin, Trash2 } from 'lucide-react';
-import { getPendingAlumniProfiles, getApprovedAlumniProfiles, getRejectedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
+import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin, Trash2, Edit, Clock } from 'lucide-react';
+import { getDraftAlumniProfiles, getPendingAlumniProfiles, getApprovedAlumniProfiles, getRejectedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AlumniProfile } from '../../types/alumni';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -14,7 +14,7 @@ const AdminAlumniValidation: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [activeTab, setActiveTab] = useState<'draft' | 'pending' | 'approved' | 'rejected' | 'all'>('pending');
   
   // États pour les modals de confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -30,16 +30,19 @@ const AdminAlumniValidation: React.FC = () => {
     setLoading(true);
     try {
       // Toujours charger tous les profils pour les compteurs
-      const [pending, approved, rejected] = await Promise.all([
+      const [draft, pending, approved, rejected] = await Promise.all([
+        getDraftAlumniProfiles(),
         getPendingAlumniProfiles(),
         getApprovedAlumniProfiles('dateCreated', 1000),
         getRejectedAlumniProfiles()
       ]);
-      const all = [...pending, ...approved, ...rejected];
+      const all = [...draft, ...pending, ...approved, ...rejected];
       setAllProfiles(all);
       
       // Filtrer selon l'onglet actif
-      if (activeTab === 'pending') {
+      if (activeTab === 'draft') {
+        setProfiles(draft);
+      } else if (activeTab === 'pending') {
         setProfiles(pending);
       } else if (activeTab === 'approved') {
         setProfiles(approved);
@@ -170,7 +173,13 @@ const AdminAlumniValidation: React.FC = () => {
         <div className="mb-6">
           <div className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
             <button
-              className={`px-4 py-2 text-sm font-medium ${activeTab === 'pending' ? 'bg-yellow-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'draft' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('draft')}
+            >
+              Brouillons ({allProfiles.filter(p => p.status === 'draft').length})
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'pending' ? 'bg-yellow-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
               onClick={() => setActiveTab('pending')}
             >
               À valider ({allProfiles.filter(p => p.status === 'pending').length})
@@ -240,10 +249,28 @@ const AdminAlumniValidation: React.FC = () => {
                         <h3 className="text-lg font-semibold text-gray-900 truncate">
                           {profile.name}
                         </h3>
+                        {profile.status === 'draft' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <Edit className="w-3 h-3 mr-1" />
+                            Brouillon
+                          </span>
+                        )}
+                        {profile.status === 'pending' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <Clock className="w-3 h-3 mr-1" />
+                            En attente
+                          </span>
+                        )}
                         {profile.status === 'approved' && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Validé
+                          </span>
+                        )}
+                        {profile.status === 'rejected' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Rejeté
                           </span>
                         )}
                       </div>
@@ -358,7 +385,15 @@ const AdminAlumniValidation: React.FC = () => {
                   )}
 
                   {/* Actions */}
-                  {selectedProfile.status === 'pending' ? (
+                  {selectedProfile.status === 'draft' ? (
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                      <Edit className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-blue-800 font-medium">Profil en brouillon</p>
+                      <p className="text-blue-600 text-sm mt-1">L'utilisateur n'a pas encore soumis ce profil pour validation</p>
+                    </div>
+                  </div>
+                  ) : selectedProfile.status === 'pending' ? (
                   <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Actions</h3>
                     

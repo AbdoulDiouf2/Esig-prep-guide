@@ -328,6 +328,38 @@ export const getApprovedAlumniProfiles = async (
 };
 
 /**
+ * Récupérer tous les profils alumni en brouillon (pour admin)
+ */
+export const getDraftAlumniProfiles = async (): Promise<AlumniProfile[]> => {
+  try {
+    const alumniRef = collection(db, ALUMNI_COLLECTION);
+    const q = query(
+      alumniRef,
+      where('status', '==', 'draft')
+    );
+
+    const querySnapshot = await getDocs(q);
+    const profiles: AlumniProfile[] = [];
+
+    querySnapshot.forEach((doc) => {
+      profiles.push(doc.data() as AlumniProfile);
+    });
+
+    // Trier côté client par date de création (plus récent en premier)
+    profiles.sort((a, b) => {
+      const dateA = a.dateCreated?.toMillis?.() || 0;
+      const dateB = b.dateCreated?.toMillis?.() || 0;
+      return dateB - dateA;
+    });
+
+    return profiles;
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des profils brouillons:', error);
+    throw error;
+  }
+};
+
+/**
  * Récupérer tous les profils alumni en attente (pour validation admin)
  */
 export const getPendingAlumniProfiles = async (): Promise<AlumniProfile[]> => {

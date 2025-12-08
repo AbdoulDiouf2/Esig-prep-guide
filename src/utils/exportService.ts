@@ -231,6 +231,7 @@ export const exportToPDF = (profiles: AlumniProfile[]): void => {
  */
 export const calculateAlumniStats = (profiles: AlumniProfile[]) => {
   const total = profiles.length;
+  const draft = profiles.filter(p => p.status === 'draft').length;
   const approved = profiles.filter(p => p.status === 'approved').length;
   const pending = profiles.filter(p => p.status === 'pending').length;
   const rejected = profiles.filter(p => p.status === 'rejected').length;
@@ -269,6 +270,7 @@ export const calculateAlumniStats = (profiles: AlumniProfile[]) => {
 
   return {
     total,
+    draft,
     approved,
     pending,
     rejected,

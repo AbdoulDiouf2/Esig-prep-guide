@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApprovedAlumniProfiles, getPendingAlumniProfiles, getRejectedAlumniProfiles } from '../../services/alumniService';
+import { getDraftAlumniProfiles, getApprovedAlumniProfiles, getPendingAlumniProfiles, getRejectedAlumniProfiles } from '../../services/alumniService';
 import { AlumniProfile } from '../../types/alumni';
 import { exportToCSV, exportToPDF, calculateAlumniStats } from '../../utils/exportService';
 import { 
@@ -20,7 +20,7 @@ import {
 const AlumniStats: React.FC = () => {
   const [profiles, setProfiles] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [filter, setFilter] = useState<'all' | 'draft' | 'approved' | 'pending' | 'rejected'>('all');
 
   useEffect(() => {
     loadProfiles();
@@ -29,12 +29,13 @@ const AlumniStats: React.FC = () => {
   const loadProfiles = async () => {
     try {
       setLoading(true);
-      const [approved, pending, rejected] = await Promise.all([
+      const [draft, approved, pending, rejected] = await Promise.all([
+        getDraftAlumniProfiles(),
         getApprovedAlumniProfiles('dateCreated', 1000),
         getPendingAlumniProfiles(),
         getRejectedAlumniProfiles()
       ]);
-      setProfiles([...approved, ...pending, ...rejected]);
+      setProfiles([...draft, ...approved, ...pending, ...rejected]);
     } catch (error) {
       console.error('Erreur lors du chargement des profils:', error);
     } finally {
@@ -126,6 +127,16 @@ const AlumniStats: React.FC = () => {
                   }`}
                 >
                   Tous ({totalStats.total})
+                </button>
+                <button
+                  onClick={() => setFilter('draft')}
+                  className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium ${
+                    filter === 'draft'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Brouillons ({totalStats.draft || 0})
                 </button>
                 <button
                   onClick={() => setFilter('approved')}
