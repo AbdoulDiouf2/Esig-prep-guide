@@ -30,8 +30,9 @@ interface AcademicResource {
   title: string;
   description: string;
   type: 'cours' | 'td' | 'tp' | 'exam' | 'project' | 'all';
-  year: 1 | 2 | 3;
-  semester: 5 | 6 | 7 | 8 | 9 | 10;
+  year: -1 | 0 | 1 | 2 | 3; // -1 = Prépa 2ème année, 0 = Prépa 1ère année, 1-3 = ESIGELEC
+  semesters: number[]; // Plusieurs semestres possibles (S1-S4 = Prépa, S5-S10 = ESIGELEC)
+  semester?: number; // Pour rétrocompatibilité avec anciennes données
   subject: string;
   parcours?: string; // Pour S7
   specialisation?: string; // Pour S8 et 3ème année
@@ -47,8 +48,8 @@ interface ResourceFormData {
   title: string;
   description: string;
   type: 'cours' | 'td' | 'tp' | 'exam' | 'project' | 'all';
-  year: 1 | 2 | 3;
-  semester: 5 | 6 | 7 | 8 | 9 | 10;
+  year: -1 | 0 | 1 | 2 | 3; // -1 = Prépa 2ème année, 0 = Prépa 1ère année, 1-3 = ESIGELEC
+  semesters: number[]; // Plusieurs semestres possibles
   subject: string;
   parcours?: string;
   specialisation?: string;
@@ -83,8 +84,8 @@ const AcademicResources: React.FC = () => {
     title: '',
     description: '',
     type: 'all',
-    year: 1,
-    semester: 5,
+    year: 0,
+    semesters: [1, 2], // Par défaut, tous les semestres de la prépa 1ère année
     subject: '',
     parcours: '',
     specialisation: '',
@@ -111,16 +112,18 @@ const AcademicResources: React.FC = () => {
   // Fonction pour obtenir les semestres disponibles selon l'année
   const getAvailableSemesters = (year: number) => {
     switch (year) {
-      case 1: return [5, 6]; // 1ère année: S5, S6 (tronc commun)
-      case 2: return [7, 8]; // 2ème année: S7 (parcours), S8 (spécialisation)
-      case 3: return [9, 10]; // 3ème année: S9, S10 (spécialisation)
-      default: return [5, 6, 7, 8, 9, 10];
+      case -1: return [3, 4]; // Prépa 2ème année: S3, S4
+      case 0: return [1, 2]; // Prépa 1ère année: S1, S2
+      case 1: return [5, 6]; // ESIGELEC 1ère année: S5, S6 (tronc commun)
+      case 2: return [7, 8]; // ESIGELEC 2ème année: S7 (parcours), S8 (spécialisation)
+      case 3: return [9, 10]; // ESIGELEC 3ème année: S9, S10 (spécialisation)
+      default: return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     }
   };
 
   // Fonction pour déterminer si on doit afficher les champs parcours/spécialisation
-  const shouldShowParcours = () => formData.year === 2 && formData.semester === 7;
-  const shouldShowSpecialisation = () => (formData.year === 2 && formData.semester === 8) || formData.year === 3;
+  const shouldShowParcours = () => formData.year === 2 && formData.semesters.includes(7);
+  const shouldShowSpecialisation = () => (formData.year === 2 && formData.semesters.includes(8)) || formData.year === 3;
   const shouldShowDepartement = () => shouldShowSpecialisation();
 
   // Charger les ressources depuis Firestore
@@ -161,7 +164,10 @@ const AcademicResources: React.FC = () => {
     
     const matchesYear = selectedYear === 'all' || resource.year === selectedYear;
     const matchesType = selectedType === 'all' || resource.type === selectedType;
-    const matchesSemester = selectedSemester === 'all' || resource.semester === selectedSemester;
+    // Vérifier si le semestre sélectionné est dans la liste des semestres de la ressource
+    const matchesSemester = selectedSemester === 'all' || 
+                           (resource.semesters && resource.semesters.includes(selectedSemester)) ||
+                           (resource.semester && resource.semester === selectedSemester); // Rétrocompatibilité
     const matchesParcours = selectedParcours === 'all' || resource.parcours === selectedParcours;
     const matchesSpecialisation = selectedSpecialisation === 'all' || resource.specialisation === selectedSpecialisation;
     const matchesDepartement = selectedDepartement === 'all' || resource.departement === selectedDepartement;
@@ -225,8 +231,8 @@ const AcademicResources: React.FC = () => {
         title: '',
         description: '',
         type: 'all',
-        year: 1,
-        semester: 5,
+        year: 0,
+        semesters: [1, 2],
         subject: '',
         parcours: '',
         specialisation: '',
@@ -308,12 +314,22 @@ const AcademicResources: React.FC = () => {
       linksToEdit = [{ id: '1', title: 'Lien principal', url: '' }];
     }
     
+    // Gérer la rétrocompatibilité avec l'ancien champ semester
+    let semestersToEdit: number[] = [];
+    if (resource.semesters && resource.semesters.length > 0) {
+      semestersToEdit = resource.semesters;
+    } else if (resource.semester) {
+      semestersToEdit = [resource.semester];
+    } else {
+      semestersToEdit = getAvailableSemesters(resource.year);
+    }
+    
     setFormData({
       title: resource.title,
       description: resource.description,
       type: resource.type,
       year: resource.year,
-      semester: resource.semester,
+      semesters: semestersToEdit,
       subject: resource.subject,
       parcours: resource.parcours || '',
       specialisation: resource.specialisation || '',
@@ -362,32 +378,41 @@ const AcademicResources: React.FC = () => {
 
   // Gérer les changements d'année pour mettre à jour les semestres disponibles
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newYear = parseInt(e.target.value) as 1 | 2 | 3;
+    const newYear = parseInt(e.target.value) as -1 | 0 | 1 | 2 | 3;
     const availableSemesters = getAvailableSemesters(newYear);
     
     setFormData(prev => ({
       ...prev,
       year: newYear,
-      semester: availableSemesters[0] as 5 | 6 | 7 | 8 | 9 | 10,
+      semesters: availableSemesters, // Sélectionner tous les semestres disponibles par défaut
       // Réinitialiser les champs spécifiques selon l'année
-      parcours: newYear === 2 && prev.semester === 7 ? prev.parcours : '',
-      specialisation: (newYear === 2 && prev.semester === 8) || newYear === 3 ? prev.specialisation : '',
-      departement: (newYear === 2 && prev.semester === 8) || newYear === 3 ? prev.departement : undefined
+      parcours: newYear === 2 && prev.semesters.includes(7) ? prev.parcours : '',
+      specialisation: (newYear === 2 && prev.semesters.includes(8)) || newYear === 3 ? prev.specialisation : '',
+      departement: (newYear === 2 && prev.semesters.includes(8)) || newYear === 3 ? prev.departement : undefined
     }));
   };
 
-  // Gérer les changements de semestre
-  const handleSemesterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSemester = parseInt(e.target.value) as 5 | 6 | 7 | 8 | 9 | 10;
-    
-    setFormData(prev => ({
-      ...prev,
-      semester: newSemester,
-      // Réinitialiser les champs selon le semestre
-      parcours: newSemester === 7 ? prev.parcours : '',
-      specialisation: newSemester === 8 || newSemester >= 9 ? prev.specialisation : '',
-      departement: newSemester === 8 || newSemester >= 9 ? prev.departement : undefined
-    }));
+  // Gérer les changements de semestres (sélection multiple)
+  const handleSemesterToggle = (semester: number) => {
+    setFormData(prev => {
+      const newSemesters = prev.semesters.includes(semester)
+        ? prev.semesters.filter(s => s !== semester) // Retirer si déjà sélectionné
+        : [...prev.semesters, semester].sort((a, b) => a - b); // Ajouter et trier
+      
+      // Empêcher de désélectionner tous les semestres
+      if (newSemesters.length === 0) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        semesters: newSemesters,
+        // Réinitialiser les champs selon les semestres sélectionnés
+        parcours: newSemesters.includes(7) ? prev.parcours : '',
+        specialisation: newSemesters.includes(8) || newSemesters.some(s => s >= 9) ? prev.specialisation : '',
+        departement: newSemesters.includes(8) || newSemesters.some(s => s >= 9) ? prev.departement : undefined
+      };
+    });
   };
 
   // Gérer les changements de département
@@ -474,8 +499,8 @@ const AcademicResources: React.FC = () => {
                   title: '',
                   description: '',
                   type: 'all' as const,
-                  year: 1,
-                  semester: 5,
+                  year: 0,
+                  semesters: [1, 2],
                   subject: '',
                   parcours: '',
                   specialisation: '',
@@ -520,9 +545,11 @@ const AcademicResources: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Toutes les années</option>
-              <option value={1}>1ère année</option>
-              <option value={2}>2ème année</option>
-              <option value={3}>3ème année</option>
+              <option value={0}>Prépa 1ère année</option>
+              <option value={-1}>Prépa 2ème année</option>
+              <option value={1}>ESIGELEC 1ère année</option>
+              <option value={2}>ESIGELEC 2ème année</option>
+              <option value={3}>ESIGELEC 3ème année</option>
             </select>
           </div>
           
@@ -550,12 +577,16 @@ const AcademicResources: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tous les semestres</option>
-              <option value={5}>S5</option>
-              <option value={6}>S6</option>
-              <option value={7}>S7</option>
-              <option value={8}>S8</option>
-              <option value={9}>S9</option>
-              <option value={10}>S10</option>
+              <option value={1}>S1 (Prépa 1ère)</option>
+              <option value={2}>S2 (Prépa 1ère)</option>
+              <option value={3}>S3 (Prépa 2ème)</option>
+              <option value={4}>S4 (Prépa 2ème)</option>
+              <option value={5}>S5 (ESIGELEC 1ère)</option>
+              <option value={6}>S6 (ESIGELEC 1ère)</option>
+              <option value={7}>S7 (ESIGELEC 2ème)</option>
+              <option value={8}>S8 (ESIGELEC 2ème)</option>
+              <option value={9}>S9 (ESIGELEC 3ème)</option>
+              <option value={10}>S10 (ESIGELEC 3ème)</option>
             </select>
           </div>
           
@@ -657,34 +688,43 @@ const AcademicResources: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Année *</label>
-                  <select
-                    value={formData.year}
-                    onChange={handleYearChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={1}>1ère année</option>
-                    <option value={2}>2ème année</option>
-                    <option value={3}>3ème année</option>
-                  </select>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Année *</label>
+                <select
+                  value={formData.year}
+                  onChange={handleYearChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={0}>Prépa 1ère année</option>
+                  <option value={-1}>Prépa 2ème année</option>
+                  <option value={1}>ESIGELEC 1ère année</option>
+                  <option value={2}>ESIGELEC 2ème année</option>
+                  <option value={3}>ESIGELEC 3ème année</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Semestres concernés *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {getAvailableSemesters(formData.year).map(semester => (
+                    <label 
+                      key={semester} 
+                      className="flex items-center space-x-2 p-2 border border-gray-300 rounded-md hover:bg-blue-50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.semesters.includes(semester)}
+                        onChange={() => handleSemesterToggle(semester)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">S{semester}</span>
+                    </label>
+                  ))}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Semestre *</label>
-                  <select
-                    value={formData.semester}
-                    onChange={handleSemesterChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {getAvailableSemesters(formData.year).map(semester => (
-                      <option key={semester} value={semester}>S{semester}</option>
-                    ))}
-                  </select>
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Sélectionnez un ou plusieurs semestres (ex: S1 et S2 pour toute l'année)
+                </p>
               </div>
               
               {/* Champs spécifiques selon l'année et le semestre */}
@@ -838,14 +878,35 @@ const AcademicResources: React.FC = () => {
             </p>
           </div>
         ) : (
-          [1, 2, 3].map(year => {
+          [0, -1, 1, 2, 3].map(year => {
             if (!resourcesByYear[year] || resourcesByYear[year].length === 0) return null;
+            
+            // Définir le titre et la couleur selon l'année
+            let yearTitle = '';
+            let gradientClass = '';
+            
+            if (year === 0) {
+              yearTitle = 'Prépa 1ère année';
+              gradientClass = 'bg-gradient-to-r from-green-600 to-green-700';
+            } else if (year === -1) {
+              yearTitle = 'Prépa 2ème année';
+              gradientClass = 'bg-gradient-to-r from-green-700 to-green-800';
+            } else if (year === 1) {
+              yearTitle = 'ESIGELEC 1ère année (Tronc commun)';
+              gradientClass = 'bg-gradient-to-r from-blue-600 to-blue-700';
+            } else if (year === 2) {
+              yearTitle = 'ESIGELEC 2ème année (Parcours & Spécialisations)';
+              gradientClass = 'bg-gradient-to-r from-blue-700 to-blue-800';
+            } else if (year === 3) {
+              yearTitle = 'ESIGELEC 3ème année (Spécialisations)';
+              gradientClass = 'bg-gradient-to-r from-blue-800 to-blue-900';
+            }
             
             return (
               <div key={year} className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
+                <div className={`${gradientClass} text-white px-6 py-4`}>
                   <h2 className="text-xl font-bold">
-                    {year === 1 ? '1ère année (Tronc commun)' : year === 2 ? '2ème année (Parcours & Spécialisations)' : '3ème année (Spécialisations)'}
+                    {yearTitle}
                   </h2>
                   <p className="text-blue-100">
                     {resourcesByYear[year].length} ressource{resourcesByYear[year].length > 1 ? 's' : ''} disponible{resourcesByYear[year].length > 1 ? 's' : ''}
@@ -892,7 +953,12 @@ const AcademicResources: React.FC = () => {
                         {/* Affichage des informations spécifiques */}
                         <div className="space-y-1 mb-3">
                           <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>S{resource.semester}</span>
+                            <span>
+                              {resource.semesters && resource.semesters.length > 0 
+                                ? resource.semesters.map(s => `S${s}`).join(', ')
+                                : resource.semester ? `S${resource.semester}` : 'N/A'
+                              }
+                            </span>
                             <span>Mis à jour le {resource.updatedAt?.toLocaleDateString('fr-FR')}</span>
                           </div>
                           {resource.parcours && (

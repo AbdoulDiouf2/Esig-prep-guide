@@ -460,6 +460,7 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
         - Notification jaune pour profil en attente
         - Notification verte pour profil approuvé
         - Notification rouge pour profil rejeté
+        - ✅ Notification bleue pour profil en brouillon (draft)
     - [x] **Copy & Promesse (UX/Messaging)**
       - [x] ⭐ Ajouter phrase d'accroche dans `AlumniDirectory.tsx` (en haut)
         - "Trouve en 2 clics des alumni par secteur, pays, promo ou type d'aide (je cherche / je propose)"
@@ -473,15 +474,75 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - [x] `src/components/alumni/ContactRequestForm.tsx`
       - [x] `src/utils/profileCompletion.ts`
     - [x] **Fichiers modifiés** :
-      - [x] `src/components/alumni/AlumniProfileForm.tsx` (ajout seeking/offering)
-      - [x] `src/pages/CompleteAlumniProfile.tsx` (indicateur de complétion)
-      - [x] `src/services/alumniService.ts` (fonction sendContactRequest)
+      - [x] `src/components/alumni/AlumniProfileForm.tsx` (ajout seeking/offering + bouton annuler)
+      - [x] `src/pages/CompleteAlumniProfile.tsx` (indicateur de complétion + bouton soumission)
+      - [x] `src/services/alumniService.ts` (fonction sendContactRequest + submitAlumniProfileForValidation)
       - [x] `src/pages/AlumniDirectory.tsx` (copy + NewProfilesHighlight)
       - [x] `src/pages/AlumniDetail.tsx` (intégration ContactRequestForm + seeking/offering)
-      - [x] `src/pages/ApplicationsDashboard.tsx` (copy + notifications)
-  - [ ] **Intégration au Centre d'Applications**
-    - [ ] Ajouter carte "Annuaire Alumni" dans `ApplicationsDashboard.tsx`
-    - [ ] Route `/alumni` pointant vers `AlumniDirectory.tsx`
+      - [x] `src/pages/ApplicationsDashboard.tsx` (copy + notifications draft/pending/approved/rejected)
+      - [x] `src/pages/MyAlumniProfile.tsx` (gestion statut draft avec message et icône)
+      - [x] `src/types/alumni.ts` (ajout statut 'draft')
+      - [x] `firebase.rules` (autorisation suppression profil + transition draft→pending)
+  - [x] **Phase 1.7 : Système de Statut Draft (Workflow amélioré)**
+    - [x] **Backend & Types**
+      - [x] Ajouter statut 'draft' au type `AlumniProfileStatus`
+        - Statuts : 'draft' | 'pending' | 'approved' | 'rejected'
+      - [x] Modifier création de profil pour statut initial 'draft'
+        - Fonction `createAlumniProfileOnSignup` dans `alumniService.ts`
+      - [x] Créer fonction `submitAlumniProfileForValidation(uid)`
+        - Change statut de 'draft' à 'pending'
+        - Envoie email de confirmation à l'utilisateur
+      - [x] Créer fonction `getDraftAlumniProfiles()` pour admin
+        - Récupération des profils en brouillon
+    - [x] **Interface Utilisateur**
+      - [x] Modifier `CompleteAlumniProfile.tsx`
+        - Bouton "Enregistrer les modifications" (sauvegarde sans soumettre)
+        - Bouton "Soumettre pour validation" (visible si draft + complétion ≥ 30%)
+        - Messages de succès différenciés
+        - Bouton "Annuler" pour retour à la page profil
+      - [x] Modifier `MyAlumniProfile.tsx`
+        - Ajout cas 'draft' dans `getStatusConfig()`
+        - Badge bleu avec icône Edit
+        - Message : "Profil en brouillon - Non soumis"
+      - [x] Modifier `ApplicationsDashboard.tsx`
+        - Notification bleue pour profils en brouillon
+        - Lien vers complétion de profil
+    - [x] **Administration**
+      - [x] Modifier `AdminAlumniValidation.tsx`
+        - Ajout onglet "Brouillons" (bleu)
+        - Badges de statut pour chaque profil (draft/pending/approved/rejected)
+        - Panneau de détail adapté par statut
+        - Message informatif pour profils draft
+      - [x] Modifier `AlumniStats.tsx`
+        - Ajout filtre "Brouillons"
+        - Compteur de profils draft
+        - Chargement des profils draft
+      - [x] Modifier `exportService.ts`
+        - Ajout compteur 'draft' dans `calculateAlumniStats`
+    - [x] **Sécurité Firebase**
+      - [x] Règles Firestore mises à jour
+        - Création de profil avec statut 'draft' uniquement
+        - Autorisation transition draft → pending par le propriétaire
+        - Autorisation suppression de profil par le propriétaire
+        - Admin peut tout modifier/supprimer
+    - [x] **Fichiers modifiés** :
+      - [x] `src/types/alumni.ts`
+      - [x] `src/services/alumniService.ts`
+      - [x] `src/pages/CompleteAlumniProfile.tsx`
+      - [x] `src/components/alumni/AlumniProfileForm.tsx`
+      - [x] `src/pages/MyAlumniProfile.tsx`
+      - [x] `src/pages/ApplicationsDashboard.tsx`
+      - [x] `src/pages/admin/AdminAlumniValidation.tsx`
+      - [x] `src/pages/admin/AlumniStats.tsx`
+      - [x] `src/utils/exportService.ts`
+      - [x] `firebase.rules`
+  - [x] **Intégration au Centre d'Applications**
+    - [x] Ajouter carte "Annuaire Alumni" dans `ApplicationsDashboard.tsx`
+      - Icône Users (violet)
+      - Description : "Connecte-toi avec des alumni : trouve des collaborateurs, des mentors, des opportunités"
+      - Accessible à tous les rôles (admin, editor, user)
+    - [x] Route `/alumni` pointant vers `AlumniDirectory.tsx`
+      - Route fonctionnelle et accessible
 
 - **Module opportunités business & emploi**
   - [ ] Espace pour offres d’emploi et partenariats B2B
