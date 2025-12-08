@@ -48,17 +48,15 @@ const Header: React.FC = () => {
           : 'bg-gradient-to-r from-blue-900 to-blue-800'
       }`}
     >
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex justify-between items-center space-x-6">
+      <div className="container mx-auto px-2 sm:px-4 py-3">
+        <div className="flex justify-between items-center gap-2 md:gap-4 lg:gap-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <div className="flex items-center space-x-2">
-              <img 
-                src={isScrolled ? "/cps-connect-alumni-fond-blanc.png" : "/cps-connect-alumni-fond-bleu.png"}
-                alt="CPS Connect Alumni Logo" 
-                className="h-12 w-auto transition-opacity duration-300"
-              />
-            </div>
+          <Link to="/" className="flex items-center flex-shrink-0 min-w-0">
+            <img 
+              src={isScrolled ? "/cps-connect-alumni-fond-blanc.png" : "/cps-connect-alumni-fond-bleu.png"}
+              alt="CPS Connect Alumni Logo" 
+              className="h-8 sm:h-10 md:h-12 w-auto object-contain transition-opacity duration-300"
+            />
           </Link>
           {/* ESIGELEC Prep Guide 
             <Link to="/" className="flex items-center">
@@ -75,60 +73,53 @@ const Header: React.FC = () => {
           */}
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center md:space-x-4 lg:space-x-8">
+          <nav className="hidden xl:flex items-center space-x-6 flex-1 justify-center">
             {currentUser && (
               <>
-                <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/applications" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Home className="w-4 h-4 mr-1" />
                   <span>Accueil</span>
                 </Link>
-                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Grid className="w-4 h-4 mr-1" />                  
-                  <span className="md:hidden lg:inline">CPS</span>
-                  <span className="md:inline lg:hidden">CPS</span>
+                  <span>CPS</span>
                 </Link>
-                {/* <Link to="/resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
-                  isScrolled ? 'text-blue-800' : 'text-white'
-                }`}>
-                  <FileText className="w-4 h-4 mr-1" />
-                  <span>Ressources</span>
-                </Link> */}
-                <Link to="/all-resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/all-resources" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <FileText className="w-4 h-4 mr-1" />
                   <span>Ressources</span>
                 </Link>
-                <Link to="/faq" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/faq" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <MessageSquare className="w-4 h-4 mr-1" />
                   <span>FAQ</span>
                 </Link>
-                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Book className="w-4 h-4 mr-1" />
                   <span>Tutoriel</span>
                 </Link>
-                <Link to="/help" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/help" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <HelpCircle className="w-4 h-4 mr-1" />
                   <span>Aide</span>
                 </Link>
-                <Link to="/alumni" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                <Link to="/alumni" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Users className="w-4 h-4 mr-1" />
                   <span>Annuaire</span>
                 </Link>
                 <SuperAdminCheck>
-                  <Link to="/chat-ai" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-sm lg:text-base ${
+                  <Link to="/chat-ai" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}>
                     <Bot className="w-4 h-4 mr-1" />
@@ -137,7 +128,7 @@ const Header: React.FC = () => {
                 </SuperAdminCheck>
                 
                 {isAdmin() && (
-                  <Link to="/admin" className={`flex items-center text-white bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm ${
+                  <Link to="/admin" className={`flex items-center text-white bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
                     location.pathname.startsWith('/admin') ? 'bg-blue-600' : ''
                   }`}>
                     <Shield className="w-4 h-4 mr-1" />
@@ -147,7 +138,7 @@ const Header: React.FC = () => {
 
                 {/* Bouton Édition pour les éditeurs dans le header principal */}
                 {isEditor() && !isAdmin() && (
-                  <Link to="/editor" className={`flex items-center text-white bg-green-700 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm ${
+                  <Link to="/editor" className={`flex items-center text-white bg-green-700 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
                     location.pathname.startsWith('/editor') ? 'bg-green-600' : ''
                   }`}>
                     <Edit className="w-4 h-4 mr-1" />
@@ -159,7 +150,7 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Auth Section */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden xl:flex items-center flex-shrink-0">
             {currentUser ? (
               <div className="relative">
                 <button
@@ -243,7 +234,7 @@ const Header: React.FC = () => {
 
           {/* Mobile menu button */}
           <button 
-            className="md:hidden"
+            className="xl:hidden flex-shrink-0"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? (
@@ -256,7 +247,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-gradient-to-r from-blue-900 to-blue-800 shadow-lg pb-4">
+          <div className="xl:hidden absolute top-full left-0 right-0 bg-gradient-to-r from-blue-900 to-blue-800 shadow-lg pb-4">
             <div className="container mx-auto px-4 py-2">
               {currentUser ? (
                 <>

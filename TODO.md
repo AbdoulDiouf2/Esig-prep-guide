@@ -544,17 +544,735 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
     - [x] Route `/alumni` pointant vers `AlumniDirectory.tsx`
       - Route fonctionnelle et accessible
 
-- **Module opportunités business & emploi**
-  - [ ] Espace pour offres d’emploi et partenariats B2B
-  - [ ] Système de candidatures directes (étudiant ↔ offre)
-  - [ ] Suivi des candidatures (statut, historique)
-  - [ ] Mécanisme de cooptation / recommandation interne
+---
+
+## PHASE 2 : OPPORTUNITÉS BUSINESS & EMPLOI 💼
+
+**📄 Documentation complète** : `docs/PHASE2_OPPORTUNITES.md`
+
+### Phase 2.0 : Vision & Objectifs
+
+**Problématique**
+- Les étudiants CPS et alumni cherchent des opportunités (stages, emplois, missions)
+- Les alumni entrepreneurs ont des besoins en recrutement/collaboration
+- Manque de visibilité sur les opportunités au sein de la communauté ESIG
+- Processus de candidature dispersé (LinkedIn, emails, bouche-à-oreille)
+
+**Solution**
+Plateforme centralisée d'opportunités où alumni/entreprises publient des offres (emploi, stage, mission, partenariat), étudiants/alumni candidatent directement, système de cooptation pour recommander des candidats, et suivi transparent des candidatures.
+
+---
+
+### Phase 2.1 : Structure de Données
+
+#### 1️⃣ JobOpportunity (Collection Firestore)
+- [ ] Créer interface TypeScript `JobOpportunity` dans `src/types/opportunities.ts`
+  - [ ] Identifiants : id, createdBy, createdByName, createdByEmail
+  - [ ] Informations de base : title, company, companyLogo
+  - [ ] Type : 'emploi' | 'stage' | 'alternance' | 'mission' | 'partenariat' | 'freelance'
+  - [ ] Description : description, responsibilities[], requirements[], niceToHave[]
+  - [ ] Localisation : location { city, country, remote, hybrid }
+  - [ ] Contrat : contractType, duration, startDate
+  - [ ] Rémunération : salary { min, max, currency, period, negotiable }
+  - [ ] Compétences : skills[], sectors[]
+  - [ ] Niveau : experienceLevel, educationLevel
+  - [ ] Candidatures : applicationsCount, maxApplications
+  - [ ] Statut : status ('draft' | 'active' | 'closed' | 'filled')
+  - [ ] Visibilité : visibility ('public' | 'alumni-only' | 'students-only')
+  - [ ] Métadonnées : dateCreated, dateUpdated, dateExpiration, featured
+  - [ ] Contact : contactEmail, contactPhone, applicationUrl
+  - [ ] Cooptation : cooptationBonus { amount, currency, description }
+  - [ ] Analytics : views, clicks
+
+#### 2️⃣ JobApplication (Collection Firestore)
+- [ ] Créer interface TypeScript `JobApplication` dans `src/types/opportunities.ts`
+  - [ ] Identifiants : id, jobId, applicantId
+  - [ ] Informations candidat : applicantName, applicantEmail, applicantPhone, applicantPhoto
+  - [ ] Profil : currentPosition, currentCompany, yearPromo
+  - [ ] Candidature : coverLetter, resume, portfolio, linkedin, github
+  - [ ] Questions : customAnswers[] { question, answer }
+  - [ ] Cooptation : referredBy, referredByName, referralNote
+  - [ ] Statut : status ('pending' | 'reviewed' | 'shortlisted' | 'interview' | 'rejected' | 'accepted')
+  - [ ] Communication : recruiterNotes, feedback
+  - [ ] Métadonnées : dateApplied, dateUpdated, dateReviewed, reviewedBy
+  - [ ] Historique : statusHistory[] { status, date, note }
+
+#### 3️⃣ JobAlert (Collection Firestore)
+- [ ] Créer interface TypeScript `JobAlert` dans `src/types/opportunities.ts`
+  - [ ] Identifiants : id, userId
+  - [ ] Critères : keywords[], types[], sectors[], skills[], locations[], remote
+  - [ ] Préférences : minSalary, experienceLevel[]
+  - [ ] Notifications : frequency ('instant' | 'daily' | 'weekly'), lastSent, active
+  - [ ] Métadonnées : dateCreated
+
+---
+
+### Phase 2.2 : Interfaces Utilisateur
+
+#### 1️⃣ Page Opportunités (`/opportunities`)
+- [ ] Créer composant `src/pages/opportunities/OpportunitiesPage.tsx`
+  - [ ] **Header**
+    - [ ] Titre "Opportunités Business & Emploi"
+    - [ ] Bouton "Créer une offre" (visible pour alumni/admin)
+    - [ ] Barre de recherche globale
+  - [ ] **Sidebar de filtres**
+    - [ ] Type d'opportunité (checkboxes : emploi, stage, alternance, mission, partenariat, freelance)
+    - [ ] Secteur (multi-select avec tags)
+    - [ ] Localisation (search input + checkboxes télétravail/hybride)
+    - [ ] Niveau d'expérience (checkboxes : débutant, junior, intermédiaire, senior, expert)
+    - [ ] Compétences (tags search avec autocomplete)
+    - [ ] Salaire minimum (input number)
+    - [ ] Bouton "Réinitialiser les filtres"
+  - [ ] **Liste des offres**
+    - [ ] Cards avec : logo entreprise, titre, entreprise, localisation, type contrat, salaire
+    - [ ] Tags compétences (max 5 visibles)
+    - [ ] Métadonnées : date publication, nombre de vues
+    - [ ] Bouton "Voir détails"
+    - [ ] Badge "🆕" si offre < 7 jours
+    - [ ] Badge "💎" si bonus cooptation
+  - [ ] **Pagination**
+    - [ ] 20 offres par page
+    - [ ] Boutons Précédent/Suivant
+    - [ ] Indicateur "Page X sur Y"
+  - [ ] **Tri**
+    - [ ] Dropdown : Plus récent, Salaire croissant, Salaire décroissant, Pertinence
+
+#### 2️⃣ Page Détails Offre (`/opportunities/:id`)
+- [ ] Créer composant `src/pages/opportunities/OpportunityDetails.tsx`
+  - [ ] **Header**
+    - [ ] Logo entreprise (grande taille)
+    - [ ] Titre du poste (h1)
+    - [ ] Entreprise + localisation (ville, pays)
+    - [ ] Type de contrat + salaire
+    - [ ] Publié par : Nom alumni (Promo XXXX)
+    - [ ] Stats : Date publication, vues, nombre de candidatures
+    - [ ] **Boutons d'action**
+      - [ ] "Postuler maintenant" (bouton principal)
+      - [ ] "💾 Sauvegarder" (bouton secondaire)
+      - [ ] "📤 Partager" (dropdown : LinkedIn, Twitter, Copier lien)
+  - [ ] **Sections de contenu**
+    - [ ] 📋 Description complète (rich text)
+    - [ ] 🎯 Responsabilités (liste à puces)
+    - [ ] ✅ Compétences requises (liste à puces)
+    - [ ] 🌟 Nice to have (liste à puces)
+    - [ ] 💼 Compétences techniques (tags colorés)
+    - [ ] 📍 Localisation détaillée (ville, pays, remote/hybride)
+    - [ ] 💰 Rémunération (fourchette + négociable)
+    - [ ] 💎 Bonus cooptation (si applicable, encadré mis en avant)
+    - [ ] 📧 Contact (email, téléphone)
+  - [ ] **Bouton "Recommander quelqu'un"** (si bonus cooptation)
+    - [ ] Ouvre modal de cooptation
+
+#### 3️⃣ Formulaire de Candidature (Modal)
+- [ ] Créer composant `src/components/opportunities/ApplicationModal.tsx`
+  - [ ] **Informations personnelles** (pré-remplies depuis profil)
+    - [ ] Nom (disabled)
+    - [ ] Email (disabled)
+    - [ ] Téléphone (input)
+  - [ ] **Profil professionnel**
+    - [ ] Poste actuel (input)
+    - [ ] Entreprise actuelle (input)
+  - [ ] **Documents**
+    - [ ] Upload CV (drag & drop, PDF max 5MB)
+    - [ ] Portfolio URL (input)
+    - [ ] LinkedIn URL (input)
+    - [ ] GitHub URL (input)
+  - [ ] **Lettre de motivation**
+    - [ ] Textarea (min 100 caractères)
+    - [ ] Compteur de caractères
+  - [ ] **Cooptation** (optionnel)
+    - [ ] Recherche alumni recommandeur (autocomplete)
+    - [ ] Affichage alumni sélectionné
+  - [ ] **Boutons**
+    - [ ] "Annuler" (ferme modal)
+    - [ ] "Envoyer ma candidature" (bouton principal)
+  - [ ] **Validation**
+    - [ ] Vérification tous les champs requis
+    - [ ] Validation format email/URL
+    - [ ] Vérification taille fichier CV
+  - [ ] **Actions**
+    - [ ] Upload CV vers Firebase Storage (`cvs/{jobId}/{applicantId}/`)
+    - [ ] Création document JobApplication dans Firestore
+    - [ ] Envoi notification email au recruteur
+    - [ ] Message de succès + redirection vers `/my-applications`
+
+#### 4️⃣ Mes Candidatures (`/my-applications`)
+- [ ] Créer composant `src/pages/opportunities/MyApplications.tsx`
+  - [ ] **Header**
+    - [ ] Titre "Mes Candidatures"
+    - [ ] Compteurs globaux (Total, En attente, En cours, Refusées, Acceptées)
+  - [ ] **Onglets de filtrage**
+    - [ ] Toutes (badge avec nombre)
+    - [ ] En attente (badge avec nombre)
+    - [ ] En cours (badge avec nombre)
+    - [ ] Refusées (badge avec nombre)
+    - [ ] Acceptées (badge avec nombre)
+  - [ ] **Liste des candidatures** (cards)
+    - [ ] Titre offre + entreprise
+    - [ ] Badge statut (coloré selon statut)
+    - [ ] Date candidature
+    - [ ] Dernière mise à jour
+    - [ ] **Boutons d'action**
+      - [ ] "Voir détails de l'offre"
+      - [ ] "Retirer ma candidature" (si pending/reviewed)
+    - [ ] **Timeline historique** (expandable)
+      - [ ] Liste des changements de statut avec dates
+      - [ ] Notes du recruteur (si disponibles)
+    - [ ] **Feedback recruteur** (si disponible)
+      - [ ] Affichage du message de feedback
+  - [ ] **État vide**
+    - [ ] Message "Aucune candidature pour le moment"
+    - [ ] Bouton "Découvrir les opportunités"
+
+#### 5️⃣ Créer une Offre (`/opportunities/create`)
+- [ ] Créer composant `src/pages/opportunities/CreateOpportunity.tsx`
+  - [ ] **Formulaire multi-étapes (4 étapes)**
+  - [ ] **Indicateur de progression**
+    - [ ] Stepper visuel (1/4, 2/4, 3/4, 4/4)
+    - [ ] Titres des étapes cliquables (si étape déjà validée)
+  
+  - [ ] **Étape 1/4 : Informations de base**
+    - [ ] Type d'opportunité (radio buttons avec icônes)
+      - [ ] Emploi (CDI/CDD)
+      - [ ] Stage
+      - [ ] Alternance
+      - [ ] Mission/Freelance
+      - [ ] Partenariat B2B
+    - [ ] Titre du poste (input, requis)
+    - [ ] Entreprise (input, requis)
+    - [ ] Upload logo entreprise (drag & drop, PNG/JPG max 2MB)
+    - [ ] Bouton "Suivant" (validation avant passage)
+  
+  - [ ] **Étape 2/4 : Description & Exigences**
+    - [ ] Description du poste (rich text editor, requis)
+    - [ ] Responsabilités (liste dynamique)
+      - [ ] Input + bouton "Ajouter"
+      - [ ] Liste avec bouton supprimer par item
+      - [ ] Minimum 2 responsabilités
+    - [ ] Compétences requises (liste dynamique)
+      - [ ] Input + bouton "Ajouter"
+      - [ ] Liste avec bouton supprimer par item
+      - [ ] Minimum 2 compétences
+    - [ ] Nice to have (liste dynamique, optionnel)
+      - [ ] Input + bouton "Ajouter"
+      - [ ] Liste avec bouton supprimer par item
+    - [ ] Boutons "Précédent" | "Suivant"
+  
+  - [ ] **Étape 3/4 : Détails pratiques**
+    - [ ] **Localisation**
+      - [ ] Ville (input, requis)
+      - [ ] Pays (select, requis)
+      - [ ] ☐ Télétravail possible (checkbox)
+      - [ ] ☐ Hybride (checkbox)
+    - [ ] Type de contrat (select : CDI, CDD, Stage, Alternance, Freelance, Autre)
+    - [ ] Durée (input, visible si CDD/Stage/Alternance)
+    - [ ] Date de début souhaitée (date picker)
+    - [ ] **Rémunération**
+      - [ ] Salaire minimum (input number)
+      - [ ] Salaire maximum (input number)
+      - [ ] Devise (select : EUR, USD, GBP, etc.)
+      - [ ] Période (select : annuel, mensuel, horaire, mission)
+      - [ ] ☐ Négociable (checkbox)
+    - [ ] Niveau d'expérience (select : débutant, junior, intermédiaire, senior, expert)
+    - [ ] Compétences techniques (tags input avec autocomplete)
+    - [ ] Secteurs (tags input : Tech, Finance, Santé, etc.)
+    - [ ] Boutons "Précédent" | "Suivant"
+  
+  - [ ] **Étape 4/4 : Paramètres & Publication**
+    - [ ] **Visibilité** (radio buttons)
+      - [ ] Public (tout le monde)
+      - [ ] Alumni uniquement
+      - [ ] Étudiants uniquement
+    - [ ] Limite de candidatures (input number, optionnel)
+    - [ ] Date d'expiration (date picker, optionnel)
+    - [ ] **Contact**
+      - [ ] Email (input, pré-rempli)
+      - [ ] Téléphone (input, optionnel)
+    - [ ] URL de candidature externe (input, optionnel)
+    - [ ] **Bonus cooptation** (optionnel)
+      - [ ] Montant (input number)
+      - [ ] Devise (select)
+      - [ ] Description (textarea)
+    - [ ] Boutons "Précédent" | "💾 Sauvegarder brouillon" | "✅ Publier"
+  
+  - [ ] **Fonctionnalités transversales**
+    - [ ] Validation à chaque étape
+    - [ ] Sauvegarde automatique (brouillon) toutes les 30 secondes
+    - [ ] Récupération du brouillon au retour
+    - [ ] Messages d'erreur contextuels
+
+#### 6️⃣ Gestion des Candidatures (`/opportunities/:id/applications`)
+- [ ] Créer composant `src/pages/opportunities/ManageApplications.tsx`
+  - [ ] **Vérification des permissions** (seul le créateur de l'offre)
+  - [ ] **Header**
+    - [ ] Titre de l'offre
+    - [ ] Lien "Voir l'offre publique"
+    - [ ] Compteurs par statut
+  - [ ] **Onglets de filtrage**
+    - [ ] Toutes (badge avec nombre)
+    - [ ] En attente (badge avec nombre)
+    - [ ] Présélectionnés (badge avec nombre)
+    - [ ] Entretien (badge avec nombre)
+    - [ ] Refusées (badge avec nombre)
+    - [ ] Acceptées (badge avec nombre)
+  - [ ] **Tri & Filtres**
+    - [ ] Dropdown tri : Plus récent, Plus ancien, Pertinence
+    - [ ] Filtre par compétences (multi-select)
+  - [ ] **Liste des candidatures** (cards expandables)
+    - [ ] **Vue compacte**
+      - [ ] Photo + nom candidat
+      - [ ] Poste actuel @ Entreprise
+      - [ ] Promo + localisation
+      - [ ] Tags compétences (3 max)
+      - [ ] Date candidature
+      - [ ] Badge "🤝 Recommandé par [Nom]" (si cooptation)
+      - [ ] Bouton "Voir plus"
+    - [ ] **Vue détaillée** (expandable)
+      - [ ] Lettre de motivation (texte complet)
+      - [ ] Liens : CV, Portfolio, LinkedIn, GitHub
+      - [ ] **Actions recruteur**
+        - [ ] Dropdown changement de statut
+          - [ ] Marquer comme "Examiné"
+          - [ ] Marquer comme "Présélectionné"
+          - [ ] Inviter à un entretien
+          - [ ] Refuser
+          - [ ] Accepter
+        - [ ] Textarea "Notes internes" (sauvegarde auto)
+        - [ ] Textarea "Feedback au candidat" + bouton "Envoyer"
+      - [ ] Boutons : "📄 Télécharger CV" | "💼 Voir profil" | "✉️ Contacter"
+  - [ ] **Notifications**
+    - [ ] Email au candidat lors du changement de statut
+    - [ ] Email au candidat lors de l'envoi de feedback
+
+#### 7️⃣ Système de Cooptation
+- [ ] **Modal de Recommandation** (`src/components/opportunities/ReferralModal.tsx`)
+  - [ ] Affichage de l'offre (titre, entreprise, bonus)
+  - [ ] **Recherche candidat**
+    - [ ] Option 1 : Rechercher dans l'annuaire alumni (autocomplete)
+    - [ ] Option 2 : Inviter par email (input)
+  - [ ] Note de recommandation (textarea, requis)
+    - [ ] "Pourquoi recommandez-vous cette personne ?"
+    - [ ] Min 50 caractères
+  - [ ] Message d'information
+    - [ ] "Le candidat recevra une invitation à postuler avec votre recommandation"
+  - [ ] Boutons : "Annuler" | "Envoyer la recommandation"
+  - [ ] **Actions**
+    - [ ] Envoi email au candidat avec lien unique
+    - [ ] Création référence dans JobApplication (referredBy)
+    - [ ] Notification au recruteur
+
+- [ ] **Page Mes Cooptations** (`src/pages/opportunities/MyReferrals.tsx`)
+  - [ ] **Header avec stats globales**
+    - [ ] Total recommandations
+    - [ ] Candidats recrutés
+    - [ ] Bonus gagnés (montant total)
+  - [ ] **Filtres**
+    - [ ] Toutes
+    - [ ] En cours
+    - [ ] Recrutées
+    - [ ] Non retenues
+  - [ ] **Liste des cooptations** (cards)
+    - [ ] Candidat recommandé (nom + photo)
+    - [ ] Offre (titre + entreprise)
+    - [ ] Date de recommandation
+    - [ ] **Statut** (badge coloré)
+      - [ ] 🟡 En cours d'entretien
+      - [ ] ✅ Recruté
+      - [ ] 🔴 Non retenu
+    - [ ] **Bonus** (si recruté)
+      - [ ] Montant + devise
+      - [ ] Date de versement
+    - [ ] Bouton "Voir détails"
+
+#### 8️⃣ Alertes Emploi (`/job-alerts`)
+- [ ] Créer composant `src/pages/opportunities/JobAlerts.tsx`
+  - [ ] **Header**
+    - [ ] Titre "Mes Alertes Emploi"
+    - [ ] Bouton "Créer une nouvelle alerte"
+  - [ ] **Liste des alertes** (cards)
+    - [ ] Nom/description de l'alerte
+    - [ ] **Critères affichés** (tags)
+      - [ ] Mots-clés
+      - [ ] Types d'opportunité
+      - [ ] Secteurs
+      - [ ] Localisation
+    - [ ] Fréquence (Instantanée, Quotidienne, Hebdomadaire)
+    - [ ] Dernière notification (date)
+    - [ ] Badge "X nouvelles offres"
+    - [ ] Toggle Actif/Désactivé
+    - [ ] Boutons : "✏️ Modifier" | "🗑️ Supprimer"
+  
+  - [ ] **Modal Création/Édition Alerte**
+    - [ ] Nom de l'alerte (input)
+    - [ ] **Critères de recherche**
+      - [ ] Mots-clés (tags input)
+      - [ ] Types d'opportunité (checkboxes)
+      - [ ] Secteurs (multi-select)
+      - [ ] Compétences (tags input avec autocomplete)
+      - [ ] Localisations (tags input)
+      - [ ] ☐ Télétravail uniquement (checkbox)
+      - [ ] Salaire minimum (input number)
+      - [ ] Niveau d'expérience (checkboxes)
+    - [ ] **Fréquence de notification** (radio buttons)
+      - [ ] Instantanée (dès qu'une offre correspond)
+      - [ ] Quotidienne (résumé journalier)
+      - [ ] Hebdomadaire (résumé hebdomadaire)
+    - [ ] Boutons : "Annuler" | "Sauvegarder l'alerte"
+
+---
+
+### Phase 2.3 : Fonctionnalités Techniques
+
+#### 1️⃣ Services Firebase
+- [ ] **opportunitiesService.ts** (`src/services/opportunitiesService.ts`)
+  - [ ] `createOpportunity(data)` - Créer une offre
+  - [ ] `updateOpportunity(id, data)` - Modifier une offre
+  - [ ] `deleteOpportunity(id)` - Supprimer une offre
+  - [ ] `getOpportunityById(id)` - Récupérer une offre
+  - [ ] `getOpportunities(filters, pagination)` - Liste avec filtres
+  - [ ] `getMyOpportunities(userId)` - Mes offres créées
+  - [ ] `incrementViews(id)` - Incrémenter les vues
+  - [ ] `incrementClicks(id)` - Incrémenter les clics
+
+- [ ] **applicationsService.ts** (`src/services/applicationsService.ts`)
+  - [ ] `createApplication(data)` - Créer une candidature
+  - [ ] `updateApplicationStatus(id, status, note)` - Changer statut
+  - [ ] `getApplicationById(id)` - Récupérer une candidature
+  - [ ] `getMyApplications(userId)` - Mes candidatures
+  - [ ] `getApplicationsForJob(jobId)` - Candidatures pour une offre
+  - [ ] `withdrawApplication(id)` - Retirer une candidature
+  - [ ] `sendFeedback(id, feedback)` - Envoyer feedback
+
+- [ ] **alertsService.ts** (`src/services/alertsService.ts`)
+  - [ ] `createAlert(data)` - Créer une alerte
+  - [ ] `updateAlert(id, data)` - Modifier une alerte
+  - [ ] `deleteAlert(id)` - Supprimer une alerte
+  - [ ] `getMyAlerts(userId)` - Mes alertes
+  - [ ] `toggleAlert(id, active)` - Activer/désactiver
+  - [ ] `checkAlertsForNewOpportunity(opportunityId)` - Matching
+
+#### 2️⃣ Recherche & Filtrage
+- [ ] **Moteur de recherche**
+  - [ ] Full-text search sur titre, description, compétences
+  - [ ] Filtres combinés (type, secteur, localisation, salaire, etc.)
+  - [ ] Tri (plus récent, salaire croissant/décroissant, pertinence)
+  - [ ] Pagination (20 offres par page)
+  - [ ] Index Firestore optimisés
+    - [ ] Index composite : status + dateCreated
+    - [ ] Index composite : type + status + dateCreated
+    - [ ] Index composite : sectors + status + dateCreated
+
+- [ ] **Algorithme de matching**
+  - [ ] Créer `src/utils/matchingAlgorithm.ts`
+  - [ ] Score de pertinence basé sur :
+    - [ ] Compétences profil vs compétences requises (40%)
+    - [ ] Localisation préférée vs localisation offre (20%)
+    - [ ] Niveau d'expérience (20%)
+    - [ ] Secteurs d'intérêt (20%)
+  - [ ] Recommandations personnalisées sur page d'accueil
+
+#### 3️⃣ Notifications
+- [ ] **Système de notifications**
+  - [ ] Créer `src/services/notificationsService.ts`
+  - [ ] **Événements déclencheurs**
+    - [ ] Nouvelle offre correspondant aux alertes
+    - [ ] Candidature reçue (pour recruteur)
+    - [ ] Changement de statut candidature
+    - [ ] Cooptation acceptée/refusée
+    - [ ] Offre bientôt expirée (7 jours avant)
+    - [ ] Bonus cooptation versé
+  - [ ] **Canaux**
+    - [ ] In-app (badge notification dans header)
+    - [ ] Email (EmailJS)
+    - [ ] Push (si PWA activée)
+  - [ ] **Templates d'emails**
+    - [ ] Email nouvelle candidature
+    - [ ] Email changement statut
+    - [ ] Email feedback recruteur
+    - [ ] Email alerte emploi
+    - [ ] Email cooptation
+  - [ ] **Préférences utilisateur**
+    - [ ] Page paramètres notifications
+    - [ ] Choix fréquence par type de notification
+    - [ ] Choix canaux (email, push)
+
+#### 4️⃣ Analytics
+- [ ] **Analytics pour recruteurs**
+  - [ ] Dashboard dans page de gestion candidatures
+  - [ ] Vues de l'offre (graphique temporel)
+  - [ ] Taux de conversion (vues → candidatures)
+  - [ ] Temps moyen de réponse
+  - [ ] Source des candidatures (direct, cooptation, alerte)
+  - [ ] Répartition par statut (pie chart)
+
+- [ ] **Analytics pour candidats**
+  - [ ] Dashboard dans page "Mes candidatures"
+  - [ ] Taux de réponse aux candidatures
+  - [ ] Temps moyen avant réponse
+  - [ ] Offres sauvegardées vs candidatures envoyées
+  - [ ] Statistiques par type d'offre
+
+- [ ] **Analytics pour admins**
+  - [ ] Page dédiée `AdminOpportunitiesAnalytics.tsx`
+  - [ ] Offres les plus populaires (top 10)
+  - [ ] Secteurs les plus actifs
+  - [ ] Taux de placement (candidatures → recrutements)
+  - [ ] ROI des cooptations
+  - [ ] Statistiques globales (graphiques temporels)
+  - [ ] Export rapports (PDF)
+
+#### 5️⃣ Sécurité & Permissions
+- [ ] **Règles Firestore** (firebase.rules)
+  - [ ] Collection `opportunities`
+    - [ ] User : Lecture offres actives, création interdite
+    - [ ] Alumni : Lecture + création + modification (si créateur)
+    - [ ] Editor : Lecture + modération
+    - [ ] Admin : Lecture + écriture complète
+  - [ ] Collection `applications`
+    - [ ] User : Lecture (si candidat) + création
+    - [ ] Alumni : Lecture (si recruteur de l'offre)
+    - [ ] Admin : Lecture complète
+  - [ ] Collection `alerts`
+    - [ ] User : Lecture + écriture (si propriétaire)
+    - [ ] Admin : Lecture complète
+
+- [ ] **Validation des données**
+  - [ ] Validation côté client (React Hook Form + Zod)
+  - [ ] Validation côté serveur (Cloud Functions)
+  - [ ] Sanitization des inputs (DOMPurify pour rich text)
+  - [ ] Limite taille fichiers (CV max 5MB, logo max 2MB)
+
+#### 6️⃣ Intégrations
+- [ ] **Import/Parse CV**
+  - [ ] Créer `src/utils/cvParser.ts`
+  - [ ] Bibliothèque : pdf-parse ou pdf.js
+  - [ ] Extraction : nom, email, téléphone, compétences
+  - [ ] Pré-remplissage automatique du formulaire
+  - [ ] Gestion des erreurs de parsing
+
+- [ ] **Export données**
+  - [ ] Export candidatures en CSV
+  - [ ] Export candidatures en Excel (xlsx)
+  - [ ] Export analytics en PDF (jsPDF)
+  - [ ] Génération rapports personnalisés
+
+- [ ] **Partage**
+  - [ ] Lien direct vers offre (copy to clipboard)
+  - [ ] Partage sur LinkedIn (LinkedIn Share API)
+  - [ ] Partage sur Twitter (Twitter Web Intent)
+  - [ ] QR Code pour offre (qrcode.react)
+  - [ ] Embed offre (iframe avec paramètres)
+
+- [ ] **Storage Firebase**
+  - [ ] Organisation dossiers : `cvs/{jobId}/{applicantId}/cv.pdf`
+  - [ ] Organisation dossiers : `logos/{opportunityId}/logo.png`
+  - [ ] Nettoyage fichiers orphelins (Cloud Function)
+  - [ ] Règles de sécurité Storage
+
+---
+
+### Phase 2.4 : Métriques de Succès
+
+#### KPIs à suivre
+- [ ] **Engagement**
+  - [ ] Nombre d'offres publiées/mois
+  - [ ] Nombre de candidatures/mois
+  - [ ] Taux de conversion (vues → candidatures)
+  - [ ] Temps moyen de réponse recruteur
+
+- [ ] **Qualité**
+  - [ ] Taux de placement (candidatures → recrutements)
+  - [ ] Satisfaction candidats (système de feedback)
+  - [ ] Satisfaction recruteurs (système de feedback)
+  - [ ] Taux de cooptation réussie
+
+- [ ] **Croissance**
+  - [ ] Nouveaux recruteurs/mois
+  - [ ] Nouveaux candidats actifs/mois
+  - [ ] Nombre d'offres actives
+  - [ ] Nombre de secteurs représentés
+
+#### Implémentation tracking
+- [ ] Firebase Analytics (événements personnalisés)
+- [ ] Vercel Analytics (pages vues)
+- [ ] Custom events (actions utilisateurs)
+- [ ] Dashboards de suivi (admin)
+
+---
+
+### Phase 2.5 : Roadmap de Développement
+
+#### Phase 2.5.1 : MVP (4-6 semaines)
+
+**Semaine 1-2 : Structure de données & Backend**
+- [ ] Créer interfaces TypeScript (JobOpportunity, JobApplication, JobAlert)
+- [ ] Configurer collections Firestore
+- [ ] Définir règles de sécurité Firestore
+- [ ] Créer opportunitiesService.ts (CRUD complet)
+- [ ] Créer applicationsService.ts (CRUD complet)
+- [ ] Créer alertsService.ts (CRUD complet)
+- [ ] Tests unitaires des services
+
+**Semaine 3-4 : Interfaces principales**
+- [ ] OpportunitiesPage.tsx (liste + filtres basiques)
+- [ ] OpportunityDetails.tsx (détails complets)
+- [ ] ApplicationModal.tsx (formulaire candidature)
+- [ ] MyApplications.tsx (suivi candidatures)
+- [ ] Composants réutilisables (OpportunityCard, ApplicationCard)
+- [ ] Responsive mobile
+
+**Semaine 5-6 : Création offres & Notifications**
+- [ ] CreateOpportunity.tsx (formulaire 4 étapes)
+- [ ] Upload logo entreprise (Firebase Storage)
+- [ ] Upload CV (Firebase Storage)
+- [ ] Notifications email basiques (EmailJS)
+- [ ] Tests & corrections bugs
+- [ ] Documentation utilisateur
+
+#### Phase 2.5.2 : Fonctionnalités Avancées (3-4 semaines)
+
+**Semaine 7-8 : Cooptation**
+- [ ] ReferralModal.tsx (recommandation)
+- [ ] MyReferrals.tsx (suivi cooptations)
+- [ ] Système de tracking bonus
+- [ ] Notifications cooptation (email)
+- [ ] Tests du flux complet
+
+**Semaine 9-10 : Alertes & Gestion**
+- [ ] JobAlerts.tsx (gestion alertes)
+- [ ] Matching offres ↔ alertes (algorithme)
+- [ ] Envoi notifications alertes (Cloud Function cron job)
+- [ ] ManageApplications.tsx (gestion recruteur)
+- [ ] Système de statuts + historique
+- [ ] Feedback candidats
+
+**Semaine 11 : Analytics**
+- [ ] Analytics de base (vues, clics, candidatures)
+- [ ] Dashboard recruteur (graphiques)
+- [ ] Dashboard candidat (statistiques)
+- [ ] AdminOpportunitiesAnalytics.tsx
+- [ ] Export rapports
+
+#### Phase 2.5.3 : Optimisations (2-3 semaines)
+
+**Semaine 12-13 : Features avancées**
+- [ ] Import/parse CV automatique (cvParser.ts)
+- [ ] Recherche avancée full-text
+- [ ] Algorithme de matching (matchingAlgorithm.ts)
+- [ ] Recommandations personnalisées
+- [ ] Export données (CSV, Excel, PDF)
+
+**Semaine 14 : UX & Mobile**
+- [ ] Notifications push (PWA)
+- [ ] Partage social (LinkedIn, Twitter)
+- [ ] QR Code offres
+- [ ] Optimisations responsive mobile
+- [ ] Optimisations performance (lazy loading, code splitting)
+
+#### Phase 2.5.4 : Intelligence (3-4 semaines)
+
+**Semaine 15-16 : IA & Recommandations**
+- [ ] Recommandations IA (offres pour candidat)
+- [ ] Suggestions candidats (pour recruteur)
+- [ ] Auto-complétion compétences (ML)
+- [ ] Matching intelligent (score avancé)
+
+**Semaine 17-18 : Analytics avancés & Tests**
+- [ ] Analytics avancés (prédictions, tendances)
+- [ ] A/B testing offres
+- [ ] Tests utilisateurs (feedback)
+- [ ] Optimisations finales
+- [ ] Documentation complète (technique + utilisateur)
+
+---
+
+### Phase 2.6 : Notes d'Implémentation
+
+#### Stack Technique
+- [ ] React Hook Form (gestion formulaires)
+- [ ] Zod (validation schémas)
+- [ ] Lucide React (icônes)
+- [ ] Recharts (graphiques analytics)
+- [ ] DOMPurify (sanitization)
+- [ ] pdf-parse (parsing CV)
+- [ ] qrcode.react (QR codes)
+- [ ] jsPDF (export PDF)
+- [ ] xlsx (export Excel)
+
+#### Fichiers à Créer
+
+**Types**
+- [ ] `src/types/opportunities.ts`
+
+**Services**
+- [ ] `src/services/opportunitiesService.ts`
+- [ ] `src/services/applicationsService.ts`
+- [ ] `src/services/alertsService.ts`
+- [ ] `src/services/notificationsService.ts`
+
+**Pages**
+- [ ] `src/pages/opportunities/OpportunitiesPage.tsx`
+- [ ] `src/pages/opportunities/OpportunityDetails.tsx`
+- [ ] `src/pages/opportunities/CreateOpportunity.tsx`
+- [ ] `src/pages/opportunities/MyApplications.tsx`
+- [ ] `src/pages/opportunities/ManageApplications.tsx`
+- [ ] `src/pages/opportunities/MyReferrals.tsx`
+- [ ] `src/pages/opportunities/JobAlerts.tsx`
+- [ ] `src/pages/admin/AdminOpportunitiesAnalytics.tsx`
+
+**Composants**
+- [ ] `src/components/opportunities/ApplicationModal.tsx`
+- [ ] `src/components/opportunities/ReferralModal.tsx`
+- [ ] `src/components/opportunities/OpportunityCard.tsx`
+- [ ] `src/components/opportunities/ApplicationCard.tsx`
+- [ ] `src/components/opportunities/OpportunityFilters.tsx`
+- [ ] `src/components/opportunities/ApplicationStatusBadge.tsx`
+
+**Utilitaires**
+- [ ] `src/utils/cvParser.ts`
+- [ ] `src/utils/matchingAlgorithm.ts`
+
+**Cloud Functions**
+- [ ] `functions/sendApplicationNotification.js`
+- [ ] `functions/sendStatusChangeNotification.js`
+- [ ] `functions/checkJobAlerts.js` (cron job)
+- [ ] `functions/cleanOrphanFiles.js` (cron job)
+
+#### Design System
+
+**Couleurs par Type d'Opportunité**
+- Emploi (CDI/CDD) : Bleu (#3B82F6)
+- Stage : Vert (#10B981)
+- Alternance : Violet (#8B5CF6)
+- Mission/Freelance : Orange (#F59E0B)
+- Partenariat : Rose (#EC4899)
+
+**Couleurs par Statut Candidature**
+- Pending : Gris (#6B7280)
+- Reviewed : Bleu (#3B82F6)
+- Shortlisted : Jaune (#F59E0B)
+- Interview : Violet (#8B5CF6)
+- Rejected : Rouge (#EF4444)
+- Accepted : Vert (#10B981)
+
+**Icônes (Lucide React)**
+- Opportunités : Briefcase
+- Candidatures : FileText
+- Cooptation : Users
+- Alertes : Bell
+- Filtres : Filter
+- Recherche : Search
+- Upload CV : Upload
+- Localisation : MapPin
+- Salaire : DollarSign
+- Compétences : Code
+
+---
 
 - **Espace mentorat & networking**
   - [ ] Modèle mentor/mentee (étudiants ↔ alumni)
   - [ ] Matching basé sur intérêts/parcours
   - [ ] Calendrier et planification de sessions
-  - [ ] Feedback de mentorat et historique
   - [ ] Événements de networking virtuels/physiques
 
 - **Intelligence Artificielle communautaire**

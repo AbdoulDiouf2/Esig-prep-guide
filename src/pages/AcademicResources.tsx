@@ -480,13 +480,13 @@ const AcademicResources: React.FC = () => {
             Retour au tableau de bord
           </Link>
         </div>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-              <BookOpen className="w-8 h-8 mr-3 text-blue-600" />
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+              <BookOpen className="w-7 h-7 md:w-8 md:h-8 mr-2 md:mr-3 text-blue-600" />
               Ressources Académiques
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm md:text-base text-gray-600 mt-2">
               Accédez à tous les cours, TD, TP et ressources pédagogiques organisés par année d'étude
             </p>
           </div>
@@ -508,7 +508,7 @@ const AcademicResources: React.FC = () => {
                   links: [{ id: '1', title: 'Lien principal', url: '' }]
                 });
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center whitespace-nowrap w-full lg:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Ajouter une ressource
