@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, TrendingUp, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAlumniProfile, updateAlumniProfile, submitAlumniProfileForValidation } from '../services/alumniService';
+import { getAlumniProfile, updateAlumniProfile, submitAlumniProfileForValidation, createAlumniProfileOnSignup } from '../services/alumniService';
 import { uploadAlumniPhoto } from '../services/storageService';
 import AlumniProfileForm, { AlumniProfileFormData } from '../components/alumni/AlumniProfileForm';
 import type { AlumniProfile } from '../types/alumni';
@@ -20,22 +20,41 @@ const CompleteAlumniProfile: React.FC = () => {
   const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // Charger le profil alumni existant
+  // Charger le profil alumni existant ou le créer si inexistant
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadOrCreateProfile = async () => {
       if (currentUser) {
         try {
-          const profile = await getAlumniProfile(currentUser.uid);
+          let profile = await getAlumniProfile(currentUser.uid);
+          
+          // Si aucun profil n'existe, créer un profil draft automatiquement
+          if (!profile) {
+            console.log('Aucun profil trouvé, création automatique...');
+            
+            // Utiliser l'année de promo de l'utilisateur si disponible, sinon année actuelle
+            const yearPromo = currentUser.yearPromo || new Date().getFullYear();
+            
+            await createAlumniProfileOnSignup({
+              uid: currentUser.uid,
+              name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Utilisateur',
+              email: currentUser.email || '',
+              yearPromo: yearPromo,
+            });
+            
+            // Recharger le profil créé
+            profile = await getAlumniProfile(currentUser.uid);
+          }
+          
           setAlumniProfile(profile);
         } catch (error) {
-          console.error('Erreur chargement profil:', error);
+          console.error('Erreur chargement/création profil:', error);
         } finally {
           setLoadingProfile(false);
         }
       }
     };
 
-    loadProfile();
+    loadOrCreateProfile();
   }, [currentUser]);
 
   const handlePhotoUpload = async (file: File): Promise<string> => {
@@ -122,30 +141,14 @@ const CompleteAlumniProfile: React.FC = () => {
     }
   };
 
-  if (loadingProfile) {
+  if (loadingProfile || !alumniProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement de votre profil...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!alumniProfile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded max-w-md">
-          <p className="text-red-700">
-            Aucun profil alumni trouvé. Veuillez d'abord créer un profil depuis l'inscription.
+          <p className="text-gray-600">
+            {loadingProfile ? 'Chargement de votre profil...' : 'Création de votre profil alumni...'}
           </p>
-          <button
-            onClick={() => navigate('/applications')}
-            className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Retour au tableau de bord →
-          </button>
         </div>
       </div>
     );

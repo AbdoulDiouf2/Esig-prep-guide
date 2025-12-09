@@ -17,6 +17,7 @@ const MyAlumniProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -44,11 +45,17 @@ const MyAlumniProfile: React.FC = () => {
     try {
       await deleteAlumniProfile(profile.uid);
       setShowDeleteModal(false);
-      // Rediriger vers la page de création de profil
-      navigate('/complete-alumni-profile');
+      
+      // Afficher le modal de succès
+      setShowSuccessModal(true);
+      
+      // Rediriger après 2 secondes
+      setTimeout(() => {
+        navigate('/applications');
+      }, 2000);
     } catch (error) {
       console.error('Erreur suppression profil:', error);
-      alert('Erreur lors de la suppression du profil');
+      setError('Erreur lors de la suppression du profil');
     } finally {
       setDeleting(false);
     }
@@ -420,6 +427,16 @@ const MyAlumniProfile: React.FC = () => {
         confirmButtonText={deleting ? "Suppression..." : "Oui, supprimer mon profil"}
         cancelButtonText="Annuler"
         type="danger"
+      />
+
+      {/* Modal de succès après suppression */}
+      <ConfirmationModal
+        isOpen={showSuccessModal}
+        onClose={() => {}}
+        onConfirm={() => {}}
+        title="Profil supprimé avec succès"
+        message="Votre profil alumni a été supprimé définitivement. Vous allez être redirigé vers le tableau de bord..."
+        type="success"
       />
     </div>
   );
