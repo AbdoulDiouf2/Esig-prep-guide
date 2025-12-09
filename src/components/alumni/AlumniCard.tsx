@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Briefcase, Award, Linkedin, Github, Twitter, ExternalLink } from 'lucide-react';
+import { MapPin, Briefcase, Award, Linkedin, Github, Twitter, Globe, Building2 } from 'lucide-react';
 import type { AlumniProfile } from '../../types/alumni';
 
 interface AlumniCardProps {
@@ -9,7 +9,10 @@ interface AlumniCardProps {
 
 const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+    <Link 
+      to={`/alumni/${profile.uid}`}
+      className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] p-6 cursor-pointer"
+    >
       {/* Header avec photo et nom */}
       <div className="flex items-start gap-4 mb-4">
         {profile.photo ? (
@@ -119,6 +122,7 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
             href={profile.linkedin}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-gray-600 hover:text-blue-600 transition-colors"
             title="LinkedIn"
           >
@@ -130,6 +134,7 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
             href={profile.github}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-gray-600 hover:text-gray-900 transition-colors"
             title="GitHub"
           >
@@ -141,35 +146,46 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
             href={profile.twitter}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-gray-600 hover:text-blue-400 transition-colors"
             title="Twitter"
           >
             <Twitter className="w-4 h-4" />
           </a>
         )}
-        {profile.website && (
+        {profile.personalWebsite && (
           <a
-            href={profile.website}
+            href={profile.personalWebsite}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-gray-600 hover:text-purple-600 transition-colors"
-            title="Site web"
+            title="Site web personnel"
           >
-            <ExternalLink className="w-4 h-4" />
+            <Globe className="w-4 h-4" />
+          </a>
+        )}
+        {profile.companyWebsite && (
+          <a
+            href={profile.companyWebsite}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-gray-600 hover:text-orange-600 transition-colors"
+            title="Site web de l'entreprise"
+          >
+            <Building2 className="w-4 h-4" />
           </a>
         )}
         
         <div className="flex-1"></div>
         
-        {/* Bouton voir profil */}
-        <Link
-          to={`/alumni/${profile.uid}`}
-          className="text-sm font-medium text-blue-600 hover:text-blue-800"
-        >
+        {/* Indicateur cliquable */}
+        <span className="text-sm font-medium text-blue-600">
           Voir profil →
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 };
 

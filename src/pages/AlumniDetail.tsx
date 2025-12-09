@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   MapPin, Briefcase, Award, Linkedin, Github, Twitter, 
-  ExternalLink, Mail, ArrowLeft, Package, Users, MessageCircle 
+  ExternalLink, Mail, ArrowLeft, Package, Users, MessageCircle, Globe, Building2 
 } from 'lucide-react';
 import { getAlumniProfile } from '../services/alumniService';
 import { useAuth } from '../contexts/AuthContext';
@@ -168,15 +168,26 @@ const AlumniDetail: React.FC = () => {
                     <Twitter className="w-5 h-5" />
                   </a>
                 )}
-                {profile.website && (
+                {profile.personalWebsite && (
                   <a
-                    href={profile.website}
+                    href={profile.personalWebsite}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 bg-purple-50 text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
-                    title="Site web"
+                    title="Site web personnel"
                   >
-                    <ExternalLink className="w-5 h-5" />
+                    <Globe className="w-5 h-5" />
+                  </a>
+                )}
+                {profile.companyWebsite && (
+                  <a
+                    href={profile.companyWebsite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-orange-50 text-orange-600 rounded-full hover:bg-orange-100 transition-colors"
+                    title="Site web de l'entreprise"
+                  >
+                    <Building2 className="w-5 h-5" />
                   </a>
                 )}
                 <a
@@ -242,11 +253,11 @@ const AlumniDetail: React.FC = () => {
         )}
 
         {/* Entreprise */}
-        {(profile.company || profile.companyDescription) && (
+        {(profile.company || profile.companyDescription || profile.companyWebsite) && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-600" />
-              Entreprise
+              Entreprise actuelle
             </h2>
             {profile.company && (
               <div className="mb-2">
@@ -257,12 +268,12 @@ const AlumniDetail: React.FC = () => {
             {profile.companyDescription && (
               <p className="text-gray-700 mt-2">{profile.companyDescription}</p>
             )}
-            {profile.website && (
+            {profile.companyWebsite && (
               <a
-                href={profile.website}
+                href={profile.companyWebsite}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 mt-2"
+                className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800 mt-2"
               >
                 <ExternalLink className="w-4 h-4" />
                 Visiter le site web

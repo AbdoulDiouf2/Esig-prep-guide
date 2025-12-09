@@ -52,7 +52,8 @@ export interface AlumniProfile {
   company?: string;
   position?: string;
   companyDescription?: string;
-  website?: string;
+  companyWebsite?: string; // Site web de l'entreprise
+  personalWebsite?: string; // Site web personnel (portfolio, blog, etc.)
 
   // ===== Portfolio (FLEXIBLE) =====
   portfolio?: PortfolioItem[];

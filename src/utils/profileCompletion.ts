@@ -28,8 +28,9 @@ export const calculateProfileCompletion = (profile: AlumniProfile): number => {
     location: (!!profile.city && profile.city.trim().length > 0) || 
               (!!profile.country && profile.country.trim().length > 0),
     
-    // Réseaux sociaux (au moins un)
-    socialMedia: !!profile.linkedin || !!profile.github || !!profile.twitter || !!profile.website,
+    // Réseaux sociaux et sites web (au moins un)
+    socialMedia: !!profile.linkedin || !!profile.github || !!profile.twitter || 
+                 !!profile.personalWebsite || !!profile.companyWebsite,
     
     // Portfolio
     portfolio: profile.portfolio && profile.portfolio.length > 0,
@@ -90,7 +91,8 @@ export const getProfileSuggestions = (profile: AlumniProfile): string[] => {
     suggestions.push('Ajoute ta localisation pour faciliter le networking local');
   }
 
-  if (!profile.linkedin && !profile.github && !profile.twitter && !profile.website) {
+  if (!profile.linkedin && !profile.github && !profile.twitter && 
+      !profile.personalWebsite && !profile.companyWebsite) {
     suggestions.push('Ajoute au moins un lien vers tes réseaux sociaux ou ton site web');
   }
 

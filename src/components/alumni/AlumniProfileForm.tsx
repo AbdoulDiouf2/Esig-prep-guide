@@ -16,7 +16,8 @@ interface AlumniProfileFormData {
   company?: string;
   position?: string;
   companyDescription?: string;
-  website?: string;
+  companyWebsite?: string;
+  personalWebsite?: string;
   
   // Portfolio
   portfolio: {
@@ -70,7 +71,8 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     company: initialData?.company,
     position: initialData?.position,
     companyDescription: initialData?.companyDescription,
-    website: initialData?.website,
+    companyWebsite: initialData?.companyWebsite,
+    personalWebsite: initialData?.personalWebsite,
     portfolio: initialData?.portfolio || [],
     services: initialData?.services || [],
     seeking: initialData?.seeking || [],
@@ -472,17 +474,34 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
           </div>
 
           <div>
-            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
-              Site web
+            <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+              Site web de l'entreprise
             </label>
             <input
-              id="website"
+              id="companyWebsite"
               type="url"
-              value={formData.website || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-              placeholder="https://..."
+              value={formData.companyWebsite || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, companyWebsite: e.target.value }))}
+              placeholder="https://exemple-entreprise.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label htmlFor="personalWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+              Site web personnel
+            </label>
+            <input
+              id="personalWebsite"
+              type="url"
+              value={formData.personalWebsite || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, personalWebsite: e.target.value }))}
+              placeholder="https://mon-portfolio.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Ton portfolio, blog personnel, etc.
+            </p>
           </div>
         </div>
       </div>

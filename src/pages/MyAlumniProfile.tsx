@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  CheckCircle, XCircle, Clock, Edit, AlertCircle,
-  MapPin, Briefcase, Award, Mail, Calendar, Users,
-  Linkedin, Github, Twitter, Globe, Trash2
+  Linkedin, Github, Twitter, Globe, Building2, MapPin, Briefcase, Award, Calendar, CheckCircle, Clock, XCircle, Edit, Trash2, Users, AlertCircle, Mail
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile, deleteAlumniProfile } from '../services/alumniService';
@@ -253,7 +251,7 @@ const MyAlumniProfile: React.FC = () => {
               )}
 
               {/* Liens sociaux */}
-              {(profile.linkedin || profile.github || profile.twitter || profile.website) && (
+              {(profile.linkedin || profile.github || profile.twitter || profile.personalWebsite || profile.companyWebsite) && (
                 <div className="mt-4 flex flex-wrap gap-3">
                   {profile.linkedin && (
                     <a
@@ -288,15 +286,26 @@ const MyAlumniProfile: React.FC = () => {
                       Twitter
                     </a>
                   )}
-                  {profile.website && (
+                  {profile.personalWebsite && (
                     <a
-                      href={profile.website}
+                      href={profile.personalWebsite}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 text-sm"
                     >
                       <Globe className="w-4 h-4" />
-                      Site web
+                      Site web personnel
+                    </a>
+                  )}
+                  {profile.companyWebsite && (
+                    <a
+                      href={profile.companyWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 text-sm"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      Site de l'entreprise
                     </a>
                   )}
                 </div>
