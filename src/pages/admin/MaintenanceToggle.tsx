@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, Power, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Wrench, Power, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { getMaintenanceStatus, setMaintenanceStatus } from '../../services/maintenanceService';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -75,6 +76,13 @@ const MaintenanceToggle: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
+          <Link
+            to="/admin"
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour au tableau de bord
+          </Link>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Wrench className="w-8 h-8 text-orange-600 mr-3" />
             Mode Maintenance
