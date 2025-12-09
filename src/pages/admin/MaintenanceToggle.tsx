@@ -71,14 +71,20 @@ const MaintenanceToggle: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4">
-        <div className="flex items-center">
-          <Wrench className="w-6 h-6 text-white mr-3" />
-          <h2 className="text-xl font-bold text-white">Mode Maintenance</h2>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <Wrench className="w-8 h-8 text-orange-600 mr-3" />
+            Mode Maintenance
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Gérer l'accessibilité du site pour les utilisateurs
+          </p>
         </div>
-      </div>
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
 
       {/* Contenu */}
       <div className="p-6">
@@ -183,21 +189,23 @@ const MaintenanceToggle: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal de confirmation */}
-      <ConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmToggle}
-        title={pendingState ? 'Activer le mode maintenance ?' : 'Désactiver le mode maintenance ?'}
-        message={
-          pendingState
-            ? 'Tous les utilisateurs (sauf vous) seront redirigés vers la page de maintenance. Êtes-vous sûr de vouloir continuer ?'
-            : 'Le site redeviendra accessible à tous les utilisateurs. Êtes-vous sûr de vouloir continuer ?'
-        }
-        confirmButtonText={pendingState ? 'Oui, activer' : 'Oui, désactiver'}
-        cancelButtonText="Annuler"
-        type={pendingState ? 'warning' : 'info'}
-      />
+        {/* Modal de confirmation */}
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmToggle}
+          title={pendingState ? 'Activer le mode maintenance ?' : 'Désactiver le mode maintenance ?'}
+          message={
+            pendingState
+              ? 'Tous les utilisateurs (sauf vous) seront redirigés vers la page de maintenance. Êtes-vous sûr de vouloir continuer ?'
+              : 'Le site redeviendra accessible à tous les utilisateurs. Êtes-vous sûr de vouloir continuer ?'
+          }
+          confirmButtonText={pendingState ? 'Oui, activer' : 'Oui, désactiver'}
+          cancelButtonText="Annuler"
+          type={pendingState ? 'warning' : 'info'}
+        />
+      </div>
+      </div>
     </div>
   );
 };
