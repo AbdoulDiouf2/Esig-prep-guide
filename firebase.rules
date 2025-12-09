@@ -361,6 +361,15 @@ service cloud.firestore {
                       isAdmin() || isSuperAdmin();
     }
     
+    // Règles pour les paramètres de maintenance
+    match /settings/{settingId} {
+      // Lecture : tout le monde peut lire (pour vérifier le mode maintenance)
+      allow read: if true;
+      
+      // Écriture : seuls les super admins peuvent modifier
+      allow write: if isSuperAdmin();
+    }
+    
     // Règle par défaut - bloquer tout autre accès
     match /{document=**} {
       allow read, write: if false;

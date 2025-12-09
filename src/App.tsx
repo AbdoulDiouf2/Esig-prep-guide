@@ -13,6 +13,7 @@ import { NotificationBanner } from './components/NotificationBanner';
 import UserStatusModal from './components/auth/UserStatusModal';
 import { AlertTriangle, X } from 'lucide-react';
 import { Analytics } from './components/analytics/VercelAnalytics';
+import { useMaintenance } from './hooks/useMaintenance';
 
 // Pages
 import Home from './pages/Home';
@@ -65,6 +66,8 @@ import MesPropositions from './pages/MesPropositions';
 import UserChat from './pages/UserChat';
 import AcademicResources from './pages/AcademicResources';
 import Ressources from './pages/Ressources';
+import Maintenance from './pages/Maintenance';
+import MaintenanceToggle from './pages/admin/MaintenanceToggle';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -126,10 +129,16 @@ const DisclaimerBanner = () => {
 // Composant pour gérer l'authentification
 const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
+  const { isMaintenanceMode, loading: maintenanceLoading } = useMaintenance();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || maintenanceLoading) {
     return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
+  }
+
+  // Vérifier le mode maintenance (sauf pour les superadmins)
+  if (isMaintenanceMode) {
+    return <Maintenance />;
   }
 
   if (!currentUser) {
@@ -406,6 +415,13 @@ function App() {
                   <AuthWrapper>
                     <SuperAdminRoute>
                       <AdminChatInterface />
+                    </SuperAdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/maintenance" element={
+                  <AuthWrapper>
+                    <SuperAdminRoute>
+                      <MaintenanceToggle />
                     </SuperAdminRoute>
                   </AuthWrapper>
                 } />
