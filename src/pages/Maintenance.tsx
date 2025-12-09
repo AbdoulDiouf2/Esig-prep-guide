@@ -3,8 +3,9 @@ import { Wrench, Clock, Mail } from 'lucide-react';
 
 const Maintenance: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center min-h-screen">
+        <div className="w-full">
         {/* Icône animée */}
         <div className="flex justify-center mb-8">
           <div className="relative">
@@ -77,6 +78,7 @@ const Maintenance: React.FC = () => {
           <p className="text-gray-600">
             © {new Date().getFullYear()} CPS Connect - Tous droits réservés
           </p>
+        </div>
         </div>
       </div>
     </div>
