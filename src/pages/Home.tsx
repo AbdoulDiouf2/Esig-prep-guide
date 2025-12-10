@@ -545,7 +545,7 @@ const Home: React.FC = () => {
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  +{currentUser ? '1000' : '25'} alumni disponibles
+                  +{currentUser ? '300' : '300'} alumni disponibles
                 </h3>
                 <p className="text-gray-600 mb-6">
                   {currentUser 
@@ -593,7 +593,7 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl md:text-5xl font-bold text-green-900 mb-2">25+</div>
+              <div className="text-4xl md:text-5xl font-bold text-green-900 mb-2">300+</div>
               <div className="text-green-700 font-medium">Alumni dans l'annuaire</div>
             </div>
 
