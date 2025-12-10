@@ -543,6 +543,182 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
       - Accessible à tous les rôles (admin, editor, user)
     - [x] Route `/alumni` pointant vers `AlumniDirectory.tsx`
       - Route fonctionnelle et accessible
+  - [x] **Phase 1.8 : Import en masse de profils alumni (Superadmin uniquement)** ✅ COMPLET
+    - [x] **Backend - Service d'import**
+      - [x] Créer fonction `importAlumniFromFile(file, format)` dans `alumniService.ts`
+        - Paramètres : file (File object), format ('csv' | 'xlsx')
+        - Parse le fichier selon le format
+        - Valide les données (email obligatoire, format correct)
+        - Retourne : { success: number, errors: Array<{row, email, error}>, skipped: number }
+      - [x] Créer fonction `createAlumniAccountWithProfile(data)` dans `alumniService.ts`
+        - ✅ Utilise Firebase Client SDK (createUserWithEmailAndPassword)
+        - Crée compte Firebase Auth avec email + mot de passe aléatoire
+        - Crée profil alumni avec status 'approved' (pré-approuvé)
+        - Gère les doublons (skip si email existe déjà)
+        - Retourne : { success: boolean, uid?, error? }
+      - [x] Mapping des champs du formulaire Google Forms vers AlumniProfile
+        - Nom + Prénom → name
+        - Mail → email
+        - Promotion (année de sortie CPC) → yearPromo (extraction année avec regex)
+        - Ville → city
+        - Poste Occupé ou Recherché → position
+        - Domaine → sectors[] (array avec 1 élément)
+        - Précision de votre domaine → expertise[] (array avec 1 élément)
+        - Commentaire → bio
+        - Champs vides/null pour : company, headline, photo, portfolio, services, etc.
+      - [x] Gestion des erreurs et logs détaillés
+        - Log chaque ligne traitée avec statut (success/error/skipped)
+        - Collecter les erreurs avec détails (numéro de ligne, email, raison)
+        - Retourner rapport complet à la fin
+    - [x] **Frontend - Page d'import**
+      - [x] Créer page `src/pages/admin/ImportAlumni.tsx` (SuperAdminRoute uniquement)
+        - **Header**
+          - Titre : "Import en masse de profils alumni"
+          - Bouton retour vers AdminDashboard
+          - Badge "🔒 Superadmin uniquement"
+        - **Section 1 : Instructions**
+          - Encadré bleu avec icône Info
+          - Explication du processus d'import
+          - Formats acceptés : CSV (.csv) et Excel (.xlsx)
+          - Colonnes requises listées avec exemples
+          - Avertissement : "Les comptes seront créés automatiquement avec des mots de passe aléatoires"
+        - **Section 2 : Mapping des colonnes**
+          - Tableau de correspondance formulaire → profil
+          - Colonnes : "Champ formulaire", "Champ profil", "Obligatoire", "Exemple"
+          - 9 lignes de mapping détaillées
+        - **Section 3 : Upload de fichier**
+          - Zone de drag & drop pour fichier
+          - Bouton "Parcourir" alternatif
+          - Affichage du nom de fichier sélectionné
+          - Validation du format (CSV ou XLSX uniquement)
+          - Taille max : 5 MB
+        - **Section 4 : Prévisualisation (optionnel)**
+          - Tableau avec les 5 premières lignes du fichier
+          - Colonnes détectées automatiquement
+          - Validation visuelle avant import
+        - **Section 5 : Lancement de l'import**
+          - Bouton "Lancer l'import" (désactivé si pas de fichier)
+          - Barre de progression pendant l'import
+          - Pourcentage et nombre de lignes traitées
+        - **Section 6 : Rapport d'import**
+          - Affichage après import terminé
+          - Statistiques : Total traité, Succès, Ignorés (doublons), Erreurs
+          - Liste des erreurs détaillées (si erreurs)
+            - Numéro de ligne, Email, Raison de l'erreur
+          - Bouton "Télécharger le rapport" (CSV des erreurs)
+          - Bouton "Nouvel import"
+      - [x] Créer composant `src/components/admin/FileUploader.tsx` (réutilisable)
+        - Drag & drop zone avec styles
+        - Validation du format et de la taille
+        - Prévisualisation du fichier
+        - Gestion des erreurs de validation
+      - [x] Créer composant `src/components/admin/ImportProgress.tsx`
+        - Barre de progression animée
+        - Pourcentage et compteur
+        - Animation de chargement
+        - État : idle, processing, completed, error
+      - [x] Créer composant `src/components/admin/ImportReport.tsx`
+        - Affichage des statistiques avec icônes
+        - Liste des erreurs avec accordéon
+        - Boutons d'action (télécharger rapport, nouvel import)
+    - [x] **Bibliothèques nécessaires**
+      - [x] Installer `papaparse` pour parsing CSV
+        ```bash
+        npm install papaparse
+        npm install --save-dev @types/papaparse
+        ```
+      - [x] Installer `xlsx` pour parsing Excel
+        ```bash
+        npm install xlsx
+        ```
+    - [x] **Utilitaires**
+      - [x] Créer `src/utils/fileParser.ts`
+        - Fonction `parseCSV(file)` : parse CSV avec papaparse
+        - Fonction `parseXLSX(file)` : parse Excel avec xlsx
+        - Fonction `validateAlumniData(row)` : valide une ligne de données
+        - Fonction `cleanEmail(email)` : nettoie et valide email
+        - Fonction `extractYearPromo(promo)` : extrait année avec regex
+      - [x] Créer `src/utils/passwordGenerator.ts`
+        - Fonction `generateSecurePassword()` : génère mot de passe aléatoire 16 caractères
+        - Caractères : A-Z, a-z, 0-9, symboles (!@#$%^&*)
+    - [x] **Sécurité et règles Firebase**
+      - [x] Utilise Firebase Client SDK (pas besoin de règles spéciales)
+      - [x] Rate limiting intégré : pause de 500ms entre chaque création
+      - [x] Logs automatiques dans la console (succès, erreurs, doublons)
+    - [x] **Intégration dans AdminDashboard**
+      - [x] Ajouter bouton "Import Alumni" dans l'onglet Général
+        - Après le bouton "Mode Maintenance"
+        - Icône : Upload (lucide-react)
+        - Couleur : Indigo (bg-indigo-600)
+        - Visible uniquement pour superadmin (SuperAdminCheck)
+      - [x] Route `/admin/import-alumni` ajoutée (SuperAdminRoute)
+    - [ ] **Tests et validation**
+      - [ ] Tester avec fichier CSV de 5 lignes (cas nominal)
+      - [ ] Tester avec fichier Excel de 5 lignes (cas nominal)
+      - [ ] Tester avec doublons (emails existants)
+      - [ ] Tester avec emails invalides
+      - [ ] Tester avec champs manquants
+      - [ ] Tester avec fichier de 107 lignes (cas réel)
+      - [ ] Vérifier que les profils importés apparaissent dans l'annuaire
+      - [ ] Vérifier que "Mot de passe oublié" fonctionne pour les comptes créés
+    - [ ] **Documentation**
+      - [ ] Ajouter section dans AdminTutorial.tsx
+        - Titre : "Import en masse de profils alumni"
+        - Explication du processus
+        - Cas d'usage : migration de données, onboarding groupé
+        - Précautions et bonnes pratiques
+      - [ ] Créer guide PDF "Comment importer des profils alumni"
+        - Préparation du fichier source
+        - Mapping des colonnes
+        - Processus d'import pas à pas
+        - Gestion des erreurs
+        - Communication post-import
+    - [ ] **Communication post-import**
+      - [ ] Préparer template d'annonce communautaire
+        - "🎉 L'annuaire alumni est lancé avec déjà 107 profils !"
+        - Instructions pour se connecter (email du formulaire + mot de passe oublié)
+        - Encouragement à compléter le profil
+      - [ ] Préparer FAQ pour les utilisateurs importés
+        - "Je ne me souviens pas de mon email" → Vérifier formulaire de juillet
+        - "Je n'ai pas reçu l'email de réinitialisation" → Vérifier spam, réessayer
+        - "Je veux modifier mon profil" → Se connecter puis "Mon profil alumni"
+        - "Je ne veux pas apparaître dans l'annuaire" → Supprimer le profil depuis les paramètres
+    - [x] **Fichiers à créer**
+      - [x] `src/pages/admin/ImportAlumni.tsx`
+      - [x] `src/components/admin/FileUploader.tsx`
+      - [x] `src/components/admin/ImportProgress.tsx`
+      - [x] `src/components/admin/ImportReport.tsx`
+      - [x] `src/components/admin/ImportPreviewModal.tsx` ⭐ NOUVEAU
+      - [x] `src/utils/fileParser.ts`
+      - [x] `src/utils/passwordGenerator.ts`
+    - [x] **Fichiers à modifier**
+      - [x] `src/services/alumniService.ts` (ajout fonctions import complètes)
+      - [x] `src/pages/admin/AdminDashboard.tsx` (ajout bouton Import Alumni)
+      - [x] `src/App.tsx` (ajout route `/admin/import-alumni`)
+      - [x] `src/pages/admin/ImportAlumni.tsx` (mise à jour avertissements)
+      - [ ] `src/pages/admin/AdminTutorial.tsx` (ajout documentation)
+    - [x] **✅ FONCTIONNALITÉ COMPLÈTE**
+      - [x] Import fonctionnel depuis le frontend avec Firebase Client SDK
+      - [x] Création automatique des comptes Auth + profils Firestore
+      - [x] Mots de passe aléatoires générés (16 caractères)
+      - [x] Profils pré-approuvés (status: 'approved')
+      - [x] Gestion des doublons (skip si email existe)
+      - [x] Rate limiting (500ms entre chaque création)
+      - [x] Rapport détaillé (succès, ignorés, erreurs)
+      - [x] Export CSV des erreurs
+      - [x] Interface complète avec drag & drop, progression
+      - [x] **Modal de prévisualisation interactif** ⭐ NOUVEAU
+        - Tableau complet avec mapping des colonnes
+        - Validation visuelle (lignes valides/invalides)
+        - Statistiques en temps réel (X valides, Y erreurs)
+        - Affichage des 50 premières lignes
+        - Bouton de confirmation avec compteur
+        - Design responsive et élégant
+    - [ ] **📝 PROCHAINES ÉTAPES (optionnelles)**
+      - [ ] Tester avec un fichier réel (5-10 profils test)
+      - [ ] Importer les 107 profils de la communauté
+      - [ ] Communiquer à la communauté (email du formulaire + mot de passe oublié)
+      - [ ] Documenter dans AdminTutorial.tsx
 
 ---
 
@@ -553,6 +729,7 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
 ### Phase 2.0 : Vision & Objectifs
 
 **Problématique**
+
 - Les étudiants CPS et alumni cherchent des opportunités (stages, emplois, missions)
 - Les alumni entrepreneurs ont des besoins en recrutement/collaboration
 - Manque de visibilité sur les opportunités au sein de la communauté ESIG
@@ -566,6 +743,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 ### Phase 2.1 : Structure de Données
 
 #### 1️⃣ JobOpportunity (Collection Firestore)
+
 - [ ] Créer interface TypeScript `JobOpportunity` dans `src/types/opportunities.ts`
   - [ ] Identifiants : id, createdBy, createdByName, createdByEmail
   - [ ] Informations de base : title, company, companyLogo
@@ -585,6 +763,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Analytics : views, clicks
 
 #### 2️⃣ JobApplication (Collection Firestore)
+
 - [ ] Créer interface TypeScript `JobApplication` dans `src/types/opportunities.ts`
   - [ ] Identifiants : id, jobId, applicantId
   - [ ] Informations candidat : applicantName, applicantEmail, applicantPhone, applicantPhoto
@@ -598,6 +777,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Historique : statusHistory[] { status, date, note }
 
 #### 3️⃣ JobAlert (Collection Firestore)
+
 - [ ] Créer interface TypeScript `JobAlert` dans `src/types/opportunities.ts`
   - [ ] Identifiants : id, userId
   - [ ] Critères : keywords[], types[], sectors[], skills[], locations[], remote
@@ -610,6 +790,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 ### Phase 2.2 : Interfaces Utilisateur
 
 #### 1️⃣ Page Opportunités (`/opportunities`)
+
 - [ ] Créer composant `src/pages/opportunities/OpportunitiesPage.tsx`
   - [ ] **Header**
     - [ ] Titre "Opportunités Business & Emploi"
@@ -638,6 +819,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Dropdown : Plus récent, Salaire croissant, Salaire décroissant, Pertinence
 
 #### 2️⃣ Page Détails Offre (`/opportunities/:id`)
+
 - [ ] Créer composant `src/pages/opportunities/OpportunityDetails.tsx`
   - [ ] **Header**
     - [ ] Logo entreprise (grande taille)
@@ -664,6 +846,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Ouvre modal de cooptation
 
 #### 3️⃣ Formulaire de Candidature (Modal)
+
 - [ ] Créer composant `src/components/opportunities/ApplicationModal.tsx`
   - [ ] **Informations personnelles** (pré-remplies depuis profil)
     - [ ] Nom (disabled)
@@ -697,6 +880,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Message de succès + redirection vers `/my-applications`
 
 #### 4️⃣ Mes Candidatures (`/my-applications`)
+
 - [ ] Créer composant `src/pages/opportunities/MyApplications.tsx`
   - [ ] **Header**
     - [ ] Titre "Mes Candidatures"
@@ -725,6 +909,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Bouton "Découvrir les opportunités"
 
 #### 5️⃣ Créer une Offre (`/opportunities/create`)
+
 - [ ] Créer composant `src/pages/opportunities/CreateOpportunity.tsx`
   - [ ] **Formulaire multi-étapes (4 étapes)**
   - [ ] **Indicateur de progression**
@@ -802,6 +987,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Messages d'erreur contextuels
 
 #### 6️⃣ Gestion des Candidatures (`/opportunities/:id/applications`)
+
 - [ ] Créer composant `src/pages/opportunities/ManageApplications.tsx`
   - [ ] **Vérification des permissions** (seul le créateur de l'offre)
   - [ ] **Header**
@@ -845,6 +1031,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Email au candidat lors de l'envoi de feedback
 
 #### 7️⃣ Système de Cooptation
+
 - [ ] **Modal de Recommandation** (`src/components/opportunities/ReferralModal.tsx`)
   - [ ] Affichage de l'offre (titre, entreprise, bonus)
   - [ ] **Recherche candidat**
@@ -885,6 +1072,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Bouton "Voir détails"
 
 #### 8️⃣ Alertes Emploi (`/job-alerts`)
+
 - [ ] Créer composant `src/pages/opportunities/JobAlerts.tsx`
   - [ ] **Header**
     - [ ] Titre "Mes Alertes Emploi"
@@ -924,6 +1112,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 ### Phase 2.3 : Fonctionnalités Techniques
 
 #### 1️⃣ Services Firebase
+
 - [ ] **opportunitiesService.ts** (`src/services/opportunitiesService.ts`)
   - [ ] `createOpportunity(data)` - Créer une offre
   - [ ] `updateOpportunity(id, data)` - Modifier une offre
@@ -952,6 +1141,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] `checkAlertsForNewOpportunity(opportunityId)` - Matching
 
 #### 2️⃣ Recherche & Filtrage
+
 - [ ] **Moteur de recherche**
   - [ ] Full-text search sur titre, description, compétences
   - [ ] Filtres combinés (type, secteur, localisation, salaire, etc.)
@@ -972,6 +1162,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Recommandations personnalisées sur page d'accueil
 
 #### 3️⃣ Notifications
+
 - [ ] **Système de notifications**
   - [ ] Créer `src/services/notificationsService.ts`
   - [ ] **Événements déclencheurs**
@@ -997,6 +1188,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
     - [ ] Choix canaux (email, push)
 
 #### 4️⃣ Analytics
+
 - [ ] **Analytics pour recruteurs**
   - [ ] Dashboard dans page de gestion candidatures
   - [ ] Vues de l'offre (graphique temporel)
@@ -1022,6 +1214,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Export rapports (PDF)
 
 #### 5️⃣ Sécurité & Permissions
+
 - [ ] **Règles Firestore** (firebase.rules)
   - [ ] Collection `opportunities`
     - [ ] User : Lecture offres actives, création interdite
@@ -1043,6 +1236,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Limite taille fichiers (CV max 5MB, logo max 2MB)
 
 #### 6️⃣ Intégrations
+
 - [ ] **Import/Parse CV**
   - [ ] Créer `src/utils/cvParser.ts`
   - [ ] Bibliothèque : pdf-parse ou pdf.js
@@ -1074,6 +1268,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 ### Phase 2.4 : Métriques de Succès
 
 #### KPIs à suivre
+
 - [ ] **Engagement**
   - [ ] Nombre d'offres publiées/mois
   - [ ] Nombre de candidatures/mois
@@ -1093,6 +1288,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
   - [ ] Nombre de secteurs représentés
 
 #### Implémentation tracking
+
 - [ ] Firebase Analytics (événements personnalisés)
 - [ ] Vercel Analytics (pages vues)
 - [ ] Custom events (actions utilisateurs)
@@ -1105,6 +1301,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Phase 2.5.1 : MVP (4-6 semaines)
 
 **Semaine 1-2 : Structure de données & Backend**
+
 - [ ] Créer interfaces TypeScript (JobOpportunity, JobApplication, JobAlert)
 - [ ] Configurer collections Firestore
 - [ ] Définir règles de sécurité Firestore
@@ -1114,6 +1311,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] Tests unitaires des services
 
 **Semaine 3-4 : Interfaces principales**
+
 - [ ] OpportunitiesPage.tsx (liste + filtres basiques)
 - [ ] OpportunityDetails.tsx (détails complets)
 - [ ] ApplicationModal.tsx (formulaire candidature)
@@ -1122,6 +1320,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] Responsive mobile
 
 **Semaine 5-6 : Création offres & Notifications**
+
 - [ ] CreateOpportunity.tsx (formulaire 4 étapes)
 - [ ] Upload logo entreprise (Firebase Storage)
 - [ ] Upload CV (Firebase Storage)
@@ -1132,6 +1331,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Phase 2.5.2 : Fonctionnalités Avancées (3-4 semaines)
 
 **Semaine 7-8 : Cooptation**
+
 - [ ] ReferralModal.tsx (recommandation)
 - [ ] MyReferrals.tsx (suivi cooptations)
 - [ ] Système de tracking bonus
@@ -1139,6 +1339,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] Tests du flux complet
 
 **Semaine 9-10 : Alertes & Gestion**
+
 - [ ] JobAlerts.tsx (gestion alertes)
 - [ ] Matching offres ↔ alertes (algorithme)
 - [ ] Envoi notifications alertes (Cloud Function cron job)
@@ -1147,6 +1348,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] Feedback candidats
 
 **Semaine 11 : Analytics**
+
 - [ ] Analytics de base (vues, clics, candidatures)
 - [ ] Dashboard recruteur (graphiques)
 - [ ] Dashboard candidat (statistiques)
@@ -1156,6 +1358,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Phase 2.5.3 : Optimisations (2-3 semaines)
 
 **Semaine 12-13 : Features avancées**
+
 - [ ] Import/parse CV automatique (cvParser.ts)
 - [ ] Recherche avancée full-text
 - [ ] Algorithme de matching (matchingAlgorithm.ts)
@@ -1163,6 +1366,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] Export données (CSV, Excel, PDF)
 
 **Semaine 14 : UX & Mobile**
+
 - [ ] Notifications push (PWA)
 - [ ] Partage social (LinkedIn, Twitter)
 - [ ] QR Code offres
@@ -1172,12 +1376,14 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Phase 2.5.4 : Intelligence (3-4 semaines)
 
 **Semaine 15-16 : IA & Recommandations**
+
 - [ ] Recommandations IA (offres pour candidat)
 - [ ] Suggestions candidats (pour recruteur)
 - [ ] Auto-complétion compétences (ML)
 - [ ] Matching intelligent (score avancé)
 
 **Semaine 17-18 : Analytics avancés & Tests**
+
 - [ ] Analytics avancés (prédictions, tendances)
 - [ ] A/B testing offres
 - [ ] Tests utilisateurs (feedback)
@@ -1189,6 +1395,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 ### Phase 2.6 : Notes d'Implémentation
 
 #### Stack Technique
+
 - [ ] React Hook Form (gestion formulaires)
 - [ ] Zod (validation schémas)
 - [ ] Lucide React (icônes)
@@ -1202,15 +1409,18 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Fichiers à Créer
 
 **Types**
+
 - [ ] `src/types/opportunities.ts`
 
 **Services**
+
 - [ ] `src/services/opportunitiesService.ts`
 - [ ] `src/services/applicationsService.ts`
 - [ ] `src/services/alertsService.ts`
 - [ ] `src/services/notificationsService.ts`
 
 **Pages**
+
 - [ ] `src/pages/opportunities/OpportunitiesPage.tsx`
 - [ ] `src/pages/opportunities/OpportunityDetails.tsx`
 - [ ] `src/pages/opportunities/CreateOpportunity.tsx`
@@ -1221,6 +1431,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] `src/pages/admin/AdminOpportunitiesAnalytics.tsx`
 
 **Composants**
+
 - [ ] `src/components/opportunities/ApplicationModal.tsx`
 - [ ] `src/components/opportunities/ReferralModal.tsx`
 - [ ] `src/components/opportunities/OpportunityCard.tsx`
@@ -1229,10 +1440,12 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - [ ] `src/components/opportunities/ApplicationStatusBadge.tsx`
 
 **Utilitaires**
+
 - [ ] `src/utils/cvParser.ts`
 - [ ] `src/utils/matchingAlgorithm.ts`
 
 **Cloud Functions**
+
 - [ ] `functions/sendApplicationNotification.js`
 - [ ] `functions/sendStatusChangeNotification.js`
 - [ ] `functions/checkJobAlerts.js` (cron job)
@@ -1241,6 +1454,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 #### Design System
 
 **Couleurs par Type d'Opportunité**
+
 - Emploi (CDI/CDD) : Bleu (#3B82F6)
 - Stage : Vert (#10B981)
 - Alternance : Violet (#8B5CF6)
@@ -1248,6 +1462,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - Partenariat : Rose (#EC4899)
 
 **Couleurs par Statut Candidature**
+
 - Pending : Gris (#6B7280)
 - Reviewed : Bleu (#3B82F6)
 - Shortlisted : Jaune (#F59E0B)
@@ -1256,6 +1471,7 @@ Plateforme centralisée d'opportunités où alumni/entreprises publient des offr
 - Accepted : Vert (#10B981)
 
 **Icônes (Lucide React)**
+
 - Opportunités : Briefcase
 - Candidatures : FileText
 - Cooptation : Users

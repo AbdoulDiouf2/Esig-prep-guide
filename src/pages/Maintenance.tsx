@@ -52,10 +52,10 @@ const Maintenance: React.FC = () => {
                   Si vous avez des questions urgentes, n'hésitez pas à nous contacter :
                 </p>
                 <a 
-                  href="mailto:support@cpsconnect.com" 
+                  href="mailto:abdoul.diouf2@groupe-esigelec.org" 
                   className="text-purple-600 hover:text-purple-700 font-medium underline"
                 >
-                  support@cpsconnect.com
+                  abdoul.diouf2@groupe-esigelec.org
                 </a>
               </div>
             </div>

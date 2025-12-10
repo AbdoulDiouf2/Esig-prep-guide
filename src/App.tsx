@@ -68,6 +68,7 @@ import AcademicResources from './pages/AcademicResources';
 import Ressources from './pages/Ressources';
 import Maintenance from './pages/Maintenance';
 import MaintenanceToggle from './pages/admin/MaintenanceToggle';
+import ImportAlumni from './pages/admin/ImportAlumni';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -422,6 +423,13 @@ function App() {
                   <AuthWrapper>
                     <SuperAdminRoute>
                       <MaintenanceToggle />
+                    </SuperAdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/import-alumni" element={
+                  <AuthWrapper>
+                    <SuperAdminRoute>
+                      <ImportAlumni />
                     </SuperAdminRoute>
                   </AuthWrapper>
                 } />

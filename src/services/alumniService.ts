@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   collection,
   doc,
@@ -728,4 +729,196 @@ Ceci est une notification automatique de CPS Connect.
     console.error('❌ Erreur lors de l\'envoi de la demande de contact:', error);
     throw error;
   }
+};
+
+/**
+ * Import en masse - Types et interfaces
+ */
+export interface ImportAlumniData {
+  name: string;
+  email: string;
+  yearPromo: number;
+  city?: string;
+  position?: string;
+  sectors?: string[];
+  expertise?: string[];
+  bio?: string;
+}
+
+export interface ImportResult {
+  success: number;
+  skipped: number;
+  errors: Array<{
+    row: number;
+    email: string;
+    error: string;
+  }>;
+}
+
+/**
+ * Créer un compte utilisateur + profil alumni pour l'import
+ * Utilise Firebase Client SDK (createUserWithEmailAndPassword)
+ */
+export const createAlumniAccountWithProfile = async (
+  data: ImportAlumniData
+): Promise<{ success: boolean; uid?: string; error?: string }> => {
+  try {
+    const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
+    const { auth } = await import('../firebase');
+    const { generateSecurePassword } = await import('../utils/passwordGenerator');
+    
+    // 1. Générer un mot de passe aléatoire
+    const tempPassword = generateSecurePassword();
+    
+    // 2. Créer le compte Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, data.email, tempPassword);
+    const user = userCredential.user;
+    
+    // 3. Mettre à jour le displayName
+    await updateProfile(user, {
+      displayName: data.name,
+    });
+    
+    // 4. Créer le document utilisateur dans Firestore
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: data.email,
+      displayName: data.name,
+      emailVerified: false,
+      isAdmin: false,
+      isSuperAdmin: false,
+      isEditor: false,
+      yearPromo: data.yearPromo,
+      profileComplete: true,
+      createdAt: Timestamp.now(),
+      lastLogin: Timestamp.now(),
+    });
+    
+    // 5. Créer le profil alumni
+    const alumniRef = doc(db, ALUMNI_COLLECTION, user.uid);
+    await setDoc(alumniRef, {
+      uid: user.uid,
+      name: data.name,
+      email: data.email,
+      yearPromo: data.yearPromo,
+      headline: '',
+      bio: data.bio || '',
+      photo: '',
+      sectors: data.sectors || [],
+      expertise: data.expertise || [],
+      company: '',
+      position: data.position || '',
+      companyDescription: '',
+      companyWebsite: '',
+      personalWebsite: '',
+      city: data.city || '',
+      country: '',
+      linkedin: '',
+      github: '',
+      twitter: '',
+      portfolio: [],
+      services: [],
+      seeking: [],
+      offering: [],
+      status: 'approved', // Pré-approuvé
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      importedFrom: 'bulk_import',
+      importedAt: Timestamp.now(),
+    });
+    
+    console.log(`✅ Compte créé pour ${data.email} (UID: ${user.uid})`);
+    
+    return {
+      success: true,
+      uid: user.uid,
+    };
+  } catch (error: any) {
+    console.error('Erreur création compte alumni:', error);
+    return {
+      success: false,
+      error: error.message || 'Erreur inconnue',
+    };
+  }
+};
+
+/**
+ * Import en masse de profils alumni depuis un fichier parsé
+ * Crée les comptes Firebase Auth + profils Firestore
+ */
+export const importAlumniFromFile = async (
+  parsedData: ImportAlumniData[],
+  onProgress?: (current: number, total: number) => void
+): Promise<ImportResult> => {
+  const result: ImportResult = {
+    success: 0,
+    skipped: 0,
+    errors: [],
+  };
+  
+  console.log(`🚀 Début de l'import de ${parsedData.length} profils...`);
+  
+  for (let i = 0; i < parsedData.length; i++) {
+    const row = parsedData[i];
+    const rowNumber = i + 2; // +2 car ligne 1 = headers, index commence à 0
+    
+    try {
+      // Notifier la progression
+      if (onProgress) {
+        onProgress(i + 1, parsedData.length);
+      }
+      
+      // Vérifier si l'email existe déjà
+      const existingProfiles = await getDocs(
+        query(
+          collection(db, ALUMNI_COLLECTION),
+          where('email', '==', row.email.toLowerCase())
+        )
+      );
+      
+      if (!existingProfiles.empty) {
+        console.log(`⚠️  Ligne ${rowNumber}: Email ${row.email} existe déjà, ignoré`);
+        result.skipped++;
+        continue;
+      }
+      
+      // Créer le compte + profil
+      const createResult = await createAlumniAccountWithProfile(row);
+      
+      if (createResult.success) {
+        console.log(`✅ Ligne ${rowNumber}: Compte créé pour ${row.email}`);
+        result.success++;
+      } else {
+        console.error(`❌ Ligne ${rowNumber}: Erreur pour ${row.email}: ${createResult.error}`);
+        result.errors.push({
+          row: rowNumber,
+          email: row.email,
+          error: createResult.error || 'Erreur inconnue',
+        });
+      }
+      
+      // Petite pause pour éviter de surcharger Firebase (rate limiting)
+      await new Promise(resolve => setTimeout(resolve, 500)); // 500ms entre chaque création
+      
+    } catch (error: any) {
+      console.error(`❌ Ligne ${rowNumber}: Erreur pour ${row.email}:`, error.message);
+      result.errors.push({
+        row: rowNumber,
+        email: row.email,
+        error: error.message || 'Erreur inconnue',
+      });
+    }
+  }
+  
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 RÉSUMÉ DE L\'IMPORT');
+  console.log('='.repeat(50));
+  console.log(`Total traité    : ${parsedData.length}`);
+  console.log(`✅ Succès       : ${result.success}`);
+  console.log(`⚠️  Ignorés      : ${result.skipped}`);
+  console.log(`❌ Erreurs      : ${result.errors.length}`);
+  console.log('='.repeat(50));
+  
+  return result;
 };
