@@ -765,30 +765,41 @@ export const createAlumniAccountWithProfile = async (
 ): Promise<{ success: boolean; uid?: string; error?: string }> => {
   try {
     const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
-    const { auth } = await import('../firebase');
+    const { secondaryAuth } = await import('../firebase');
     const { generateSecurePassword } = await import('../utils/passwordGenerator');
+    
+    // Vérifier que l'instance secondaire est disponible
+    if (!secondaryAuth) {
+      return {
+        success: false,
+        error: 'Instance secondaire Firebase non disponible',
+      };
+    }
     
     let user;
     let isNewAccount = false;
     
     try {
-      // 1. Essayer de créer le compte Firebase Auth
+      // 1. Essayer de créer le compte avec l'instance SECONDAIRE
+      // ✅ Cela ne déconnecte PAS l'utilisateur principal !
       const tempPassword = generateSecurePassword();
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, tempPassword);
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, tempPassword);
       user = userCredential.user;
       isNewAccount = true;
       
-      // 2. Mettre à jour le displayName
+      // 2. Mettre à jour le displayName dans Firebase Auth
+      // Important : faire ça AVANT de déconnecter
       await updateProfile(user, {
         displayName: data.name,
       });
       
       // 3. Créer le document utilisateur dans Firestore
+      // Le displayName est sauvegardé ici aussi pour cohérence
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
         uid: user.uid,
         email: data.email,
-        displayName: data.name,
+        displayName: data.name, // Même valeur que Firebase Auth
         emailVerified: false,
         isAdmin: false,
         isSuperAdmin: false,
@@ -798,6 +809,9 @@ export const createAlumniAccountWithProfile = async (
         createdAt: Timestamp.now(),
         lastLogin: Timestamp.now(),
       });
+      
+      // 4. Déconnecter l'instance secondaire (APRÈS avoir tout sauvegardé)
+      await secondaryAuth.signOut();
       
       console.log(`✅ Nouveau compte Auth créé pour ${data.email}`);
     } catch (authError: any) {

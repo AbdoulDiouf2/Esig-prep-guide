@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { initializeFirestore, CACHE_SIZE_UNLIMITED, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getStorage } from 'firebase/storage';
 
@@ -47,6 +49,16 @@ const auth = getAuth(app);
 // Initialiser Firebase Storage pour les téléchargements de fichiers
 const storage = getStorage(app);
 
+// Instance secondaire pour l'import en masse (ne déconnecte pas l'utilisateur principal)
+let secondaryApp: FirebaseApp | undefined;
+let secondaryAuth: Auth | undefined;
+try {
+  secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+  secondaryAuth = getAuth(secondaryApp);
+} catch (error) {
+  console.warn('Instance secondaire Firebase déjà initialisée ou erreur:', error);
+}
+
 // Initialiser Analytics de manière conditionnelle (uniquement côté client)
 let analytics;
 if (typeof window !== 'undefined') {
@@ -57,4 +69,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { db, auth, app, analytics, storage };
+export { db, auth, app, analytics, storage, secondaryAuth };
