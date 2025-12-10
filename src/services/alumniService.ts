@@ -758,6 +758,7 @@ export interface ImportResult {
 /**
  * Créer un compte utilisateur + profil alumni pour l'import
  * Utilise Firebase Client SDK (createUserWithEmailAndPassword)
+ * Si le compte Auth existe déjà, crée uniquement le profil alumni
  */
 export const createAlumniAccountWithProfile = async (
   data: ImportAlumniData
@@ -767,35 +768,69 @@ export const createAlumniAccountWithProfile = async (
     const { auth } = await import('../firebase');
     const { generateSecurePassword } = await import('../utils/passwordGenerator');
     
-    // 1. Générer un mot de passe aléatoire
-    const tempPassword = generateSecurePassword();
+    let user;
+    let isNewAccount = false;
     
-    // 2. Créer le compte Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, data.email, tempPassword);
-    const user = userCredential.user;
+    try {
+      // 1. Essayer de créer le compte Firebase Auth
+      const tempPassword = generateSecurePassword();
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, tempPassword);
+      user = userCredential.user;
+      isNewAccount = true;
+      
+      // 2. Mettre à jour le displayName
+      await updateProfile(user, {
+        displayName: data.name,
+      });
+      
+      // 3. Créer le document utilisateur dans Firestore
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: data.email,
+        displayName: data.name,
+        emailVerified: false,
+        isAdmin: false,
+        isSuperAdmin: false,
+        isEditor: false,
+        yearPromo: data.yearPromo,
+        profileComplete: true,
+        createdAt: Timestamp.now(),
+        lastLogin: Timestamp.now(),
+      });
+      
+      console.log(`✅ Nouveau compte Auth créé pour ${data.email}`);
+    } catch (authError: any) {
+      // Si l'email existe déjà dans Auth
+      if (authError.code === 'auth/email-already-in-use') {
+        console.log(`ℹ️  Compte Auth existe déjà pour ${data.email}, récupération de l'UID...`);
+        
+        // Récupérer l'UID depuis le document users dans Firestore
+        const usersSnapshot = await getDocs(
+          query(
+            collection(db, 'users'),
+            where('email', '==', data.email.toLowerCase())
+          )
+        );
+        
+        if (!usersSnapshot.empty) {
+          const existingUser = usersSnapshot.docs[0];
+          user = { uid: existingUser.id } as any;
+          console.log(`✅ UID récupéré: ${user.uid}`);
+        } else {
+          // Cas très rare: compte Auth existe mais pas dans Firestore users
+          return {
+            success: false,
+            error: 'Compte Auth existe mais UID introuvable dans Firestore',
+          };
+        }
+      } else {
+        // Autre erreur Auth
+        throw authError;
+      }
+    }
     
-    // 3. Mettre à jour le displayName
-    await updateProfile(user, {
-      displayName: data.name,
-    });
-    
-    // 4. Créer le document utilisateur dans Firestore
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: data.email,
-      displayName: data.name,
-      emailVerified: false,
-      isAdmin: false,
-      isSuperAdmin: false,
-      isEditor: false,
-      yearPromo: data.yearPromo,
-      profileComplete: true,
-      createdAt: Timestamp.now(),
-      lastLogin: Timestamp.now(),
-    });
-    
-    // 5. Créer le profil alumni
+    // 4. Créer le profil alumni (que le compte soit nouveau ou existant)
     const alumniRef = doc(db, ALUMNI_COLLECTION, user.uid);
     await setDoc(alumniRef, {
       uid: user.uid,
@@ -828,7 +863,11 @@ export const createAlumniAccountWithProfile = async (
       importedAt: Timestamp.now(),
     });
     
-    console.log(`✅ Compte créé pour ${data.email} (UID: ${user.uid})`);
+    if (isNewAccount) {
+      console.log(`✅ Compte complet créé pour ${data.email} (UID: ${user.uid})`);
+    } else {
+      console.log(`✅ Profil alumni créé pour compte existant ${data.email} (UID: ${user.uid})`);
+    }
     
     return {
       success: true,

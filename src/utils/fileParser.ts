@@ -3,15 +3,23 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
 export interface ParsedAlumniData {
+  Horodateur?: string;
   Nom: string;
   Prénom: string;
-  Mail: string;
   Ville: string;
-  'Promotion (année de sortie CPC)': string;
+  'Promotion (année de sortie CPC)': string | number;
+  Statut?: string;
   'Poste Occupé ou Recherché': string;
+  "Années d'experience"?: string;
   Domaine: string;
   'Précision de votre domaine': string;
-  Commentaire?: string;
+  Ecole?: string;
+  Mail: string;
+  Numero?: string;
+  "Combien d'heures par mois êtes-vous prêt à consacrer à la communauté ?"?: string;
+  "Qu'est ce que vous attendez de cette communauté ?"?: string;
+  "Qu'est ce que vous pensez pouvoir apporter à la communauté ?"?: string;
+  'Commentaire ?'?: string;
   [key: string]: any; // Pour les colonnes supplémentaires
 }
 
@@ -122,11 +130,21 @@ export const cleanEmail = (email: string): string => {
 };
 
 /**
- * Extrait l'année de promotion d'une chaîne
- * Ex: "2022", "Promo 2022", "2022-2023" → 2022
+ * Extrait l'année de promotion d'une chaîne ou d'un nombre
+ * Ex: "2022", "Promo 2022", "2022-2023", 2022 → 2022
  */
-export const extractYearPromo = (promo: string): number => {
-  const match = promo.match(/\d{4}/);
+export const extractYearPromo = (promo: string | number): number => {
+  // Si c'est déjà un nombre, le retourner directement
+  if (typeof promo === 'number') {
+    if (promo >= 2000 && promo <= 2050) {
+      return promo;
+    }
+    return new Date().getFullYear();
+  }
+  
+  // Si c'est une chaîne, extraire l'année
+  const promoStr = String(promo).trim();
+  const match = promoStr.match(/\d{4}/);
   if (match) {
     const year = parseInt(match[0]);
     // Validation: année entre 2000 et 2050
@@ -141,32 +159,33 @@ export const extractYearPromo = (promo: string): number => {
 /**
  * Valide les données d'un alumni
  */
-export const validateAlumniData = (row: ParsedAlumniData, rowNumber: number): { valid: boolean; errors: string[] } => {
+export const validateAlumniData = (row: ParsedAlumniData): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
   // Email obligatoire
-  if (!row.Mail || row.Mail.trim() === '') {
+  if (!row.Mail || String(row.Mail).trim() === '') {
     errors.push('Email manquant');
   } else {
     // Validation format email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(row.Mail.trim())) {
+    if (!emailRegex.test(String(row.Mail).trim())) {
       errors.push('Format email invalide');
     }
   }
   
   // Nom obligatoire
-  if (!row.Nom || row.Nom.trim() === '') {
+  if (!row.Nom || String(row.Nom).trim() === '') {
     errors.push('Nom manquant');
   }
   
   // Prénom obligatoire
-  if (!row.Prénom || row.Prénom.trim() === '') {
+  if (!row.Prénom || String(row.Prénom).trim() === '') {
     errors.push('Prénom manquant');
   }
   
   // Promotion obligatoire
-  if (!row['Promotion (année de sortie CPC)'] || row['Promotion (année de sortie CPC)'].trim() === '') {
+  const promo = row['Promotion (année de sortie CPC)'];
+  if (!promo || (typeof promo === 'string' && promo.trim() === '')) {
     errors.push('Année de promotion manquante');
   }
   

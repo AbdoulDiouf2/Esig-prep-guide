@@ -64,12 +64,12 @@ const ImportAlumni: React.FC = () => {
 
       parsedData.forEach((row, index) => {
         const rowNumber = index + 2; // +2 car ligne 1 = headers
-        const validation = validateAlumniData(row, rowNumber);
+        const validation = validateAlumniData(row);
 
         if (!validation.valid) {
           validationErrors.push({
             row: rowNumber,
-            email: row.Mail || 'N/A',
+            email: String(row.Mail || 'N/A'),
             error: validation.errors.join(', '),
           });
           return;
@@ -77,13 +77,13 @@ const ImportAlumni: React.FC = () => {
 
         dataToImport.push({
           name: `${row.Prénom} ${row.Nom}`.trim(),
-          email: cleanEmail(row.Mail),
+          email: cleanEmail(String(row.Mail)),
           yearPromo: extractYearPromo(row['Promotion (année de sortie CPC)']),
           city: row.Ville || '',
           position: row['Poste Occupé ou Recherché'] || '',
           sectors: row.Domaine ? [row.Domaine] : [],
           expertise: row['Précision de votre domaine'] ? [row['Précision de votre domaine']] : [],
-          bio: row.Commentaire || '',
+          bio: row['Commentaire ?'] || '',
         });
       });
 
@@ -121,7 +121,7 @@ const ImportAlumni: React.FC = () => {
   // Calculer le nombre de profils valides et invalides
   const validationStats = parsedData.reduce(
     (acc, row) => {
-      const validation = validateAlumniData(row, 0);
+      const validation = validateAlumniData(row);
       if (validation.valid) {
         acc.valid++;
       } else {
@@ -235,7 +235,7 @@ const ImportAlumni: React.FC = () => {
                   <td className="px-4 py-3 text-gray-500">React, Node.js</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-gray-900">Commentaire</td>
+                  <td className="px-4 py-3 text-gray-900">Commentaire ?</td>
                   <td className="px-4 py-3 text-gray-600">bio</td>
                   <td className="px-4 py-3 text-gray-500">Non</td>
                   <td className="px-4 py-3 text-gray-500">Passionné par...</td>
