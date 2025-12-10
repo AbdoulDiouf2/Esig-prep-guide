@@ -75,15 +75,24 @@ const ImportAlumni: React.FC = () => {
           return;
         }
 
+        // Parser les domaines (splitter par virgules et "et")
+        const parseSectors = (domaine: string): string[] => {
+          if (!domaine) return [];
+          return domaine
+            .split(/,|\set\s/i) // Split par virgule OU " et " (case insensitive)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+        };
+
         dataToImport.push({
           name: `${row.Prénom} ${row.Nom}`.trim(),
           email: cleanEmail(String(row.Mail)),
           yearPromo: extractYearPromo(row['Promotion (année de sortie CPC)']),
           city: row.Ville || '',
           position: row['Poste Occupé ou Recherché'] || '',
-          sectors: row.Domaine ? [row.Domaine] : [],
+          sectors: parseSectors(row.Domaine || ''),
           expertise: row['Précision de votre domaine'] ? [row['Précision de votre domaine']] : [],
-          bio: row['Commentaire ?'] || '',
+          bio: '', // Pas de mapping depuis Commentaire
         });
       });
 
@@ -224,21 +233,20 @@ const ImportAlumni: React.FC = () => {
                 </tr>
                 <tr>
                   <td className="px-4 py-3 text-gray-900">Domaine</td>
-                  <td className="px-4 py-3 text-gray-600">sectors</td>
+                  <td className="px-4 py-3 text-gray-600">sectors (array)</td>
                   <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">Tech</td>
+                  <td className="px-4 py-3 text-gray-500">
+                    <div className="text-xs">
+                      <div>"Informatique, Finance" → ["Informatique", "Finance"]</div>
+                      <div>"Data et IA" → ["Data", "IA"]</div>
+                    </div>
+                  </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 text-gray-900">Précision de votre domaine</td>
-                  <td className="px-4 py-3 text-gray-600">expertise</td>
+                  <td className="px-4 py-3 text-gray-600">expertise (array)</td>
                   <td className="px-4 py-3 text-gray-500">Non</td>
                   <td className="px-4 py-3 text-gray-500">React, Node.js</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Commentaire ?</td>
-                  <td className="px-4 py-3 text-gray-600">bio</td>
-                  <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">Passionné par...</td>
                 </tr>
               </tbody>
             </table>

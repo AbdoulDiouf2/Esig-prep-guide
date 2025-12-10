@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
-import { ParsedAlumniData } from '../../utils/fileParser';
+import { ParsedAlumniData, validateAlumniData } from '../../utils/fileParser';
 
 interface ImportPreviewModalProps {
   isOpen: boolean;
@@ -19,7 +19,20 @@ const ImportPreviewModal: React.FC<ImportPreviewModalProps> = ({
   validCount,
   errorCount,
 }) => {
+  const [activeTab, setActiveTab] = useState<'valid' | 'errors'>('valid');
+
   if (!isOpen) return null;
+
+  // Séparer les données valides et invalides
+  const validData = data.filter(row => validateAlumniData(row).valid);
+  const invalidData = data.map((row, index) => {
+    const validation = validateAlumniData(row);
+    return {
+      row,
+      index: index + 2, // +2 car ligne 1 = headers
+      validation,
+    };
+  }).filter(item => !item.validation.valid);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -50,93 +63,133 @@ const ImportPreviewModal: React.FC<ImportPreviewModalProps> = ({
             </button>
           </div>
 
-          {/* Stats */}
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <div className="flex gap-6">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium text-gray-900">
-                  {validCount} profil{validCount > 1 ? 's' : ''} valide{validCount > 1 ? 's' : ''}
-                </span>
-              </div>
-              {errorCount > 0 && (
+          {/* Tabs */}
+          <div className="px-6 border-b border-gray-200 bg-gray-50">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('valid')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'valid'
+                    ? 'border-green-600 text-green-700'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm font-medium text-gray-900">
-                    {errorCount} erreur{errorCount > 1 ? 's' : ''}
-                  </span>
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Profils valides ({validCount})</span>
                 </div>
+              </button>
+              {errorCount > 0 && (
+                <button
+                  onClick={() => setActiveTab('errors')}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'errors'
+                      ? 'border-red-600 text-red-700'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Erreurs ({errorCount})</span>
+                  </div>
+                </button>
               )}
             </div>
           </div>
 
           {/* Table */}
           <div className="flex-1 overflow-auto p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">#</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Nom complet</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Email</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Promo</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Ville</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Poste</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Domaine</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Statut</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {data.slice(0, 50).map((row, index) => {
-                    const hasError = !row.Mail || !row.Nom || !row.Prénom || !row['Promotion (année de sortie CPC)'];
-                    
-                    return (
-                      <tr 
-                        key={index}
-                        className={hasError ? 'bg-red-50' : 'hover:bg-gray-50'}
-                      >
+            {activeTab === 'valid' ? (
+              // Onglet Profils valides
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">#</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Nom complet</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Email</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Promo</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Ville</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Poste</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Domaine</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {validData.slice(0, 50).map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-gray-600 border-b">{index + 1}</td>
                         <td className="px-4 py-3 text-gray-900 border-b font-medium">
                           {row.Prénom} {row.Nom}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 border-b">
-                          {row.Mail || <span className="text-red-600">Manquant</span>}
+                        <td className="px-4 py-3 text-gray-600 border-b">{row.Mail}</td>
+                        <td className="px-4 py-3 text-gray-600 border-b">{row['Promotion (année de sortie CPC)']}</td>
+                        <td className="px-4 py-3 text-gray-600 border-b">{row.Ville || '-'}</td>
+                        <td className="px-4 py-3 text-gray-600 border-b">{row['Poste Occupé ou Recherché'] || '-'}</td>
+                        <td className="px-4 py-3 text-gray-600 border-b">{row.Domaine || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {validData.length > 50 && (
+                  <div className="mt-4 text-center text-sm text-gray-500">
+                    ... et {validData.length - 50} autres profils valides
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Onglet Erreurs
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Ligne</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Nom</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Prénom</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Email</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Promo</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Erreurs</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {invalidData.map((item, index) => (
+                      <tr key={index} className="bg-red-50 hover:bg-red-100">
+                        <td className="px-4 py-3 text-gray-900 border-b font-medium">
+                          {item.index}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 border-b">
-                          {row['Promotion (année de sortie CPC)'] || <span className="text-red-600">Manquant</span>}
+                        <td className="px-4 py-3 text-gray-900 border-b">
+                          {item.row.Nom || <span className="text-red-600 font-medium">Manquant</span>}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 border-b">
-                          {row.Ville || '-'}
+                        <td className="px-4 py-3 text-gray-900 border-b">
+                          {item.row.Prénom || <span className="text-red-600 font-medium">Manquant</span>}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 border-b">
-                          {row['Poste Occupé ou Recherché'] || '-'}
+                        <td className="px-4 py-3 text-gray-900 border-b">
+                          {item.row.Mail || <span className="text-red-600 font-medium">Manquant</span>}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 border-b">
-                          {row.Domaine || '-'}
+                        <td className="px-4 py-3 text-gray-900 border-b">
+                          {item.row['Promotion (année de sortie CPC)'] || <span className="text-red-600 font-medium">Manquant</span>}
                         </td>
                         <td className="px-4 py-3 border-b">
-                          {hasError ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                              <AlertCircle className="w-3 h-3" />
-                              Invalide
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                              <CheckCircle className="w-3 h-3" />
-                              Valide
-                            </span>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {item.validation.errors.map((error, errIndex) => (
+                              <span
+                                key={errIndex}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium"
+                              >
+                                <AlertCircle className="w-3 h-3" />
+                                {error}
+                              </span>
+                            ))}
+                          </div>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            
-            {data.length > 50 && (
-              <div className="mt-4 text-center text-sm text-gray-500">
-                ... et {data.length - 50} autres profils
+                    ))}
+                  </tbody>
+                </table>
+                {invalidData.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Aucune erreur détectée
+                  </div>
+                )}
               </div>
             )}
           </div>
