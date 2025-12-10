@@ -321,6 +321,12 @@ service cloud.firestore {
                       request.resource.data.uid == alumniId &&
                       request.resource.data.status == 'draft';
       
+      // Création : les super admins peuvent créer des profils avec status 'approved'
+      allow create: if isSuperAdmin() && 
+                      request.auth.uid != alumniId && // Import en masse
+                      request.resource.data.uid == alumniId &&
+                      request.resource.data.status in ['approved', 'draft'];
+      
       // Mise à jour : l'alumni peut modifier son propre profil
       // Mais ne peut pas changer le statut (sauf de draft à pending), dateValidation, validatedBy
       allow update: if isOwner(alumniId) && 
