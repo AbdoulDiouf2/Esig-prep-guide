@@ -50,6 +50,7 @@ export interface UserDoc {
   isEditor?: boolean;     // Ajouté pour la gestion des éditeurs
   emailVerified: boolean;
   photoURL?: string;
+  yearPromo?: number;     // Année de promotion (année de sortie de prépa)
   status?: string;        // Statut de l'utilisateur (actif, suspendu, etc.)
   createdAt?: string | FirestoreTimestamp | number | Date;  // Date de création du profil (plusieurs formats possibles)
   lastLogin?: string | FirestoreTimestamp | number | Date;  // Ajout du champ lastLogin
@@ -335,6 +336,51 @@ const AdminUserManager: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // Fonction pour synchroniser le statut des utilisateurs existants
+  const syncUserStatuses = async () => {
+    if (!confirm('Voulez-vous synchroniser le statut de tous les utilisateurs existants basé sur leur année de promotion ?\n\nCela mettra à jour automatiquement :\n- Alumni : si année de promotion < année actuelle\n- CPS : si année de promotion entre année actuelle et année actuelle + 1\n- Future : si année de promotion > année actuelle + 1')) {
+      return;
+    }
+
+    try {
+      const currentYear = new Date().getFullYear();
+      let updatedCount = 0;
+      
+      // Parcourir tous les utilisateurs
+      for (const user of users) {
+        if (!user.yearPromo) continue; // Ignorer les utilisateurs sans année de promotion
+        
+        let newStatus: 'alumni' | 'cps' | 'future';
+        
+        if (user.yearPromo < currentYear) {
+          newStatus = 'alumni';
+        } else if (user.yearPromo >= currentYear && user.yearPromo <= currentYear + 1) {
+          newStatus = 'cps';
+        } else {
+          newStatus = 'future';
+        }
+        
+        // Mettre à jour seulement si le statut a changé
+        if (user.status !== newStatus) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            status: newStatus,
+            updatedAt: new Date()
+          });
+          updatedCount++;
+        }
+      }
+      
+      alert(`✅ Synchronisation terminée !\n${updatedCount} utilisateur(s) mis à jour(s)`);
+      
+      // Rafraîchir la liste des utilisateurs
+      fetchUsers();
+      
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation:', error);
+      alert('❌ Erreur lors de la synchronisation des statuts');
+    }
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
@@ -433,6 +479,15 @@ const AdminUserManager: React.FC = () => {
             </select>
           </div>
           <button
+            onClick={syncUserStatuses}
+            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 whitespace-nowrap"
+          >
+            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Synchro Statuts
+          </button>
+          <button
             onClick={exportCpsUsersToCsv}
             className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 whitespace-nowrap"
           >
@@ -495,6 +550,7 @@ const AdminUserManager: React.FC = () => {
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promo</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de création</th>
@@ -574,6 +630,15 @@ const AdminUserManager: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
+                    <td className="px-4 py-2">
+                      {user.yearPromo ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                          Promo {user.yearPromo}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Non défini</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       {user.status ? (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${

@@ -25,13 +25,20 @@ service cloud.firestore {
     // Règles pour la collection users
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin() || isSuperAdmin();
-      allow update: if isOwner(userId) && 
-                      (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isEditor', 'isSuperAdmin'])) ||
-                   isSuperAdmin(); // Ajout pour super admin
       
-      allow update: if isAdmin() && (
-                      !resource.data.isSuperAdmin || isSuperAdmin()
-                    );
+      allow update: if (
+        // Propriétaire peut mettre à jour son profil (sauf les rôles admin)
+        (isOwner(userId) && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isEditor', 'isSuperAdmin'])) ||
+        
+        // Super admin peut tout mettre à jour
+        isSuperAdmin() ||
+        
+        // Admin peut mettre à jour le statut et updatedAt pour synchronisation
+        (isAdmin() && 
+         !resource.data.isSuperAdmin && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
       
       allow delete: if isOwner(userId) || isSuperAdmin();
       

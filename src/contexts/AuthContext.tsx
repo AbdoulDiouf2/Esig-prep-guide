@@ -24,6 +24,7 @@ export type AppUser = {
   isSuperAdmin?: boolean;
   isEditor?: boolean;
   yearPromo?: number; // Année de promotion (année de sortie de prépa)
+  status?: 'alumni' | 'cps' | 'future'; // Statut déterminé automatiquement
   profileComplete?: boolean; // Indique si le profil est complet (pour migration)
   createdAt?: Date;
   lastLogin?: Date;
@@ -78,6 +79,7 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     isSuperAdmin: userData?.isSuperAdmin || false,
     isEditor: userData?.isEditor || false,
     yearPromo: userData?.yearPromo,
+    status: userData?.status,
     profileComplete: userData?.profileComplete,
     photoURL: firebaseUser.photoURL || userData?.photoURL,
     createdAt: userData?.createdAt?.toDate(),
@@ -135,13 +137,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { user } = userCredential;
 
-      // 2. Mettre à jour le profil avec le nom d'affichage
+      // 2. Déterminer le statut automatiquement à partir de l'année de promotion
+      const currentYear = new Date().getFullYear();
+      let status: 'alumni' | 'cps' | 'future';
+      
+      if (yearPromo < currentYear) {
+        status = 'alumni'; // A terminé la prépa
+      } else if (yearPromo >= currentYear && yearPromo <= currentYear + 1) {
+        status = 'cps'; // En prépa (1ère ou 2ème année)
+      } else {
+        status = 'future'; // Futur étudiant
+      }
+
+      // 3. Mettre à jour le profil avec le nom d'affichage
       await updateProfile(user, { displayName });
 
-      // 3. Envoyer l'email de vérification
+      // 4. Envoyer l'email de vérification
       await sendEmailVerification(user);
 
-      // 4. Créer un document utilisateur dans Firestore
+      // 5. Créer un document utilisateur dans Firestore
       const userData = {
         uid: user.uid,
         email: user.email || '',
@@ -149,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: false, // Par défaut, l'utilisateur n'est pas admin
         isEditor: false, // Par défaut, l'utilisateur n'est pas éditeur
         yearPromo: yearPromo, // Année de promotion (année de sortie de prépa)
+        status: status, // Statut déterminé automatiquement
         profileComplete: true, // Profil complété lors de l'inscription
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

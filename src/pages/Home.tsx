@@ -32,7 +32,7 @@ const Home: React.FC = () => {
                 CPS Connect - La communauté qui réunit étudiants CPS et alumni
               </h1>
               <p className="text-lg md:text-xl text-blue-100 mb-8">
-                Que tu sois en prépa, à l'ESIGELEC ou ailleurs en France, connecte-toi avec des alumni du parcours CPS pour du mentorat, des opportunités et du networking.
+                Où que tu sois - en prépa, à l'ESIGELEC, en France ou au Sénégal - rejoins le réseau des alumni CPS pour du mentorat, des opportunités et du networking.
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 {currentUser ? (
