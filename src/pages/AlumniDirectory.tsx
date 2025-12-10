@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, X } from 'lucide-react';
-import { getApprovedAlumniProfiles, searchAlumni } from '../services/alumniService';
+import { getApprovedAlumniProfiles } from '../services/alumniService';
 import AlumniCard from '../components/alumni/AlumniCard';
 import type { AlumniProfile, AlumniSearchFilters } from '../types/alumni';
 
@@ -14,8 +14,7 @@ const AlumniDirectory: React.FC = () => {
   const [filters, setFilters] = useState<AlumniSearchFilters>({
     sectors: [],
     expertise: [],
-    yearPromoMin: 2010,
-    yearPromoMax: new Date().getFullYear() + 5,
+    yearPromos: [], // Changé vers liste de promotions
     city: undefined,
     country: undefined,
   });
@@ -23,18 +22,19 @@ const AlumniDirectory: React.FC = () => {
   // Secteurs disponibles
   const availableSectors = [
     'Tech', 'Finance', 'Design', 'Marketing', 'Startup',
-    'Consulting', 'Education', 'Santé', 'E-commerce', 'Autre'
+    'Consulting', 'Education', 'Santé', 'E-commerce', 'Entreprenariat', 'Autre'
   ];
 
-  // Charger les profils
+  // Charger tous les profils une seule fois
   useEffect(() => {
-    loadProfiles();
+    loadAllProfiles();
   }, []);
 
-  const loadProfiles = async () => {
+  const loadAllProfiles = async () => {
     setLoading(true);
     try {
-      const data = await getApprovedAlumniProfiles('dateCreated', 50);
+      const data = await getApprovedAlumniProfiles('dateCreated', 1000); // Charger plus pour filtrer côté client
+      setAllProfiles(data);
       setProfiles(data);
     } catch (error) {
       console.error('Erreur chargement profils:', error);
@@ -43,37 +43,85 @@ const AlumniDirectory: React.FC = () => {
     }
   };
 
-  // Recherche
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      loadProfiles();
+  // État pour tous les profils (non filtrés)
+  const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]);
+
+  // Extraire les promotions uniques et triées
+  const availablePromos = React.useMemo(() => {
+    const promos = [...new Set(allProfiles.map(p => p.yearPromo).filter(Boolean))];
+    return promos.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
+  }, [allProfiles]);
+
+  // Recherche instantanée côté client
+  useEffect(() => {
+    const query = searchQuery.toLowerCase().trim();
+    
+    if (!query) {
+      setProfiles(allProfiles);
       return;
     }
 
-    setLoading(true);
-    try {
-      // La recherche se fait sur tous les champs texte
-      const results = await searchAlumni(filters, 'dateCreated', 50);
-      setProfiles(results);
-    } catch (error) {
-      console.error('Erreur recherche:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Filtrage instantané sur tous les champs
+    const filtered = allProfiles.filter(profile => {
+      // Rechercher dans tous les champs texte
+      return (
+        profile.name?.toLowerCase().includes(query) ||
+        profile.email?.toLowerCase().includes(query) ||
+        profile.bio?.toLowerCase().includes(query) ||
+        profile.headline?.toLowerCase().includes(query) ||
+        profile.position?.toLowerCase().includes(query) ||
+        profile.company?.toLowerCase().includes(query) ||
+        profile.city?.toLowerCase().includes(query) ||
+        profile.country?.toLowerCase().includes(query) ||
+        profile.sectors?.some(sector => sector.toLowerCase().includes(query)) ||
+        profile.expertise?.some(exp => exp.toLowerCase().includes(query))
+      );
+    });
 
-  // Appliquer les filtres
-  const handleApplyFilters = async () => {
-    setLoading(true);
-    try {
-      const results = await searchAlumni(filters, 'dateCreated', 50);
-      setProfiles(results);
-      setShowFilters(false);
-    } catch (error) {
-      console.error('Erreur filtrage:', error);
-    } finally {
-      setLoading(false);
+    setProfiles(filtered);
+  }, [searchQuery, allProfiles]);
+
+  // Appliquer les filtres côté client
+  const handleApplyFilters = () => {
+    let filtered = [...allProfiles];
+    
+    // Filtrer par secteurs
+    if (filters.sectors && filters.sectors.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.sectors?.some(sector => filters.sectors!.includes(sector))
+      );
     }
+    
+    // Filtrer par expertise
+    if (filters.expertise && filters.expertise.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.expertise?.some(exp => filters.expertise!.includes(exp))
+      );
+    }
+    
+    // Filtrer par promotions
+    if (filters.yearPromos && filters.yearPromos.length > 0) {
+      filtered = filtered.filter(profile => 
+        filters.yearPromos!.includes(profile.yearPromo)
+      );
+    }
+    
+    // Filtrer par ville
+    if (filters.city) {
+      filtered = filtered.filter(profile => 
+        profile.city?.toLowerCase().includes(filters.city!.toLowerCase())
+      );
+    }
+    
+    // Filtrer par pays
+    if (filters.country) {
+      filtered = filtered.filter(profile => 
+        profile.country?.toLowerCase().includes(filters.country!.toLowerCase())
+      );
+    }
+    
+    setProfiles(filtered);
+    setShowFilters(false);
   };
 
   // Réinitialiser les filtres
@@ -81,13 +129,12 @@ const AlumniDirectory: React.FC = () => {
     setFilters({
       sectors: [],
       expertise: [],
-      yearPromoMin: 2010,
-      yearPromoMax: new Date().getFullYear() + 5,
+      yearPromos: [],
       city: undefined,
       country: undefined,
     });
     setSearchQuery('');
-    loadProfiles();
+    setProfiles(allProfiles);
   };
 
   // Toggle secteur
@@ -103,6 +150,7 @@ const AlumniDirectory: React.FC = () => {
   const activeFiltersCount = 
     (filters.sectors?.length || 0) + 
     (filters.expertise?.length || 0) +
+    (filters.yearPromos?.length || 0) +
     (filters.city ? 1 : 0) +
     (filters.country ? 1 : 0);
 
@@ -125,25 +173,18 @@ const AlumniDirectory: React.FC = () => {
         {/* Barre de recherche et filtres */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Recherche */}
-            <div className="flex-1 flex gap-2">
-              <div className="relative flex-1">
+            {/* Recherche instantanée */}
+            <div className="flex-1">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Rechercher par nom, bio, expertise, entreprise..."
+                  placeholder="Rechercher instantanément par nom, bio, expertise, entreprise..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <button
-                onClick={handleSearch}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-              >
-                Rechercher
-              </button>
             </div>
 
             {/* Bouton filtres */}
@@ -190,26 +231,28 @@ const AlumniDirectory: React.FC = () => {
                 {/* Année de promo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Année de promotion
+                    Promotions
                   </label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      value={filters.yearPromoMin}
-                      onChange={(e) => setFilters(prev => ({ ...prev, yearPromoMin: parseInt(e.target.value) }))}
-                      min="2000"
-                      max={new Date().getFullYear() + 10}
-                      className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-500">à</span>
-                    <input
-                      type="number"
-                      value={filters.yearPromoMax}
-                      onChange={(e) => setFilters(prev => ({ ...prev, yearPromoMax: parseInt(e.target.value) }))}
-                      min="2000"
-                      max={new Date().getFullYear() + 10}
-                      className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                  <div className="relative">
+                    <select
+                      multiple
+                      value={filters.yearPromos?.map(String) || []}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                        setFilters(prev => ({ ...prev, yearPromos: selected }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      size={4}
+                    >
+                      {availablePromos.map(promo => (
+                        <option key={promo} value={promo}>
+                          Promo {promo}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maintenez Ctrl/Cmd pour sélection multiple
+                    </p>
                   </div>
                 </div>
 

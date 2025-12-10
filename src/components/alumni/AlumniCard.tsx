@@ -11,7 +11,7 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
   return (
     <Link 
       to={`/alumni/${profile.uid}`}
-      className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] p-6 cursor-pointer"
+      className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] p-6 cursor-pointer h-full flex flex-col"
     >
       {/* Header avec photo et nom */}
       <div className="flex items-start gap-4 mb-4">
@@ -23,7 +23,19 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
           />
         ) : (
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
-            {profile.name.charAt(0).toUpperCase()}
+            {(() => {
+              const nameParts = profile.name.trim().split(' ');
+              if (nameParts.length >= 2) {
+                // Prendre première lettre du prénom et première lettre du nom
+                return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+              } else if (nameParts.length === 1 && nameParts[0].length > 0) {
+                // Si un seul mot, prendre les deux premières lettres si possible
+                return nameParts[0].length >= 2 
+                  ? nameParts[0].substring(0, 2).toUpperCase()
+                  : nameParts[0].charAt(0).toUpperCase();
+              }
+              return profile.name.charAt(0).toUpperCase();
+            })()}
           </div>
         )}
         
@@ -115,70 +127,74 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
         </div>
       )}
 
-      {/* Réseaux sociaux */}
-      <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-        {profile.linkedin && (
-          <a
-            href={profile.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-gray-600 hover:text-blue-600 transition-colors"
-            title="LinkedIn"
-          >
-            <Linkedin className="w-4 h-4" />
-          </a>
-        )}
-        {profile.github && (
-          <a
-            href={profile.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-gray-600 hover:text-gray-900 transition-colors"
-            title="GitHub"
-          >
-            <Github className="w-4 h-4" />
-          </a>
-        )}
-        {profile.twitter && (
-          <a
-            href={profile.twitter}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-gray-600 hover:text-blue-400 transition-colors"
-            title="Twitter"
-          >
-            <Twitter className="w-4 h-4" />
-          </a>
-        )}
-        {profile.personalWebsite && (
-          <a
-            href={profile.personalWebsite}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-gray-600 hover:text-purple-600 transition-colors"
-            title="Site web personnel"
-          >
-            <Globe className="w-4 h-4" />
-          </a>
-        )}
-        {profile.companyWebsite && (
-          <a
-            href={profile.companyWebsite}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-gray-600 hover:text-orange-600 transition-colors"
-            title="Site web de l'entreprise"
-          >
-            <Building2 className="w-4 h-4" />
-          </a>
-        )}
-        
-        <div className="flex-1"></div>
+      {/* Espace flexible pour pousser le footer en bas */}
+      <div className="flex-1"></div>
+      
+      {/* Footer avec réseaux sociaux et lien */}
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
+        {/* Réseaux sociaux */}
+        <div className="flex items-center gap-3">
+          {profile.linkedin && (
+            <a
+              href={profile.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+              title="LinkedIn"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
+          )}
+          {profile.github && (
+            <a
+              href={profile.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+              title="GitHub"
+            >
+              <Github className="w-4 h-4" />
+            </a>
+          )}
+          {profile.twitter && (
+            <a
+              href={profile.twitter}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-600 hover:text-blue-400 transition-colors"
+              title="Twitter"
+            >
+              <Twitter className="w-4 h-4" />
+            </a>
+          )}
+          {profile.personalWebsite && (
+            <a
+              href={profile.personalWebsite}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-600 hover:text-purple-600 transition-colors"
+              title="Site web personnel"
+            >
+              <Globe className="w-4 h-4" />
+            </a>
+          )}
+          {profile.companyWebsite && (
+            <a
+              href={profile.companyWebsite}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-gray-600 hover:text-orange-600 transition-colors"
+              title="Site web de l'entreprise"
+            >
+              <Building2 className="w-4 h-4" />
+            </a>
+          )}
+        </div>
         
         {/* Indicateur cliquable */}
         <span className="text-sm font-medium text-blue-600">

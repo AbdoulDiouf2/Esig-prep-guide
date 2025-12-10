@@ -107,8 +107,9 @@ export interface AlumniSearchFilters {
   searchQuery?: string; // Recherche full-text
   sectors?: string[]; // Filtrer par secteurs
   expertise?: string[]; // Filtrer par expertise
-  yearPromoMin?: number; // Année de promo minimum
-  yearPromoMax?: number; // Année de promo maximum
+  yearPromoMin?: number; // Année de promo minimum (legacy)
+  yearPromoMax?: number; // Année de promo maximum (legacy)
+  yearPromos?: number[]; // Liste des promotions sélectionnées
   city?: string;
   country?: string;
   seeking?: string[]; // Filtrer par "Je cherche"

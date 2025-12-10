@@ -952,7 +952,7 @@ export const importAlumniFromFile = async (
       }
       
       // Pause plus longue pour éviter le rate limiting de Firebase Auth
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 secondes entre chaque création
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 2 secondes entre chaque création
       
     } catch (error: any) {
       console.error(`❌ Ligne ${rowNumber}: Erreur pour ${row.email}:`, error.message);

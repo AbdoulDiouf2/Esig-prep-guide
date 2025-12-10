@@ -206,7 +206,19 @@ const MyAlumniProfile: React.FC = () => {
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-                {profile.name.charAt(0).toUpperCase()}
+                {(() => {
+                  const nameParts = profile.name.trim().split(' ');
+                  if (nameParts.length >= 2) {
+                    // Prendre première lettre du prénom et première lettre du nom
+                    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+                  } else if (nameParts.length === 1 && nameParts[0].length > 0) {
+                    // Si un seul mot, prendre les deux premières lettres si possible
+                    return nameParts[0].length >= 2 
+                      ? nameParts[0].substring(0, 2).toUpperCase()
+                      : nameParts[0].charAt(0).toUpperCase();
+                  }
+                  return profile.name.charAt(0).toUpperCase();
+                })()}
               </div>
             )}
 

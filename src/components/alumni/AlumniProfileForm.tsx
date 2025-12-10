@@ -51,14 +51,14 @@ interface AlumniProfileFormData {
 interface AlumniProfileFormProps {
   initialData?: Partial<AlumniProfileFormData>;
   onSubmit: (data: AlumniProfileFormData) => void | Promise<void>;
-  onPhotoUpload?: (file: File) => Promise<string>;
+  // onPhotoUpload?: (file: File) => Promise<string>; // Désactivé temporairement
   loading?: boolean;
 }
 
 const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   initialData,
   onSubmit,
-  onPhotoUpload,
+  // onPhotoUpload, // Désactivé temporairement
   loading = false,
 }) => {
   const navigate = useNavigate();
@@ -88,7 +88,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   const [newExpertise, setNewExpertise] = useState('');
   const [newSeeking, setNewSeeking] = useState('');
   const [newOffering, setNewOffering] = useState('');
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // const [uploadingPhoto, setUploadingPhoto] = useState(false); // Désactivé temporairement
 
   // Options prédéfinies pour "Je cherche / Je propose"
   const seekingOptions = [
@@ -120,7 +120,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   // Secteurs prédéfinis
   const predefinedSectors = [
     'Tech', 'Finance', 'Design', 'Marketing', 'Startup', 
-    'Consulting', 'Education', 'Santé', 'E-commerce', 'Autre'
+    'Consulting', 'Education', 'Santé', 'E-commerce', 'Entreprenariat', 'Autre'
   ];
 
   const handleAddSector = (sector: string) => {
@@ -227,20 +227,20 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     }));
   };
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onPhotoUpload) {
-      setUploadingPhoto(true);
-      try {
-        const photoUrl = await onPhotoUpload(file);
-        setFormData(prev => ({ ...prev, photo: photoUrl }));
-      } catch (error) {
-        console.error('Erreur upload photo:', error);
-      } finally {
-        setUploadingPhoto(false);
-      }
-    }
-  };
+  // const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file && onPhotoUpload) {
+  //     setUploadingPhoto(true);
+  //     try {
+  //       const photoUrl = await onPhotoUpload(file);
+  //       setFormData(prev => ({ ...prev, photo: photoUrl }));
+  //     } catch (error) {
+  //       console.error('Erreur upload photo:', error);
+  //     } finally {
+  //       setUploadingPhoto(false);
+  //     }
+  //   }
+  // }; // Désactivé temporairement
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,25 +258,25 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
 
         <div className="space-y-4">
           {/* Photo */}
-          <div>
+          <div className="opacity-60">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Photo de profil
             </label>
+            <div className="bg-gray-100 border border-gray-300 rounded-md p-4 text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                🚫 L'upload de photos est temporairement désactivé
+              </p>
+              <p className="text-xs text-gray-500">
+                Le stockage Firebase Storage sera bientôt activé
+              </p>
+            </div>
             {formData.photo && (
               <img
                 src={formData.photo}
                 alt="Profile"
-                className="w-24 h-24 rounded-full object-cover mb-2"
+                className="w-24 h-24 rounded-full object-cover mb-2 mt-2"
               />
             )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              disabled={uploadingPhoto}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            {uploadingPhoto && <p className="text-sm text-gray-500 mt-1">Upload en cours...</p>}
           </div>
 
           {/* Headline */}
