@@ -306,6 +306,91 @@ const AlumniStats: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Top Villes */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <MapPin className="w-5 h-5 text-green-600 mr-2" />
+              <h2 className="text-lg font-bold text-gray-900">Top 5 Villes</h2>
+            </div>
+            <div className="space-y-3">
+              {stats.topCities?.map(([city, count], index) => (
+                <div key={city} className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                    <span className="text-sm font-bold text-green-600">{index + 1}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-gray-900">{city}</span>
+                      <span className="text-sm text-gray-600">{count} profils</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!stats.topCities || stats.topCities.length === 0) && (
+                <p className="text-gray-500 text-sm">Aucune donnée disponible</p>
+              )}
+            </div>
+          </div>
+
+          {/* Top Postes */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <Award className="w-5 h-5 text-purple-600 mr-2" />
+              <h2 className="text-lg font-bold text-gray-900">Top 5 Postes</h2>
+            </div>
+            <div className="space-y-3">
+              {stats.topPositions?.map(([position, count], index) => (
+                <div key={position} className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                    <span className="text-sm font-bold text-purple-600">{index + 1}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-gray-900">{position}</span>
+                      <span className="text-sm text-gray-600">{count} profils</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-purple-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!stats.topPositions || stats.topPositions.length === 0) && (
+                <p className="text-gray-500 text-sm">Aucune donnée disponible</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Top Entreprises */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Briefcase className="w-5 h-5 text-orange-600 mr-2" />
+            <h2 className="text-lg font-bold text-gray-900">Top 5 Entreprises</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stats.topCompanies?.map(([company, count]) => (
+              <div key={company} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-900">{company}</span>
+                <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
+                  {count} profils
+                </span>
+              </div>
+            ))}
+            {(!stats.topCompanies || stats.topCompanies.length === 0) && (
+              <p className="text-gray-500 text-sm col-span-2">Aucune donnée disponible</p>
+            )}
+          </div>
         </div>
 
         {/* Top Expertises */}

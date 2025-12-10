@@ -252,6 +252,14 @@ export const calculateAlumniStats = (profiles: AlumniProfile[]) => {
     }
   });
 
+  // Statistiques par ville
+  const cityCounts: Record<string, number> = {};
+  profiles.forEach(profile => {
+    if (profile.city) {
+      cityCounts[profile.city] = (cityCounts[profile.city] || 0) + 1;
+    }
+  });
+
   // Statistiques par année de promo
   const promoCounts: Record<number, number> = {};
   profiles.forEach(profile => {
@@ -268,6 +276,22 @@ export const calculateAlumniStats = (profiles: AlumniProfile[]) => {
     });
   });
 
+  // Top entreprises
+  const companyCounts: Record<string, number> = {};
+  profiles.forEach(profile => {
+    if (profile.company) {
+      companyCounts[profile.company] = (companyCounts[profile.company] || 0) + 1;
+    }
+  });
+
+  // Top postes
+  const positionCounts: Record<string, number> = {};
+  profiles.forEach(profile => {
+    if (profile.position) {
+      positionCounts[profile.position] = (positionCounts[profile.position] || 0) + 1;
+    }
+  });
+
   return {
     total,
     draft,
@@ -277,16 +301,28 @@ export const calculateAlumniStats = (profiles: AlumniProfile[]) => {
     approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
     sectorCounts,
     countryCounts,
+    cityCounts,
     promoCounts,
     expertiseCounts,
+    companyCounts,
+    positionCounts,
     topSectors: Object.entries(sectorCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5),
     topCountries: Object.entries(countryCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5),
+    topCities: Object.entries(cityCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5),
     topExpertises: Object.entries(expertiseCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10),
+    topCompanies: Object.entries(companyCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5),
+    topPositions: Object.entries(positionCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5),
   };
 };
