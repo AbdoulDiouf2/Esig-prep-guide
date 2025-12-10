@@ -871,8 +871,8 @@ export const createAlumniAccountWithProfile = async (
       seeking: [],
       offering: [],
       status: 'approved', // Pré-approuvé
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      dateCreated: Timestamp.now(),
+      dateUpdated: Timestamp.now(),
       importedFrom: 'bulk_import',
       importedAt: Timestamp.now(),
     });
