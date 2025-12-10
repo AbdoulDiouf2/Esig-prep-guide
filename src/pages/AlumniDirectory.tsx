@@ -17,6 +17,10 @@ const AlumniDirectory: React.FC = () => {
     yearPromos: [], // Changé vers liste de promotions
     city: undefined,
     country: undefined,
+    company: undefined,
+    position: undefined,
+    seeking: [],
+    offering: [],
   });
 
   // Secteurs disponibles
@@ -51,6 +55,31 @@ const AlumniDirectory: React.FC = () => {
     const promos = [...new Set(allProfiles.map(p => p.yearPromo).filter(Boolean))];
     return promos.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
   }, [allProfiles]);
+
+  // Extraire les expertises uniques
+  const availableExpertise = React.useMemo(() => {
+    const expertise = [...new Set(allProfiles.flatMap(p => p.expertise || []))];
+    return expertise.sort();
+  }, [allProfiles]);
+
+  // Extraire les entreprises uniques
+  const availableCompanies = React.useMemo(() => {
+    const companies = [...new Set(allProfiles.map(p => p.company).filter(Boolean))];
+    return companies.sort();
+  }, [allProfiles]);
+
+  // Options pour "Je cherche / Je propose"
+  const seekingOptions = [
+    'Collaborateur', 'Développeur', 'Designer', 'Mentor', 'Opportunité',
+    'Stage', 'Emploi', 'Recrutement', 'Partenariat', 'Investissement',
+    'Expertise technique', 'Réseau'
+  ];
+
+  const offeringOptions = [
+    'Mentorat', 'Collaboration', 'Conseil', 'Expertise technique',
+    'Investissement', 'Partenariat', 'Recrutement', 'Opportunité',
+    'Stage', 'Emploi', 'Réseau', 'Support'
+  ];
 
   // Recherche instantanée côté client
   useEffect(() => {
@@ -120,6 +149,34 @@ const AlumniDirectory: React.FC = () => {
       );
     }
     
+    // Filtrer par entreprise
+    if (filters.company) {
+      filtered = filtered.filter(profile => 
+        profile.company === filters.company
+      );
+    }
+    
+    // Filtrer par poste
+    if (filters.position) {
+      filtered = filtered.filter(profile => 
+        profile.position?.toLowerCase().includes(filters.position!.toLowerCase())
+      );
+    }
+    
+    // Filtrer par "je cherche"
+    if (filters.seeking && filters.seeking.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.seeking?.some(item => filters.seeking!.includes(item))
+      );
+    }
+    
+    // Filtrer par "je propose"
+    if (filters.offering && filters.offering.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.offering?.some(item => filters.offering!.includes(item))
+      );
+    }
+    
     setProfiles(filtered);
     setShowFilters(false);
   };
@@ -132,12 +189,14 @@ const AlumniDirectory: React.FC = () => {
       yearPromos: [],
       city: undefined,
       country: undefined,
+      seeking: [],
+      offering: [],
     });
     setSearchQuery('');
     setProfiles(allProfiles);
   };
 
-  // Toggle secteur
+  // Fonctions pour gérer les filtres
   const toggleSector = (sector: string) => {
     setFilters(prev => ({
       ...prev,
@@ -147,12 +206,41 @@ const AlumniDirectory: React.FC = () => {
     }));
   };
 
+  const toggleExpertise = (exp: string) => {
+    setFilters(prev => ({
+      ...prev,
+      expertise: prev.expertise?.includes(exp)
+        ? prev.expertise.filter(e => e !== exp)
+        : [...(prev.expertise || []), exp]
+    }));
+  };
+
+  const toggleSeeking = (item: string) => {
+    setFilters(prev => ({
+      ...prev,
+      seeking: prev.seeking?.includes(item)
+        ? prev.seeking.filter(s => s !== item)
+        : [...(prev.seeking || []), item]
+    }));
+  };
+
+  const toggleOffering = (item: string) => {
+    setFilters(prev => ({
+      ...prev,
+      offering: prev.offering?.includes(item)
+        ? prev.offering.filter(o => o !== item)
+        : [...(prev.offering || []), item]
+    }));
+  };
+
   const activeFiltersCount = 
     (filters.sectors?.length || 0) + 
     (filters.expertise?.length || 0) +
     (filters.yearPromos?.length || 0) +
     (filters.city ? 1 : 0) +
-    (filters.country ? 1 : 0);
+    (filters.country ? 1 : 0) +
+    (filters.seeking?.length || 0) +
+    (filters.offering?.length || 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -276,6 +364,105 @@ const AlumniDirectory: React.FC = () => {
                       placeholder="Pays"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                  </div>
+                </div>
+
+                {/* Expertise */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Expertise
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {availableExpertise.map(exp => (
+                      <button
+                        key={exp}
+                        onClick={() => toggleExpertise(exp)}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          filters.expertise?.includes(exp)
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {exp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Entreprise */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Entreprise
+                  </label>
+                  <select
+                    value={filters.company || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, company: e.target.value || undefined }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Toutes les entreprises</option>
+                    {availableCompanies.map(company => (
+                      <option key={company} value={company}>
+                        {company}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Poste */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Poste
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.position || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, position: e.target.value || undefined }))}
+                    placeholder="Ex: Développeur, Manager..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Je cherche */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Je cherche
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {seekingOptions.map(option => (
+                      <button
+                        key={option}
+                        onClick={() => toggleSeeking(option)}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          filters.seeking?.includes(option)
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Je propose */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Je propose
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {offeringOptions.map(option => (
+                      <button
+                        key={option}
+                        onClick={() => toggleOffering(option)}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          filters.offering?.includes(option)
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

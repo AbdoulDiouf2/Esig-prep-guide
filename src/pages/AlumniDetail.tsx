@@ -214,6 +214,20 @@ const AlumniDetail: React.FC = () => {
           </div>
         </div>
 
+        {/* Position */}
+        {profile.position && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              Poste actuel
+            </h2>
+            <p className="text-gray-700 text-lg">{profile.position}</p>
+            {profile.company && (
+              <p className="text-gray-600 mt-1">chez {profile.company}</p>
+            )}
+          </div>
+        )}
+
         {/* Bio */}
         {profile.bio && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">

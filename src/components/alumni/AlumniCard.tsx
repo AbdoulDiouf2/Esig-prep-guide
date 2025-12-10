@@ -61,12 +61,15 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
         </p>
       )}
 
-      {/* Entreprise */}
-      {profile.company && (
+      {/* Position/Entreprise */}
+      {(profile.position || profile.company) && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
           <Briefcase className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">
-            {profile.position ? `${profile.position} chez ` : ''}{profile.company}
+            {profile.position && (
+              <>{profile.position}{profile.company && ' chez '}</>
+            )}
+            {profile.company}
           </span>
         </div>
       )}

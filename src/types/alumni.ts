@@ -112,6 +112,8 @@ export interface AlumniSearchFilters {
   yearPromos?: number[]; // Liste des promotions sélectionnées
   city?: string;
   country?: string;
+  company?: string; // Filtrer par entreprise
+  position?: string; // Filtrer par poste
   seeking?: string[]; // Filtrer par "Je cherche"
   offering?: string[]; // Filtrer par "Je propose"
 }
