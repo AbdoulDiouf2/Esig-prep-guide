@@ -55,7 +55,7 @@ interface CategoryFeatures {
 const ApplicationsDashboard: React.FC = () => {
   const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
   const [isSuperAdminState, setIsSuperAdminState] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('alumni');
+  const [activeCategory, setActiveCategory] = useState('mentorship');
   const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
   const [loadingAlumni, setLoadingAlumni] = useState(true);
 
@@ -94,12 +94,12 @@ const ApplicationsDashboard: React.FC = () => {
   }, [currentUser]);
 
   const allFeatures: CategoryFeatures = {
-    alumni: {
+    mentorship: {
       title: "Alumni",
-      icon: <Users className="w-6 h-6 text-purple-500" />,
+      icon: <Users className="w-6 h-6 text-purple-600" />,
       features: [
         {
-          icon: <Users className="w-8 h-8 text-purple-500" />,
+          icon: <Users className="w-8 h-8 text-purple-600" />,
           title: "Annuaire Alumni",
           description: "Connecte-toi avec des alumni : trouve des collaborateurs, des mentors, des opportunités",
           link: "/alumni",
@@ -125,18 +125,88 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Découvrez et inscrivez-vous aux webinaires à venir",
           link: "/webinars",
           roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Users className="w-8 h-8 text-green-600" />,
+          title: "Programme de mentorat",
+          description: "Trouvez un mentor ou devenez mentor pour les étudiants",
+          link: "/mentorship",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <CalendarCheck className="w-8 h-8 text-indigo-600" />,
+          title: "Événements networking",
+          description: "Participez aux événements de networking virtuels et physiques",
+          link: "/networking-events",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Briefcase className="w-8 h-8 text-green-600" />,
+          title: "Offres d'emploi et stages",
+          description: "Consultez et postulez aux opportunités partagées par la communauté",
+          link: "/opportunities",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <FileText className="w-8 h-8 text-blue-600" />,
+          title: "Mes candidatures",
+          description: "Suivez l'état de vos candidatures et recevez des feedbacks",
+          link: "/my-applications",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Bell className="w-8 h-8 text-yellow-600" />,
+          title: "Alertes emploi",
+          description: "Recevez des notifications pour les offres correspondant à votre profil",
+          link: "/job-alerts",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Users className="w-8 h-8 text-purple-600" />,
+          title: "Cooptations",
+          description: "Recommandez des candidats et gagnez des bonus de cooptation",
+          link: "/my-referrals",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Briefcase className="w-8 h-8 text-indigo-600" />,
+          title: "Publier une offre",
+          description: "Déposez une offre d'emploi, stage ou mission freelance",
+          link: "/opportunities/create",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
         }
       ]
     },
-    main: {
-      title: "Etudiants CPS",
-      icon: <Star className="w-6 h-6 text-yellow-500" />,
+    learning: {
+      title: "CPS",
+      icon: <BookOpen className="w-6 h-6 text-green-600" />,
       features: [
         {
           icon: <BookOpen className="w-8 h-8 text-blue-500" />,
           title: "Module Étudiants CPS – Guide de préparation",
           description: "Consultez le guide de préparation interactif et suivez votre progression étape par étape",
           link: "/dashboard",
+          roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <BookOpen className="w-8 h-8 text-indigo-600" />,
+          title: "Ressources Académiques",
+          description: "Accédez aux cours, TD, TP organisés par année d'étude",
+          link: "/academic-resources",
           roles: ["admin", "editor", "user"]
         },
         {
@@ -154,17 +224,19 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"]
         },
         {
-          icon: <BookOpen className="w-8 h-8 text-indigo-600" />,
-          title: "Ressources Académiques",
-          description: "Accédez aux cours, TD, TP organisés par année d'étude",
-          link: "/academic-resources",
-          roles: ["admin", "editor", "user"]
+          icon: <Video className="w-8 h-8 text-red-600" />,
+          title: "Bibliothèque vidéo",
+          description: "Accédez aux témoignages et retours d'expérience des alumni",
+          link: "/video-library",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
         },
         {
-          icon: <Plane className="w-8 h-8 text-indigo-500" />,
-          title: "Réservation de billets d'avion",
-          description: "Trouvez et réservez vos billets d'avion au meilleur prix",
-          link: "https://touba-aviation-group.com/#/demande-vol",
+          icon: <Database className="w-8 h-8 text-purple-600" />,
+          title: "Projets open source",
+          description: "Participez à des projets communautaires et développez vos compétences",
+          link: "/open-source-projects",
           roles: ["admin", "editor", "user"],
           disabled: true,
           comingSoon: true
@@ -261,14 +333,14 @@ const ApplicationsDashboard: React.FC = () => {
       ]
     },
     travel: {
-      title: "Voyage et Installation",
+      title: "Voyage & Installation",
       icon: <Plane className="w-6 h-6 text-blue-600" />,
       features: [
         {
-          icon: <Plane className="w-8 h-8 text-blue-600" />,
-          title: "Achat de billets d'avion",
-          description: "Système de recherche et d'achat de billets à tarifs préférentiels",
-          link: "#",
+          icon: <Plane className="w-8 h-8 text-indigo-500" />,
+          title: "Réservation de billets d'avion",
+          description: "Trouvez et réservez vos billets d'avion au meilleur prix",
+          link: "https://touba-aviation-group.com/#/demande-vol",
           roles: ["admin", "editor", "user"],
           disabled: true,
           comingSoon: true
@@ -299,11 +371,29 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"],
           disabled: true,
           comingSoon: true
+        },
+        {
+          icon: <Users className="w-8 h-8 text-purple-600" />,
+          title: "Buddy System",
+          description: "Connectez-vous avec des alumni pour un accompagnement personnalisé",
+          link: "/buddy-system",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Map className="w-8 h-8 text-blue-600" />,
+          title: "Carte mondiale des alumni",
+          description: "Visualisez la communauté d'alumni à travers le monde",
+          link: "/alumni-map",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
         }
       ]
     },
     tools: {
-      title: "Outils et Services",
+      title: "Outils & Services",
       icon: <Briefcase className="w-6 h-6 text-indigo-600" />,
       features: [
         {
@@ -340,6 +430,24 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"],
           disabled: true,
           comingSoon: true
+        },
+        {
+          icon: <Database className="w-8 h-8 text-purple-600" />,
+          title: "Marketplace services",
+          description: "Accédez aux services partagés par la communauté (coaching, relecture...)",
+          link: "/marketplace",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <FileText className="w-8 h-8 text-orange-600" />,
+          title: "Vérification CV IA",
+          description: "Analyse et optimisation automatique de votre CV par IA",
+          link: "/cv-checker",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
         }
       ]
     },
@@ -347,13 +455,6 @@ const ApplicationsDashboard: React.FC = () => {
       title: "Fonctionnalités avancées",
       icon: <Zap className="w-6 h-6 text-yellow-600" />,
       features: [
-        {
-          icon: <Video className="w-8 h-8 text-red-500" />,
-          title: "Webinaires",
-          description: "Participez à des webinaires et sessions d'information",
-          link: "/webinars",
-          roles: ["admin", "editor", "user"]
-        },
         {
           icon: <Server className="w-8 h-8 text-purple-600" />,
           title: "API et intégrations",
@@ -369,6 +470,42 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Système de paiement sécurisé multi-devises",
           link: "#",
           roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Star className="w-8 h-8 text-yellow-600" />,
+          title: "Gamification & Badges",
+          description: "Gagnez des points et des badges en participant à la communauté",
+          link: "/gamification",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Users className="w-8 h-8 text-green-600" />,
+          title: "Recommandations",
+          description: "Demandez et recevez des recommandations écrites de la communauté",
+          link: "/recommendations",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <CreditCard className="w-8 h-8 text-red-600" />,
+          title: "Dons & Soutien",
+          description: "Soutenez l'association alumni par vos contributions",
+          link: "/donations",
+          roles: ["admin", "editor", "user"],
+          disabled: true,
+          comingSoon: true
+        },
+        {
+          icon: <Activity className="w-8 h-8 text-blue-600" />,
+          title: "Analytics avancés",
+          description: "Tableaux de bord analytiques détaillés et rapports personnalisés",
+          link: "/analytics",
+          roles: ["admin"],
           disabled: true,
           comingSoon: true
         }
@@ -513,8 +650,8 @@ const ApplicationsDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Nouveaux profils alumni (uniquement dans la catégorie alumni) */}
-      {activeCategory === 'alumni' && (
+      {/* Nouveaux profils alumni (uniquement dans la catégorie mentorship) */}
+      {activeCategory === 'mentorship' && (
         <div className="mb-8">
           <NewProfilesHighlight />
         </div>

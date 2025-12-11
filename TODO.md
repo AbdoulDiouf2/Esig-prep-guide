@@ -44,10 +44,16 @@
   - [x] Modération/validation des questions (Admin/Éditeur)
   - [x] Vue personnalisée des questions de l’utilisateur
 
-- **Forum communautaire**
-  - [x] Catégories de forum
-  - [x] Création de threads et réponses
-  - [x] Nettoyage/normalisation des catégories
+- **Annuaire Alumni**
+  - [x] Formulaire profil alumni complet avec tous les champs (professionnel, réseaux sociaux, localisation, disponibilités)
+  - [x] Système de validation des profils (pending/approved/rejected)
+  - [x] Filtres avancés par secteur, expertise, année de promo, localisation
+  - [x] Recherche full-text sur nom, bio, expertise, entreprise
+  - [x] Boutons de suppression (croix X) sur tous les champs du formulaire
+  - [x] Barre de recherche avec bouton X pour vider rapidement la recherche
+  - [x] Correction bug de persistance des champs réinitialisés (deleteField() dans alumniService)
+  - [x] Configuration email privacy (showEmail décoché par défaut)
+  - [x] Date pickers type="month" avec labels clairs pour éducation/expériences
   - [x] Modération par les rôles (éditeur/admin)
 
 - **Webinaires & ateliers**
@@ -61,11 +67,14 @@
   - [x] Notifications de chat en temps réel / non lus
   - [x] Chat IA réservé aux superadmins (ChatAI)
 
-- **Feedback & support**
-  - [x] Formulaire de feedback côté utilisateur
-  - [x] Interface admin pour consulter les feedbacks
-  - [x] Tutoriel utilisateur et page d’aide
-  - [x] Tutoriel admin
+- **Email Broadcast (Admin)**
+  - [x] Système d'envoi d'emails en masse aux utilisateurs
+  - [x] Support des destinataires multiples avec EmailBadgeInput
+  - [x] Options CC et CCI avec groupes d'utilisateurs
+  - [x] Filtrage par statut (esigelec, alumni, cps, autres, tous)
+  - [x] Envoi de test aux destinataires sélectionnés
+  - [x] Interface améliorée avec checkboxes stylisées
+  - [x] Gestion des erreurs et rapports d'envoi détaillés
 
 - **Interfaces d’administration / édition**
   - [x] Tableau de bord Admin
@@ -93,10 +102,59 @@
   - [x] Disclaimers et consentement cookies
 
 - **Autres**
-  - [x] Page d’accueil
+  - [x] Page d'accueil
   - [x] Gestion des notifications globales (bannières)
   - [x] Page 404 personnalisée
   - [x] Intégration analytics (Vercel)
+
+---
+
+## 1.1. Améliorations UX et Corrections de Bugs Récents
+
+### Formulaire AlumniProfileForm
+
+- [x] **Boutons de suppression (croix X)** sur tous les champs input/textarea
+  - [x] Headline, Bio, Company, Position, CompanyDescription, CompanyWebsite
+  - [x] LinkedIn, GitHub, Twitter, PersonalWebsite
+  - [x] City, Country, AvailabilityNote
+  - [x] Affichage conditionnel seulement quand champ rempli
+  - [x] Style cohérent : gris clair avec hover effect
+- [x] **Section Disponibilités améliorée**
+  - [x] Bouton "Réinitialiser" sur la même ligne que le titre
+  - [x] Réinitialisation visuelle et fonctionnelle des champs
+  - [x] Correction bug de persistance après réinitialisation
+- [x] **Correction bug select fields**
+  - [x] Disponibilité : ne se vidait pas quand "Sélectionne un statut" choisi
+  - [x] Niveau de langue : même problème corrigé
+  - [x] Utilisation de `|| undefined` et `|| ''` selon le contexte
+- [x] **Configuration email privacy**
+  - [x] "Afficher mon email" décoché par défaut (`showEmail: false`)
+  - [x] Affichage conditionnel sur profil public (`AlumniDetail.tsx`)
+  - [x] Email visible seulement si `profile.visibility?.showEmail === true`
+
+### Barre de recherche AlumniDirectory
+
+- [x] **Bouton X pour vider la recherche**
+  - [x] Apparaît seulement quand du texte est saisi
+  - [x] Positionné à droite de la barre de recherche
+  - [x] Vide le champ `searchQuery` en un clic
+  - [x] Style cohérent avec les autres boutons X
+
+### Service Alumni (alumniService.ts)
+
+- [x] **Correction persistance des champs réinitialisés**
+  - [x] Utilisation de `deleteField()` pour supprimer explicitement les champs
+  - [x] Gestion des chaînes vides vs undefined
+  - [x] Les champs réinitialisés restent bien vides après sauvegarde
+
+### Email Broadcast System
+
+- [x] **Refonte complète avec EmailBadgeInput**
+  - [x] Support des destinataires multiples avec badges
+  - [x] Options CC et BCC améliorées avec checkboxes stylisées
+  - [x] Filtrage par statut (esigelec, alumni, cps, autres, tous)
+  - [x] Envoi par lot avec rapports détaillés (succès/erreurs)
+  - [x] Interface responsive et accessible
 
 ---
 
@@ -623,14 +681,18 @@ Ces éléments sont décrits comme "Fonctionnalités à venir confirmées".
         - Boutons d'action (télécharger rapport, nouvel import)
     - [x] **Bibliothèques nécessaires**
       - [x] Installer `papaparse` pour parsing CSV
+
         ```bash
         npm install papaparse
         npm install --save-dev @types/papaparse
         ```
+
       - [x] Installer `xlsx` pour parsing Excel
+
         ```bash
         npm install xlsx
         ```
+
     - [x] **Utilitaires**
       - [x] Créer `src/utils/fileParser.ts`
         - Fonction `parseCSV(file)` : parse CSV avec papaparse
