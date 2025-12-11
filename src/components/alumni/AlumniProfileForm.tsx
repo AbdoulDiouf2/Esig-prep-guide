@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users, GraduationCap, Globe, Heart, Eye, Star } from 'lucide-react';
+import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users, GraduationCap, Globe, Heart, Eye, Star, X } from 'lucide-react';
 import { EducationEntry, ExperienceEntry, CertificationEntry } from '../../types/alumni';
 
 interface AlumniProfileFormData {
@@ -495,15 +495,26 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="headline" className="block text-sm font-medium text-gray-700 mb-1">
               Titre professionnel *
             </label>
-            <input
-              id="headline"
-              type="text"
-              required
-              value={formData.headline}
-              onChange={(e) => setFormData(prev => ({ ...prev, headline: e.target.value }))}
-              placeholder="Ex: Développeur Full-Stack | Fondateur de Startup"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="headline"
+                type="text"
+                required
+                value={formData.headline}
+                onChange={(e) => setFormData(prev => ({ ...prev, headline: e.target.value }))}
+                placeholder="Ex: Développeur Full-Stack | Fondateur de Startup"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.headline && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, headline: '' }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Bio */}
@@ -511,15 +522,26 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
               Bio / Description *
             </label>
-            <textarea
-              id="bio"
-              required
-              rows={4}
-              value={formData.bio}
-              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Parle de toi, ton parcours, tes passions..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <textarea
+                id="bio"
+                required
+                value={formData.bio}
+                onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Parle-nous de toi, ton parcours, tes projets..."
+                rows={4}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.bio && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, bio: '' }))}
+                  className="absolute right-2 top-8 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -645,28 +667,50 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
               <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
                 Entreprise
               </label>
-              <input
-                id="company"
-                type="text"
-                value={formData.company || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                placeholder="Nom de l'entreprise"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  id="company"
+                  type="text"
+                  value={formData.company || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Nom de l'entreprise"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {formData.company && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, company: undefined }))}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div>
               <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
                 Poste
               </label>
-              <input
-                id="position"
-                type="text"
-                value={formData.position || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                placeholder="Ton poste actuel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  id="position"
+                  type="text"
+                  value={formData.position || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  placeholder="Ton poste actuel"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {formData.position && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, position: undefined }))}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -674,28 +718,50 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="companyDescription" className="block text-sm font-medium text-gray-700 mb-1">
               Description de l'entreprise
             </label>
-            <textarea
-              id="companyDescription"
-              rows={3}
-              value={formData.companyDescription || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, companyDescription: e.target.value }))}
-              placeholder="Que fait ton entreprise ?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <textarea
+                id="companyDescription"
+                rows={3}
+                value={formData.companyDescription || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyDescription: e.target.value }))}
+                placeholder="Que fait ton entreprise ?"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.companyDescription && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, companyDescription: undefined }))}
+                  className="absolute right-2 top-8 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-1">
               Site web de l'entreprise
             </label>
-            <input
-              id="companyWebsite"
-              type="url"
-              value={formData.companyWebsite || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, companyWebsite: e.target.value }))}
-              placeholder="https://exemple-entreprise.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="companyWebsite"
+                type="url"
+                value={formData.companyWebsite || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyWebsite: e.target.value }))}
+                placeholder="https://exemple-entreprise.com"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.companyWebsite && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, companyWebsite: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1057,7 +1123,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             />
             <select
               value={newLanguageLevel}
-              onChange={(e) => setNewLanguageLevel(e.target.value)}
+              onChange={(e) => setNewLanguageLevel(e.target.value || '')}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Niveau</option>
@@ -1161,56 +1227,100 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="linkedin" className="block text-sm font-medium text-gray-700 mb-1">
               LinkedIn
             </label>
-            <input
-              id="linkedin"
-              type="url"
-              value={formData.linkedin || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, linkedin: e.target.value }))}
-              placeholder="https://linkedin.com/in/..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="linkedin"
+                type="url"
+                value={formData.linkedin || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, linkedin: e.target.value }))}
+                placeholder="https://linkedin.com/in/..."
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.linkedin && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, linkedin: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="github" className="block text-sm font-medium text-gray-700 mb-1">
               GitHub
             </label>
-            <input
-              id="github"
-              type="url"
-              value={formData.github || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, github: e.target.value }))}
-              placeholder="https://github.com/..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="github"
+                type="url"
+                value={formData.github || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, github: e.target.value }))}
+                placeholder="https://github.com/..."
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.github && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, github: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="twitter" className="block text-sm font-medium text-gray-700 mb-1">
               Twitter
             </label>
-            <input
-              id="twitter"
-              type="url"
-              value={formData.twitter || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, twitter: e.target.value }))}
-              placeholder="https://twitter.com/..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="twitter"
+                type="url"
+                value={formData.twitter || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, twitter: e.target.value }))}
+                placeholder="https://twitter.com/..."
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.twitter && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, twitter: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="personalWebsite" className="block text-sm font-medium text-gray-700 mb-1">
               Site web personnel
             </label>
-            <input
-              id="personalWebsite"
-              type="url"
-              value={formData.personalWebsite || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, personalWebsite: e.target.value }))}
-              placeholder="https://mon-portfolio.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="personalWebsite"
+                type="url"
+                value={formData.personalWebsite || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, personalWebsite: e.target.value }))}
+                placeholder="https://mon-portfolio.com"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.personalWebsite && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, personalWebsite: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <p className="text-xs text-gray-500 mt-1">
               Ton portfolio, blog personnel, etc.
             </p>
@@ -1230,28 +1340,50 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
               Ville
             </label>
-            <input
-              id="city"
-              type="text"
-              value={formData.city || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-              placeholder="Ex: Dakar"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="city"
+                type="text"
+                value={formData.city || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="Ex: Dakar"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.city && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, city: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
               Pays
             </label>
-            <input
-              id="country"
-              type="text"
-              value={formData.country || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-              placeholder="Ex: Sénégal"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="country"
+                type="text"
+                value={formData.country || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                placeholder="Ex: Sénégal"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.country && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, country: undefined }))}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1557,7 +1689,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <select
               id="availability"
               value={formData.availability || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value || undefined }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Sélectionne un statut</option>
