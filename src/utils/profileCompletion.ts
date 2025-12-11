@@ -41,6 +41,42 @@ export const calculateProfileCompletion = (profile: AlumniProfile): number => {
     // Je cherche / Je propose
     seekingOffering: (profile.seeking && profile.seeking.length > 0) || 
                      (profile.offering && profile.offering.length > 0),
+    
+    // NOUVEAUX CHAMPS ENRICHIS
+    
+    // Soft Skills
+    softSkills: profile.softSkills && profile.softSkills.length > 0,
+    
+    // Langues
+    languages: profile.languages && profile.languages.length > 0,
+    
+    // Centres d'intérêt
+    interests: profile.interests && profile.interests.length > 0,
+    
+    // Éducation
+    education: profile.education && profile.education.length > 0,
+    
+    // Expériences professionnelles
+    experiences: profile.experiences && profile.experiences.length > 0,
+    
+    // Certifications
+    certifications: profile.certifications && profile.certifications.length > 0,
+    
+    // Disponibilité
+    availability: !!profile.availability && profile.availability.trim().length > 0,
+    
+    // Détails "Je cherche / Je propose"
+    seekingDetails: !!profile.seekingDetails && profile.seekingDetails.trim().length > 10,
+    
+    // Tarifs si services payants
+    rateIfPaid: !!profile.rateIfPaid && profile.rateIfPaid.trim().length > 0,
+    
+    // Confidentialité (bonus si configuré)
+    visibilityConfigured: !!profile.visibility && (
+      profile.visibility.showEmail !== undefined ||
+      profile.visibility.showCity !== undefined ||
+      profile.visibility.showCompany !== undefined
+    ),
   };
 
   // Compter les champs remplis
@@ -106,6 +142,44 @@ export const getProfileSuggestions = (profile: AlumniProfile): string[] => {
 
   if (!profile.portfolio || profile.portfolio.length === 0) {
     suggestions.push('Ajoute des projets à ton portfolio pour valoriser ton travail');
+  }
+
+  // NOUVELLES SUGGESTIONS POUR LES CHAMPS ENRICHIS
+
+  if (!profile.softSkills || profile.softSkills.length === 0) {
+    suggestions.push('Ajoute tes soft skills (communication, leadership, etc.) pour montrer tes qualités humaines');
+  }
+
+  if (!profile.languages || profile.languages.length === 0) {
+    suggestions.push('Indique les langues que tu parles pour élargir tes opportunités');
+  }
+
+  if (!profile.interests || profile.interests.length === 0) {
+    suggestions.push('Partage tes centres d\'intérêt pour créer des connexions personnelles');
+  }
+
+  if (!profile.education || profile.education.length === 0) {
+    suggestions.push('Ajoute ton parcours éducatif pour valoriser ta formation');
+  }
+
+  if (!profile.experiences || profile.experiences.length === 0) {
+    suggestions.push('Décris tes expériences professionnelles pour montrer ton parcours');
+  }
+
+  if (!profile.certifications || profile.certifications.length === 0) {
+    suggestions.push('Ajoute tes certifications pour valider tes compétences officiellement');
+  }
+
+  if (!profile.availability || profile.availability.trim().length === 0) {
+    suggestions.push('Indique ta disponibilité (freelance, ouvert à opportunités, etc.)');
+  }
+
+  if (!profile.seekingDetails || profile.seekingDetails.trim().length < 10) {
+    suggestions.push('Décris en détail ce que tu cherches pour attirer les bonnes opportunités');
+  }
+
+  if (!profile.rateIfPaid || profile.rateIfPaid.trim().length === 0) {
+    suggestions.push('Indique tes tarifs si tu proposes des services payants');
   }
 
   return suggestions;

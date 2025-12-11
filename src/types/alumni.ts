@@ -29,6 +29,51 @@ export interface ServiceOffered {
 }
 
 /**
+ * Recommandations entre alumni
+ */
+export interface AlumniRecommendation {
+  id: string;
+  fromUid: string;
+  fromName: string;
+  message: string;
+  date: Timestamp;
+}
+
+/**
+   * Formations / Études
+   */
+export interface EducationEntry {
+  school: string;
+  degree?: string; // Ex: "Master Informatique"
+  field?: string;  // Ex: "IA / Data"
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+}
+
+/**
+ * Expériences professionnelles
+ */
+export interface ExperienceEntry {
+  company: string;
+  role: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  description?: string;
+}
+
+/**
+ * Certifications
+ */
+export interface CertificationEntry {
+  name: string;
+  issuer: string;
+  date: string;
+  url?: string;
+}
+
+/**
  * Profil alumni complet
  * Utilisé pour l'annuaire des alumni et le réseau professionnel
  */
@@ -81,6 +126,53 @@ export interface AlumniProfile {
   dateValidation?: Timestamp;
   validatedBy?: string; // UID admin qui a validé
   rejectionReason?: string; // Raison du rejet (si status = rejected)
+
+  // ===== === NOUVEAUX CHAMPS RECOMMANDÉS === =====
+
+  // ——— Education
+  education?: EducationEntry[];
+
+  // ——— Expériences détaillées
+  experiences?: ExperienceEntry[];
+
+  // ——— Certifications
+  certifications?: CertificationEntry[];
+
+  // ——— Compétences transversales
+  softSkills?: string[]; // Ex: leadership, communication
+
+  // ——— Langues
+  languages?: {
+    name: string; // Ex: "Français"
+    level: string; // Ex: "Courant", "Bilingue"
+  }[];
+
+  // ——— Disponibilité
+  availability?: string; // Ex: "Ouvert à opportunités", "Freelance"
+  availabilityNote?: string; // Notes détaillées sur disponibilités
+  
+  // ——— Détails "Je cherche / Je propose"
+  seekingDetails?: string; // Description détaillée de ce que je cherche
+  rateIfPaid?: string; // Tarifs si services payants
+  
+  // ——— Centres d'intérêt
+  interests?: string[]; // Ex: ["Sport", "Musique", "Voyage"]
+
+  // ——— Confidentialité
+  visibility?: {
+    showEmail?: boolean;
+    showCity?: boolean;
+    showCompany?: boolean;
+  };
+
+  // ——— Recommandations reçues
+  recommendations?: AlumniRecommendation[];
+
+  // ——— Endorsements (compétences soutenues par d'autres)
+  endorsementCount?: number;
+
+  // ——— Score de complétion du profil (auto-généré)
+  profileCompleteness?: number; // %
 }
 
 /**
@@ -116,6 +208,10 @@ export interface AlumniSearchFilters {
   position?: string; // Filtrer par poste
   seeking?: string[]; // Filtrer par "Je cherche"
   offering?: string[]; // Filtrer par "Je propose"
+  // Nouveaux filtres enrichis
+  softSkills?: string[]; // Filtrer par soft skills
+  languages?: string[]; // Filtrer par langues (noms)
+  availability?: string; // Filtrer par disponibilité
 }
 
 /**

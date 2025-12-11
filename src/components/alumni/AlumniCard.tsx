@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Briefcase, Award, Linkedin, Github, Twitter, Globe, Building2 } from 'lucide-react';
+import { MapPin, Briefcase, Award, Linkedin, Github, Twitter, Globe, Building2, Users, Star } from 'lucide-react';
 import type { AlumniProfile } from '../../types/alumni';
 
 interface AlumniCardProps {
@@ -107,7 +107,7 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
 
       {/* Expertise */}
       {profile.expertise && profile.expertise.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-3">
           <div className="flex items-center gap-1 mb-1">
             <Award className="w-3 h-3 text-gray-500" />
             <span className="text-xs font-medium text-gray-500">Expertise</span>
@@ -124,6 +124,43 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
             {profile.expertise.length > 4 && (
               <span className="inline-block px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded">
                 +{profile.expertise.length - 4}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Disponibilité - seulement si pertinent */}
+      {profile.availability && profile.availability !== 'Pas disponible' && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1">
+            <Users className="w-3 h-3 text-blue-500" />
+            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              {profile.availability}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Soft Skills - limités aux 2-3 premiers */}
+      {profile.softSkills && profile.softSkills.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1 mb-1">
+            <Star className="w-3 h-3 text-yellow-500" />
+            <span className="text-xs font-medium text-gray-500">Soft Skills</span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {profile.softSkills.slice(0, 2).map((skill, index) => (
+              <span
+                key={index}
+                className="inline-block px-2 py-1 text-xs bg-yellow-50 text-yellow-700 rounded"
+              >
+                {skill}
+              </span>
+            ))}
+            {profile.softSkills.length > 2 && (
+              <span className="inline-block px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded">
+                +{profile.softSkills.length - 2}
               </span>
             )}
           </div>

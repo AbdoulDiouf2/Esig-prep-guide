@@ -21,12 +21,32 @@ const AlumniDirectory: React.FC = () => {
     position: undefined,
     seeking: [],
     offering: [],
+    // Nouveaux filtres enrichis
+    softSkills: [],
+    languages: [],
+    availability: undefined,
   });
 
   // Secteurs disponibles
   const availableSectors = [
     'Tech', 'Finance', 'Design', 'Marketing', 'Startup',
     'Consulting', 'Education', 'Santé', 'E-commerce', 'Entreprenariat', 'Autre'
+  ];
+
+  // Options pour les nouveaux filtres enrichis
+  const availableSoftSkills = [
+    'Communication', 'Leadership', 'Gestion d\'équipe', 'Résolution de problèmes',
+    'Créativité', 'Adaptabilité', 'Travail d\'équipe', 'Gestion du temps',
+    'Esprit critique', 'Intelligence émotionnelle', 'Prise de décision', 'Négociation'
+  ];
+
+  const availableLanguages = [
+    'Français', 'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais',
+    'Néerlandais', 'Chinois', 'Japonais', 'Arabe', 'Russe', 'Coréen'
+  ];
+
+  const availabilityOptions = [
+    'Disponible', 'Freelance', 'Ouvert à opportunités', 'Non disponible', 'Contactez-moi'
   ];
 
   // Charger tous les profils une seule fois
@@ -191,6 +211,10 @@ const AlumniDirectory: React.FC = () => {
       country: undefined,
       seeking: [],
       offering: [],
+      // Nouveaux filtres enrichis
+      softSkills: [],
+      languages: [],
+      availability: undefined,
     });
     setSearchQuery('');
     setProfiles(allProfiles);
@@ -233,6 +257,32 @@ const AlumniDirectory: React.FC = () => {
     }));
   };
 
+  // Fonctions pour les nouveaux filtres enrichis
+  const toggleSoftSkill = (skill: string) => {
+    setFilters(prev => ({
+      ...prev,
+      softSkills: prev.softSkills?.includes(skill)
+        ? prev.softSkills.filter(s => s !== skill)
+        : [...(prev.softSkills || []), skill]
+    }));
+  };
+
+  const toggleLanguage = (language: string) => {
+    setFilters(prev => ({
+      ...prev,
+      languages: prev.languages?.includes(language)
+        ? prev.languages.filter(l => l !== language)
+        : [...(prev.languages || []), language]
+    }));
+  };
+
+  const setAvailability = (availability: string | undefined) => {
+    setFilters(prev => ({
+      ...prev,
+      availability: availability
+    }));
+  };
+
   const activeFiltersCount = 
     (filters.sectors?.length || 0) + 
     (filters.expertise?.length || 0) +
@@ -240,7 +290,11 @@ const AlumniDirectory: React.FC = () => {
     (filters.city ? 1 : 0) +
     (filters.country ? 1 : 0) +
     (filters.seeking?.length || 0) +
-    (filters.offering?.length || 0);
+    (filters.offering?.length || 0) +
+    // Nouveaux filtres enrichis
+    (filters.softSkills?.length || 0) +
+    (filters.languages?.length || 0) +
+    (filters.availability ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -457,6 +511,74 @@ const AlumniDirectory: React.FC = () => {
                         className={`px-2 py-1 rounded-full text-xs ${
                           filters.offering?.includes(option)
                             ? 'bg-orange-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* NOUVEAUX FILTRES ENRICHIS */}
+
+                {/* Soft Skills */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Soft Skills
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {availableSoftSkills.map(skill => (
+                      <button
+                        key={skill}
+                        onClick={() => toggleSoftSkill(skill)}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          filters.softSkills?.includes(skill)
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {skill}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Langues */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Langues
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {availableLanguages.map(language => (
+                      <button
+                        key={language}
+                        onClick={() => toggleLanguage(language)}
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          filters.languages?.includes(language)
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {language}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Disponibilité */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Disponibilité
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availabilityOptions.map(option => (
+                      <button
+                        key={option}
+                        onClick={() => setAvailability(filters.availability === option ? undefined : option)}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          filters.availability === option
+                            ? 'bg-green-600 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                         }`}
                       >

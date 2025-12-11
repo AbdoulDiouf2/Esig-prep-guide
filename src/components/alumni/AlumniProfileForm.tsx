@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users } from 'lucide-react';
+import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users, GraduationCap, Globe, Heart, Eye, Star } from 'lucide-react';
+import { EducationEntry, ExperienceEntry, CertificationEntry } from '../../types/alumni';
 
 interface AlumniProfileFormData {
   // Infos de base
@@ -37,6 +38,26 @@ interface AlumniProfileFormData {
   // Je cherche / Je propose
   seeking?: string[];
   offering?: string[];
+  seekingDetails?: string;
+  availabilityNote?: string;
+  rateIfPaid?: string;
+  
+  // NOUVEAUX CHAMPS RECOMMANDÉS
+  education?: EducationEntry[];
+  experiences?: ExperienceEntry[];
+  certifications?: CertificationEntry[];
+  softSkills?: string[];
+  languages?: {
+    name: string;
+    level: string;
+  }[];
+  availability?: string;
+  visibility?: {
+    showEmail?: boolean;
+    showCity?: boolean;
+    showCompany?: boolean;
+  };
+  interests?: string[];
   
   // Réseaux sociaux
   linkedin?: string;
@@ -77,6 +98,24 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     services: initialData?.services || [],
     seeking: initialData?.seeking || [],
     offering: initialData?.offering || [],
+    seekingDetails: initialData?.seekingDetails || '',
+    availabilityNote: initialData?.availabilityNote || '',
+    rateIfPaid: initialData?.rateIfPaid || '',
+    
+    // NOUVEAUX CHAMPS
+    education: initialData?.education || [],
+    experiences: initialData?.experiences || [],
+    certifications: initialData?.certifications || [],
+    softSkills: initialData?.softSkills || [],
+    languages: initialData?.languages || [],
+    availability: initialData?.availability || '',
+    visibility: initialData?.visibility || {
+      showEmail: false,  // Plus privé par défaut
+      showCity: true,
+      showCompany: true,
+    },
+    interests: initialData?.interests || [],
+    
     linkedin: initialData?.linkedin,
     github: initialData?.github,
     twitter: initialData?.twitter,
@@ -88,6 +127,26 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   const [newExpertise, setNewExpertise] = useState('');
   const [newSeeking, setNewSeeking] = useState('');
   const [newOffering, setNewOffering] = useState('');
+  
+  // États pour les nouveaux champs
+  const [newSoftSkill, setNewSoftSkill] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
+  const [newLanguageLevel, setNewLanguageLevel] = useState('');
+  const [newInterest, setNewInterest] = useState('');
+  
+  // Options prédéfinies
+  const softSkillOptions = [
+    'Leadership', 'Communication', 'Gestion de projet', 'Travail d\'équipe',
+    'Résolution de problèmes', 'Créativité', 'Adaptabilité', 'Analytique',
+    'Prise de décision', 'Négociation', 'Présentation', 'Management'
+  ];
+  
+  const languageLevels = ['Débutant', 'Intermédiaire', 'Courant', 'Bilingue', 'Natif'];
+  
+  const interestOptions = [
+    'Sport', 'Musique', 'Voyage', 'Lecture', 'Photographie', 'Cuisine',
+    'Technologie', 'Entrepreneuriat', 'Art', 'Nature', 'Jeux vidéo', 'Bénévolat'
+  ];
   // const [uploadingPhoto, setUploadingPhoto] = useState(false); // Désactivé temporairement
 
   // Options prédéfinies pour "Je cherche / Je propose"
@@ -224,6 +283,158 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     setFormData(prev => ({
       ...prev,
       offering: prev.offering?.filter(o => o !== item) || [],
+    }));
+  };
+
+  // Fonctions pour Soft Skills
+  const handleAddSoftSkill = (skill: string) => {
+    if (skill && !formData.softSkills?.includes(skill)) {
+      setFormData(prev => ({ ...prev, softSkills: [...(prev.softSkills || []), skill] }));
+      setNewSoftSkill('');
+    }
+  };
+
+  const handleRemoveSoftSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      softSkills: prev.softSkills?.filter(s => s !== skill) || [],
+    }));
+  };
+
+  // Fonctions pour Langues
+  const handleAddLanguage = () => {
+    if (newLanguage && newLanguageLevel) {
+      const newLang = { name: newLanguage, level: newLanguageLevel };
+      const exists = formData.languages?.some(lang => lang.name === newLanguage);
+      if (!exists) {
+        setFormData(prev => ({ 
+          ...prev, 
+          languages: [...(prev.languages || []), newLang] 
+        }));
+        setNewLanguage('');
+        setNewLanguageLevel('');
+      }
+    }
+  };
+
+  const handleRemoveLanguage = (languageName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      languages: prev.languages?.filter(l => l.name !== languageName) || [],
+    }));
+  };
+
+  // Fonctions pour Intérêts
+  const handleAddInterest = (interest: string) => {
+    if (interest && !formData.interests?.includes(interest)) {
+      setFormData(prev => ({ ...prev, interests: [...(prev.interests || []), interest] }));
+      setNewInterest('');
+    }
+  };
+
+  const handleRemoveInterest = (interest: string) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests?.filter(i => i !== interest) || [],
+    }));
+  };
+
+  // Fonctions pour Éducation
+  const handleAddEducation = () => {
+    setFormData(prev => ({
+      ...prev,
+      education: [...(prev.education || []), { 
+        school: '', 
+        degree: '', 
+        field: '', 
+        startDate: '', 
+        endDate: '', 
+        isCurrent: false 
+      }],
+    }));
+  };
+
+  const handleRemoveEducation = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      education: prev.education?.filter((_, i) => i !== index) || [],
+    }));
+  };
+
+  const handleEducationChange = (index: number, field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      education: prev.education?.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ) || [],
+    }));
+  };
+
+  // Fonctions pour Expériences
+  const handleAddExperience = () => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: [...(prev.experiences || []), { 
+        company: '', 
+        role: '', 
+        startDate: '', 
+        endDate: '', 
+        isCurrent: false,
+        description: '' 
+      }],
+    }));
+  };
+
+  const handleRemoveExperience = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences?.filter((_, i) => i !== index) || [],
+    }));
+  };
+
+  const handleExperienceChange = (index: number, field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences?.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ) || [],
+    }));
+  };
+
+  // Fonctions pour Certifications
+  const handleAddCertification = () => {
+    setFormData(prev => ({
+      ...prev,
+      certifications: [...(prev.certifications || []), { 
+        name: '', 
+        issuer: '', 
+        date: '', 
+        url: '' 
+      }],
+    }));
+  };
+
+  const handleRemoveCertification = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      certifications: prev.certifications?.filter((_, i) => i !== index) || [],
+    }));
+  };
+
+  const handleCertificationChange = (index: number, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      certifications: prev.certifications?.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ) || [],
+    }));
+  };
+
+  // Fonctions pour Visibilité
+  const handleVisibilityChange = (field: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      visibility: { ...prev.visibility, [field]: value },
     }));
   };
 
@@ -486,23 +697,6 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
-          <div>
-            <label htmlFor="personalWebsite" className="block text-sm font-medium text-gray-700 mb-1">
-              Site web personnel
-            </label>
-            <input
-              id="personalWebsite"
-              type="url"
-              value={formData.personalWebsite || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, personalWebsite: e.target.value }))}
-              placeholder="https://mon-portfolio.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Ton portfolio, blog personnel, etc.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -755,6 +949,206 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
         </div>
       </div>
 
+      {/* Section 8 : Compétences transversales (Soft Skills) */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Star className="w-5 h-5 mr-2 text-yellow-600" />
+          Compétences transversales (Soft Skills)
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Ajoute tes soft skills pour montrer tes compétences interpersonnelles et professionnelles.
+        </p>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {softSkillOptions.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => handleAddSoftSkill(skill)}
+                disabled={formData.softSkills?.includes(skill)}
+                className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                  formData.softSkills?.includes(skill)
+                    ? 'bg-yellow-200 text-yellow-800 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-700'
+                }`}
+              >
+                + {skill}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.softSkills?.map((skill, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+              >
+                {skill}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveSoftSkill(skill)}
+                  className="ml-2 text-yellow-600 hover:text-yellow-800"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newSoftSkill}
+              onChange={(e) => setNewSoftSkill(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddSoftSkill(newSoftSkill);
+                }
+              }}
+              placeholder="Ou ajoute un soft skill personnalisé..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddSoftSkill(newSoftSkill)}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-sm"
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 9 : Langues */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Globe className="w-5 h-5 mr-2 text-blue-600" />
+          Langues parlées
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Indique les langues que tu parles et ton niveau de maîtrise.
+        </p>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.languages?.map((lang, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+              >
+                {lang.name} ({lang.level})
+                <button
+                  type="button"
+                  onClick={() => handleRemoveLanguage(lang.name)}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              type="text"
+              value={newLanguage}
+              onChange={(e) => setNewLanguage(e.target.value)}
+              placeholder="Langue (ex: Français)"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            <select
+              value={newLanguageLevel}
+              onChange={(e) => setNewLanguageLevel(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Niveau</option>
+              {languageLevels.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleAddLanguage}
+              disabled={!newLanguage || !newLanguageLevel}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 10 : Centres d'intérêt */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Heart className="w-5 h-5 mr-2 text-red-600" />
+          Centres d'intérêt
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Partage tes passions pour humaniser ton profil et faciliter les connexions.
+        </p>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {interestOptions.map((interest) => (
+              <button
+                key={interest}
+                type="button"
+                onClick={() => handleAddInterest(interest)}
+                disabled={formData.interests?.includes(interest)}
+                className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                  formData.interests?.includes(interest)
+                    ? 'bg-red-200 text-red-800 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
+                }`}
+              >
+                + {interest}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.interests?.map((interest, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+              >
+                {interest}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveInterest(interest)}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newInterest}
+              onChange={(e) => setNewInterest(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddInterest(newInterest);
+                }
+              }}
+              placeholder="Ou ajoute un intérêt personnalisé..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddInterest(newInterest)}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Section 7 : Réseaux sociaux */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -804,6 +1198,23 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <div>
+            <label htmlFor="personalWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+              Site web personnel
+            </label>
+            <input
+              id="personalWebsite"
+              type="url"
+              value={formData.personalWebsite || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, personalWebsite: e.target.value }))}
+              placeholder="https://mon-portfolio.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Ton portfolio, blog personnel, etc.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -839,6 +1250,333 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
               value={formData.country || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
               placeholder="Ex: Sénégal"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Section 11 : Éducation */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <GraduationCap className="w-5 h-5 mr-2 text-purple-600" />
+          Parcours académique
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Ajoute tes formations académiques après la prépa (école, diplômes, etc.).
+        </p>
+
+        <div className="space-y-4">
+          {formData.education?.map((edu, index) => (
+            <div key={index} className="p-4 border border-gray-200 rounded-md">
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-medium text-gray-900">Formation {index + 1}</h4>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveEducation(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Supprimer
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={edu.school}
+                  onChange={(e) => handleEducationChange(index, 'school', e.target.value)}
+                  placeholder="Établissement"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <input
+                  type="text"
+                  value={edu.degree || ''}
+                  onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+                  placeholder="Diplôme (ex: Master Informatique)"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <input
+                  type="text"
+                  value={edu.field || ''}
+                  onChange={(e) => handleEducationChange(index, 'field', e.target.value)}
+                  placeholder="Domaine (ex: IA / Data)"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Date début</label>
+                    <input
+                      type="month"
+                      value={edu.startDate || ''}
+                      onChange={(e) => handleEducationChange(index, 'startDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Date fin</label>
+                    <input
+                      type="month"
+                      value={edu.endDate || ''}
+                      onChange={(e) => handleEducationChange(index, 'endDate', e.target.value)}
+                      disabled={edu.isCurrent}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={edu.isCurrent || false}
+                    onChange={(e) => handleEducationChange(index, 'isCurrent', e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">En cours</span>
+                </label>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddEducation}
+            className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-600 hover:border-purple-500 hover:text-purple-600"
+          >
+            + Ajouter une formation
+          </button>
+        </div>
+      </div>
+
+      {/* Section 12 : Expériences professionnelles */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
+          Expériences professionnelles
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Décris tes expériences professionnelles passées et actuelles.
+        </p>
+
+        <div className="space-y-4">
+          {formData.experiences?.map((exp, index) => (
+            <div key={index} className="p-4 border border-gray-200 rounded-md">
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-medium text-gray-900">Expérience {index + 1}</h4>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExperience(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Supprimer
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={exp.company}
+                  onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
+                  placeholder="Entreprise"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  value={exp.role}
+                  onChange={(e) => handleExperienceChange(index, 'role', e.target.value)}
+                  placeholder="Poste/Rôle"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Date début</label>
+                    <input
+                      type="month"
+                      value={exp.startDate || ''}
+                      onChange={(e) => handleExperienceChange(index, 'startDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Date fin</label>
+                    <input
+                      type="month"
+                      value={exp.endDate || ''}
+                      onChange={(e) => handleExperienceChange(index, 'endDate', e.target.value)}
+                      disabled={exp.isCurrent}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+              </div>
+              <textarea
+                rows={2}
+                value={exp.description || ''}
+                onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                placeholder="Description de tes missions et réalisations..."
+                className="w-full mt-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="mt-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exp.isCurrent || false}
+                    onChange={(e) => handleExperienceChange(index, 'isCurrent', e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Poste actuel</span>
+                </label>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddExperience}
+            className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-600 hover:border-blue-500 hover:text-blue-600"
+          >
+            + Ajouter une expérience
+          </button>
+        </div>
+      </div>
+
+      {/* Section 13 : Certifications */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Award className="w-5 h-5 mr-2 text-green-600" />
+          Certifications
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Ajoute tes certifications professionnelles et formations continues.
+        </p>
+
+        <div className="space-y-4">
+          {formData.certifications?.map((cert, index) => (
+            <div key={index} className="p-4 border border-gray-200 rounded-md">
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-medium text-gray-900">Certification {index + 1}</h4>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCertification(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Supprimer
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={cert.name}
+                  onChange={(e) => handleCertificationChange(index, 'name', e.target.value)}
+                  placeholder="Nom de la certification"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <input
+                  type="text"
+                  value={cert.issuer}
+                  onChange={(e) => handleCertificationChange(index, 'issuer', e.target.value)}
+                  placeholder="Organisme émetteur"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <input
+                  type="text"
+                  value={cert.date}
+                  onChange={(e) => handleCertificationChange(index, 'date', e.target.value)}
+                  placeholder="Date d'obtention (ex: 2023)"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <input
+                  type="url"
+                  value={cert.url || ''}
+                  onChange={(e) => handleCertificationChange(index, 'url', e.target.value)}
+                  placeholder="URL (optionnel)"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddCertification}
+            className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-600 hover:border-green-500 hover:text-green-600"
+          >
+            + Ajouter une certification
+          </button>
+        </div>
+      </div>
+
+      {/* Section 14 : Confidentialité */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Eye className="w-5 h-5 mr-2 text-gray-600" />
+          Paramètres de confidentialité
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Choisis quelles informations afficher publiquement dans l'annuaire.
+        </p>
+
+        <div className="space-y-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.visibility?.showEmail ?? false}
+              onChange={(e) => handleVisibilityChange('showEmail', e.target.checked)}
+              className="mr-3"
+            />
+            <span className="text-gray-700">Afficher mon email</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.visibility?.showCity ?? true}
+              onChange={(e) => handleVisibilityChange('showCity', e.target.checked)}
+              className="mr-3"
+            />
+            <span className="text-gray-700">Afficher ma ville</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.visibility?.showCompany ?? true}
+              onChange={(e) => handleVisibilityChange('showCompany', e.target.checked)}
+              className="mr-3"
+            />
+            <span className="text-gray-700">Afficher mon entreprise</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Section 15 : Disponibilité */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <Users className="w-5 h-5 mr-2 text-blue-600" />
+          Disponibilités
+        </h3>
+
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-1">
+              Statut professionnel
+            </label>
+            <select
+              id="availability"
+              value={formData.availability || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sélectionne un statut</option>
+              <option value="Ouvert à opportunités">Ouvert à opportunités</option>
+              <option value="En recherche active">En recherche active</option>
+              <option value="Freelance">Freelance</option>
+              <option value="Pas disponible">Pas disponible</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="availabilityNote" className="block text-sm font-medium text-gray-700 mb-1">
+              Notes de disponibilité
+            </label>
+            <textarea
+              id="availabilityNote"
+              rows={2}
+              value={formData.availabilityNote || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, availabilityNote: e.target.value }))}
+              placeholder="Précise tes disponibilités, tarifs si applicable, etc."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

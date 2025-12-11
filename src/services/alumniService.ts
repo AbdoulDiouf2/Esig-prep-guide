@@ -15,6 +15,7 @@ import {
   Timestamp,
   Query,
   DocumentData,
+  increment,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NotificationService } from './NotificationService';
@@ -26,6 +27,7 @@ import {
   AlumniSearchFilters,
   AlumniSortOption,
   AlumniStats,
+  AlumniRecommendation,
 } from '../types/alumni';
 
 const ALUMNI_COLLECTION = 'alumni';
@@ -417,7 +419,9 @@ export const searchAlumni = async (
           profile.bio?.toLowerCase().includes(searchLower) ||
           profile.company?.toLowerCase().includes(searchLower) ||
           profile.sectors.some((s) => s.toLowerCase().includes(searchLower)) ||
-          profile.expertise.some((e) => e.toLowerCase().includes(searchLower))
+          profile.expertise.some((e) => e.toLowerCase().includes(searchLower)) ||
+          profile.softSkills?.some((s) => s.toLowerCase().includes(searchLower)) ||
+          profile.interests?.some((i) => i.toLowerCase().includes(searchLower))
         );
       });
     }
@@ -467,6 +471,27 @@ export const searchAlumni = async (
     if (filters.offering && filters.offering.length > 0) {
       profiles = profiles.filter((profile) =>
         profile.offering?.some((o) => filters.offering!.includes(o))
+      );
+    }
+
+    // Filtrer par soft skills
+    if (filters.softSkills && filters.softSkills.length > 0) {
+      profiles = profiles.filter((profile) =>
+        profile.softSkills?.some((s) => filters.softSkills!.includes(s))
+      );
+    }
+
+    // Filtrer par langues
+    if (filters.languages && filters.languages.length > 0) {
+      profiles = profiles.filter((profile) =>
+        profile.languages?.some((l) => filters.languages!.includes(l.name))
+      );
+    }
+
+    // Filtrer par disponibilité
+    if (filters.availability) {
+      profiles = profiles.filter((profile) => 
+        profile.availability === filters.availability
       );
     }
 
@@ -974,4 +999,92 @@ export const importAlumniFromFile = async (
   console.log('='.repeat(50));
   
   return result;
+};
+
+/**
+ * ===== FONCTIONNALITÉS DE RECOMMANDATIONS =====
+ */
+
+/**
+ * Envoyer une recommandation à un alumni
+ */
+export const sendRecommendation = async (data: {
+  fromUid: string;
+  fromName: string;
+  toUid: string;
+  toName: string;
+  message: string;
+}): Promise<void> => {
+  try {
+    const recommendationsRef = collection(db, 'recommendations');
+    const newRecommendationRef = doc(recommendationsRef);
+
+    const recommendation = {
+      id: newRecommendationRef.id,
+      fromUid: data.fromUid,
+      fromName: data.fromName,
+      toUid: data.toUid,
+      toName: data.toName,
+      message: data.message,
+      date: Timestamp.now(),
+      status: 'pending' as const,
+    };
+
+    await setDoc(newRecommendationRef, recommendation);
+
+    // Mettre à jour le compteur d'endorsements du profil destinataire
+    const alumniRef = doc(db, ALUMNI_COLLECTION, data.toUid);
+    await updateDoc(alumniRef, {
+      endorsementCount: increment(1),
+    });
+
+    console.log('✅ Recommandation envoyée avec succès');
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'envoi de la recommandation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupérer les recommandations reçues par un alumni
+ */
+export const getReceivedRecommendations = async (
+  uid: string
+): Promise<AlumniRecommendation[]> => {
+  try {
+    const recommendationsRef = collection(db, 'recommendations');
+    const q = query(
+      recommendationsRef,
+      where('toUid', '==', uid),
+      orderBy('date', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as AlumniRecommendation);
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des recommandations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupérer les recommandations envoyées par un alumni
+ */
+export const getSentRecommendations = async (
+  uid: string
+): Promise<AlumniRecommendation[]> => {
+  try {
+    const recommendationsRef = collection(db, 'recommendations');
+    const q = query(
+      recommendationsRef,
+      where('fromUid', '==', uid),
+      orderBy('date', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as AlumniRecommendation);
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des recommandations envoyées:', error);
+    throw error;
+  }
 };

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, TrendingUp, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile, updateAlumniProfile, submitAlumniProfileForValidation, createAlumniProfileOnSignup } from '../services/alumniService';
-import { uploadAlumniPhoto } from '../services/storageService';
+// import { uploadAlumniPhoto } from '../services/storageService';
 import AlumniProfileForm, { AlumniProfileFormData } from '../components/alumni/AlumniProfileForm';
 import type { AlumniProfile } from '../types/alumni';
 import { calculateProfileCompletion, getCompletionMessage, getProfileSuggestions } from '../utils/profileCompletion';
@@ -57,10 +57,10 @@ const CompleteAlumniProfile: React.FC = () => {
     loadOrCreateProfile();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (file: File): Promise<string> => {
-    if (!currentUser) throw new Error('Non connecté');
-    return await uploadAlumniPhoto(currentUser.uid, file);
-  };
+  // const handlePhotoUpload = async (file: File): Promise<string> => {
+  //   if (!currentUser) throw new Error('Non connecté');
+  //   return await uploadAlumniPhoto(currentUser.uid, file);
+  // };
 
   const handleSubmit = async (data: AlumniProfileFormData) => {
     if (!currentUser || !alumniProfile) {
@@ -93,6 +93,18 @@ const CompleteAlumniProfile: React.FC = () => {
         twitter: data.twitter,
         city: data.city,
         country: data.country,
+        // Nouveaux champs enrichis
+        softSkills: data.softSkills,
+        languages: data.languages,
+        interests: data.interests,
+        education: data.education,
+        experiences: data.experiences,
+        certifications: data.certifications,
+        seekingDetails: data.seekingDetails,
+        availabilityNote: data.availabilityNote,
+        rateIfPaid: data.rateIfPaid,
+        availability: data.availability,
+        visibility: data.visibility,
       });
 
       // Recharger le profil pour avoir les données à jour
@@ -299,9 +311,25 @@ const CompleteAlumniProfile: React.FC = () => {
             twitter: alumniProfile.twitter,
             city: alumniProfile.city,
             country: alumniProfile.country,
+            // Nouveaux champs enrichis
+            softSkills: alumniProfile.softSkills || [],
+            languages: alumniProfile.languages || [],
+            interests: alumniProfile.interests || [],
+            education: alumniProfile.education || [],
+            experiences: alumniProfile.experiences || [],
+            certifications: alumniProfile.certifications || [],
+            seekingDetails: alumniProfile.seekingDetails || '',
+            availabilityNote: alumniProfile.availabilityNote || '',
+            rateIfPaid: alumniProfile.rateIfPaid || '',
+            availability: alumniProfile.availability || '',
+            visibility: alumniProfile.visibility || {
+              showEmail: true,
+              showCity: true,
+              showCompany: true
+            }
           }}
           onSubmit={handleSubmit}
-          onPhotoUpload={handlePhotoUpload}
+          // onPhotoUpload={handlePhotoUpload}
           loading={loading}
         />
 

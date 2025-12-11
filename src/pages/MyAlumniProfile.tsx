@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Linkedin, Github, Twitter, Globe, Building2, MapPin, Briefcase, Award, Calendar, CheckCircle, Clock, XCircle, Edit, Trash2, Users, AlertCircle, Mail
+  Linkedin, Github, Twitter, Globe, Building2, MapPin, Briefcase, Award, Calendar, CheckCircle, Clock, XCircle, Edit, Trash2, Users, AlertCircle, Mail,
+  GraduationCap, Star, Heart, Package, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile, deleteAlumniProfile } from '../services/alumniService';
+// import RecommendationsList from '../components/alumni/RecommendationsList'; // Désactivé temporairement
 import type { AlumniProfile } from '../types/alumni';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -374,6 +376,119 @@ const MyAlumniProfile: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Soft Skills */}
+          {profile.softSkills && profile.softSkills.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-600" />
+                Compétences transversales (Soft Skills)
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.softSkills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Langues */}
+          {profile.languages && profile.languages.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-blue-600" />
+                Langues parlées
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {profile.languages.map((lang, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium text-gray-900">{lang.name}</span>
+                    <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                      {lang.level}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Centres d'intérêt */}
+          {profile.interests && profile.interests.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-red-600" />
+                Centres d'intérêt
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.map((interest, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Éducation */}
+          {profile.education && profile.education.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+                Parcours académique
+              </h3>
+              <div className="space-y-3">
+                {profile.education.map((edu, index) => (
+                  <div key={index} className="border-l-4 border-purple-500 pl-4">
+                    <h4 className="font-semibold text-gray-900">
+                      {edu.degree && `${edu.degree} - `}{edu.school}
+                    </h4>
+                    {edu.field && (
+                      <p className="text-gray-600 text-sm mt-1">{edu.field}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {edu.startDate} - {edu.isCurrent ? 'Aujourd\'hui' : edu.endDate}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Portfolio */}
+          {profile.portfolio && profile.portfolio.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-600" />
+                Portfolio
+              </h3>
+              <div className="space-y-3">
+                {profile.portfolio.map((item, index) => (
+                  <div key={index} className="border-l-4 border-orange-500 pl-4">
+                    <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                    <p className="text-gray-700 text-sm mt-1">{item.description}</p>
+                    {item.url && (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-orange-600 hover:text-orange-800 text-sm mt-2 inline-block"
+                      >
+                        Voir le projet →
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -419,6 +534,29 @@ const MyAlumniProfile: React.FC = () => {
               <Trash2 className="w-4 h-4" />
               Supprimer mon profil alumni
             </button>
+          </div>
+        </div>
+
+        {/* Recommandations reçues - Désactivé temporairement */}
+        <div className="bg-white rounded-lg shadow-md p-6 opacity-75">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-600" />
+              Recommandations reçues
+            </h3>
+            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+              Bientôt disponible
+            </span>
+          </div>
+          
+          <div className="text-center py-8">
+            <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 mb-2">
+              Le système de recommandations sera bientôt disponible !
+            </p>
+            <p className="text-sm text-gray-400">
+              Cette fonctionnalité sera activée en fonction de l'avancement de la plateforme.
+            </p>
           </div>
         </div>
 
