@@ -131,10 +131,17 @@ export const updateAlumniProfile = async (
   try {
     const alumniRef = doc(db, ALUMNI_COLLECTION, uid);
 
-    // Nettoyer les valeurs undefined (Firestore ne les accepte pas)
+    // Nettoyer les valeurs undefined et gérer la suppression explicite
     const cleanedData: Partial<UpdateAlumniProfileData> = {};
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value === undefined || value === null) {
+        // Ignorer les valeurs null/undefined
+        return;
+      } else if (value === '') {
+        // Supprimer explicitement le champ de la base de données
+        (cleanedData as Record<string, unknown>)[key] = deleteField();
+      } else {
+        // Conserver la valeur normale
         (cleanedData as Record<string, unknown>)[key] = value;
       }
     });

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { NotificationService } from '../services/NotificationService';
 import { ArrowLeft, Send, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import EmailBadgeInput from './inputs/EmailBadgeInput';
 
 // Interface pour les données d'email
 interface EmailData {
@@ -35,12 +36,12 @@ const AdminEmailBroadcast: React.FC = () => {
   
   // État du formulaire
   const [formData, setFormData] = useState({
-    status: 'esigelec', // Valeur par défaut pour le CCI
+    status: 'all', // Valeur par défaut pour le CCI
     subject: '',
     message: '',
-    recipient: 'aad.mbacke691@gmail.com',
-    cc: '',
-    bcc: '',
+    recipients: [] as string[], // Tableau de destinataires typé explicitement
+    cc: [] as string[], // Tableau pour les CC typé explicitement
+    bcc: [] as string[], // Tableau pour les BCC
     useCC: false,
     useBCC: false,
     sendTest: false
@@ -50,7 +51,15 @@ const AdminEmailBroadcast: React.FC = () => {
   const fetchRecipients = useCallback(async (status: string): Promise<UserEmail[]> => {
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('status', '==', status));
+      let q;
+      
+      if (status === 'all') {
+        // Récupérer tous les utilisateurs sans distinction de statut
+        q = usersRef;
+      } else {
+        // Filtrer par statut spécifique
+        q = query(usersRef, where('status', '==', status));
+      }
       
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
@@ -108,7 +117,7 @@ const AdminEmailBroadcast: React.FC = () => {
   const handleSendTest = async () => {
     if (sending) return;
     
-    if (!formData.recipient || !formData.subject || !formData.message) {
+    if (formData.recipients.length === 0 || !formData.subject || !formData.message) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -116,46 +125,46 @@ const AdminEmailBroadcast: React.FC = () => {
     setSending(true);
     
     try {
-      // Préparer les données de l'email de test
-      const emailData: EmailData = {
-        to_email: formData.recipient,
-        to_name: formData.recipient.split('@')[0],
-        email_subject: `[TEST] ${formData.subject}`,
-        message: formData.message,
-        is_test: true
-      };
+      // Envoyer un email de test à chaque destinataire
+      const results = await Promise.all(
+        formData.recipients.map(async (recipient) => {
+          const emailData: EmailData = {
+            to_email: recipient,
+            to_name: recipient.split('@')[0],
+            email_subject: `[TEST] ${formData.subject}`,
+            message: formData.message,
+            is_test: true
+          };
 
-      // Ajouter les CC si activé
-      if (formData.useCC && formData.cc) {
-        const ccEmails = formData.cc.split(',').map(email => email.trim()).filter(Boolean);
-        if (ccEmails.length > 0) {
-          emailData.cc_list = ccEmails.join(',');
-        }
-      }
+          // Ajouter les CC si activé
+          if (formData.useCC && formData.cc.length > 0) {
+            emailData.cc_list = formData.cc.join(',');
+          }
 
-      // Ajouter les CCI si activé (uniquement manuels pour le test)
-      if (formData.useBCC && formData.bcc) {
-        const bccEmails = formData.bcc.split(',').map(email => email.trim()).filter(Boolean);
-        if (bccEmails.length > 0) {
-          emailData.bcc_list = bccEmails.join(',');
-        }
-      }
+          // Ajouter les CCI si activé (uniquement manuels pour le test)
+          if (formData.useBCC && formData.bcc.length > 0) {
+            emailData.bcc_list = formData.bcc.join(',');
+          }
 
-      // Envoyer l'email de test
-      const result = await NotificationService.sendCustomEmail(
-        emailData.to_email,
-        emailData.email_subject,
-        emailData.message,
-        emailData.to_name,
-        true,
-        emailData.cc_list ? emailData.cc_list.split(',') : undefined,
-        emailData.bcc_list ? emailData.bcc_list.split(',') : undefined
+          return await NotificationService.sendCustomEmail(
+            emailData.to_email,
+            emailData.email_subject,
+            emailData.message,
+            emailData.to_name,
+            true,
+            emailData.cc_list ? emailData.cc_list.split(',') : undefined,
+            emailData.bcc_list ? emailData.bcc_list.split(',') : undefined
+          );
+        })
       );
 
-      if (result) {
-        alert("Email de test envoyé avec succès !");
+      const successCount = results.filter(Boolean).length;
+      const errorCount = results.length - successCount;
+
+      if (errorCount === 0) {
+        alert(`Emails de test envoyés avec succès à ${successCount} destinataire(s) !`);
       } else {
-        alert("Échec de l'envoi de l'email de test");
+        alert(`Envoi partiel : ${successCount} succès, ${errorCount} erreur(s)`);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue est survenue';
@@ -169,7 +178,7 @@ const AdminEmailBroadcast: React.FC = () => {
   // Envoyer les emails en masse
   const handleSendBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.subject || !formData.message) {
+    if (formData.recipients.length === 0 || !formData.subject || !formData.message) {
       alert('Veuillez remplir tous les champs requis');
       return;
     }
@@ -191,70 +200,75 @@ const AdminEmailBroadcast: React.FC = () => {
         }
       }
 
-      // Préparer les adresses CCI (manuelles + liste déroulante)
-      const manualBccEmails = formData.bcc 
-        ? formData.bcc.split(',').map(email => email.trim()).filter(Boolean)
-        : [];
+      // Préparer les adresses CCI (manuelles + groupe)
+      const manualBccEmails = formData.bcc || [];
       
       // Préparer les adresses CC
-      const ccEmails = formData.useCC && formData.cc 
-        ? formData.cc.split(',').map(email => email.trim()).filter(Boolean)
+      const ccEmails = formData.useCC && formData.cc.length > 0 
+        ? formData.cc
         : [];
 
-      // Préparer les données de l'email principal
-      const emailData: EmailData = {
-        to_email: formData.recipient,
-        to_name: formData.recipient.split('@')[0],
-        email_subject: formData.subject,
-        message: formData.message,
-        is_test: false
-      };
+      // Envoyer les emails à tous les destinataires principaux
+      const results = await Promise.all(
+        formData.recipients.map(async (recipient) => {
+          // Préparer les données de l'email
+          const emailData: EmailData = {
+            to_email: recipient,
+            to_name: recipient.split('@')[0],
+            email_subject: formData.subject,
+            message: formData.message,
+            is_test: false
+          };
 
-      // Ajouter les CC si activé
-      if (ccEmails.length > 0) {
-        emailData.cc_list = ccEmails.join(',');
+          // Ajouter les CC si activé
+          if (ccEmails.length > 0) {
+            emailData.cc_list = ccEmails.join(',');
+          }
+
+          // Ajouter les CCI (manuelles + groupe)
+          const allBccEmails = [
+            ...manualBccEmails,
+            ...bccUsers.map(user => user.email)
+          ].filter((email, index, self) => 
+            email && self.indexOf(email) === index
+          );
+
+          if (allBccEmails.length > 0) {
+            emailData.bcc_list = allBccEmails.join(',');
+          }
+
+          return await NotificationService.sendCustomEmail(
+            emailData.to_email,
+            emailData.email_subject,
+            emailData.message,
+            emailData.to_name,
+            false,
+            emailData.cc_list ? emailData.cc_list.split(',').filter(Boolean) : undefined,
+            emailData.bcc_list ? emailData.bcc_list.split(',').filter(Boolean) : undefined
+          );
+        })
+      );
+
+      const successCount = results.filter(Boolean).length;
+      const errorCount = results.length - successCount;
+
+      // Afficher un récapitulatif
+      let summary = `Emails envoyés avec succès à ${successCount} destinataire(s) principal(aux) :\n${formData.recipients.join('\n')}\n\n`;
+      
+      if (errorCount > 0) {
+        summary += `${errorCount} erreur(s) d'envoi\n\n`;
       }
-
-      // Ajouter les CCI (manuelles + liste déroulante)
+      
+      if (ccEmails.length > 0) {
+        summary += `Copie (CC) :\n${ccEmails.join('\n')}\n\n`;
+      }
+      
       const allBccEmails = [
         ...manualBccEmails,
         ...bccUsers.map(user => user.email)
       ].filter((email, index, self) => 
         email && self.indexOf(email) === index
       );
-
-      if (allBccEmails.length > 0) {
-        emailData.bcc_list = allBccEmails.join(',');
-      }
-
-      // Envoyer l'email principal avec les CC et CCI
-      console.log('Envoi de l\'email avec les paramètres:', {
-        to: emailData.to_email,
-        subject: emailData.email_subject,
-        cc: emailData.cc_list,
-        bcc: emailData.bcc_list
-      });
-      
-      const result = await NotificationService.sendCustomEmail(
-        emailData.to_email,
-        emailData.email_subject,
-        emailData.message,
-        emailData.to_name,
-        false,
-        emailData.cc_list ? emailData.cc_list.split(',').filter(Boolean) : undefined,
-        emailData.bcc_list ? emailData.bcc_list.split(',').filter(Boolean) : undefined
-      );
-      
-      if (!result) {
-        throw new Error("Échec de l'envoi de l'email principal");
-      }
-
-      // Afficher un récapitulatif
-      let summary = `Email envoyé avec succès à :\n${formData.recipient}\n\n`;
-      
-      if (ccEmails.length > 0) {
-        summary += `Copie (CC) :\n${ccEmails.join('\n')}\n\n`;
-      }
       
       if (allBccEmails.length > 0) {
         summary += `Copie cachée (CCI) :\n${allBccEmails.join('\n')}\n\n`;
@@ -266,17 +280,18 @@ const AdminEmailBroadcast: React.FC = () => {
       // Réinitialiser le formulaire
       setFormData(prev => ({
         ...prev,
+        recipients: [], // Garder un email par défaut
         subject: '',
         message: '',
-        cc: '',
-        bcc: '',
+        cc: [],
+        bcc: [],
         useCC: false,
         useBCC: false
       }));
       
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue est survenue';
-      console.error('Erreur lors de l\'envoi de l\'email:', error);
+      console.error('Erreur lors de l\'envoi des emails:', error);
       alert(`Une erreur est survenue : ${errorMessage}`);
     } finally {
       setSending(false);
@@ -342,24 +357,6 @@ const AdminEmailBroadcast: React.FC = () => {
           }} className="space-y-6">
             <div className="grid grid-cols-1 gap-6">
               <div>
-                <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-1">
-                  Destinataire principal
-                </label>
-                <input
-                  type="email"
-                  id="recipient"
-                  name="recipient"
-                  value={formData.recipient}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  disabled={sending}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
                   Sujet
                 </label>
@@ -376,120 +373,185 @@ const AdminEmailBroadcast: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center">
+              <div>
+                <label htmlFor="recipients" className="block text-sm font-medium text-gray-700 mb-1">
+                  Destinataires principaux
+                </label>
+                <EmailBadgeInput
+                  emails={formData.recipients}
+                  onChange={(emails) => setFormData(prev => ({ ...prev, recipients: emails }))}
+                  placeholder="Ajouter des destinataires..."
+                  disabled={sending}
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.recipients.length} destinataire(s) sélectionné(s)
+                </p>
+              </div>
+            </div>
+
+            {/* Options CC et BCC */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                     onClick={() => setFormData(prev => ({ ...prev, useCC: !prev.useCC }))}
+                     role="button"
+                     tabIndex={0}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault();
+                         setFormData(prev => ({ ...prev, useCC: !prev.useCC }));
+                       }
+                     }}>
+                  <div className="relative">
                     <input
                       type="checkbox"
                       id="useCC"
                       name="useCC"
                       checked={formData.useCC}
                       onChange={(e) => setFormData(prev => ({ ...prev, useCC: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="sr-only"
                       disabled={sending}
                     />
-                    <label htmlFor="useCC" className="ml-2 block text-sm font-medium text-gray-700">
-                      Copie (CC)
-                    </label>
-                  </div>
-                  {formData.useCC && (
-                    <div className="ml-6">
-                      <input
-                        type="text"
-                        name="cc"
-                        value={formData.cc}
-                        onChange={handleChange}
-                        placeholder="email1@exemple.com, email2@exemple.com"
-                        className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        disabled={sending}
-                      />
-                      <p className="mt-1 text-xs text-gray-500">
-                        Séparez les adresses par des virgules
-                      </p>
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      formData.useCC 
+                        ? 'bg-blue-600 border-blue-600' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}>
+                      {formData.useCC && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  <label htmlFor="useCC" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer select-none">
+                    <span className="font-semibold">Copie (CC)</span>
+                    <span className="text-gray-500 ml-2">Ajouter des destinataires en copie visible</span>
+                  </label>
                 </div>
+                {formData.useCC && (
+                  <div className="ml-6">
+                    <EmailBadgeInput
+                      emails={formData.cc}
+                      onChange={(emails) => setFormData(prev => ({ ...prev, cc: emails }))}
+                      placeholder="Ajouter des adresses en copie..."
+                      disabled={sending}
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {formData.cc.length} adresse(s) en copie
+                    </p>
+                  </div>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center">
+              <div className="space-y-2">
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                     onClick={() => setFormData(prev => ({ ...prev, useBCC: !prev.useBCC }))}
+                     role="button"
+                     tabIndex={0}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault();
+                         setFormData(prev => ({ ...prev, useBCC: !prev.useBCC }));
+                       }
+                     }}>
+                  <div className="relative">
                     <input
                       type="checkbox"
                       id="useBCC"
                       name="useBCC"
                       checked={formData.useBCC}
                       onChange={(e) => setFormData(prev => ({ ...prev, useBCC: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="sr-only"
                       disabled={sending}
                     />
-                    <label htmlFor="useBCC" className="ml-2 block text-sm font-medium text-gray-700">
-                      Destinataires en copie cachée (CCI)
-                    </label>
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      formData.useBCC 
+                        ? 'bg-blue-600 border-blue-600' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}>
+                      {formData.useBCC && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
-                  {formData.useBCC && (
-                    <div className="ml-6 space-y-4">
-                      <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                          Sélectionner un groupe
-                        </label>
-                        <select
-                          id="status"
-                          name="status"
-                          value={formData.status}
-                          onChange={handleChange}
-                          disabled={sending}
-                          className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="esigelec">Étudiants ESIGELEC</option>
-                          <option value="cps">Étudiants CPS</option>
-                          <option value="alumni">Alumni</option>
-                          <option value="autres">Autres statuts</option>
-                        </select>
-                        <div className="mt-2">
-                          <p className="text-xs text-gray-500 mb-2">
-                            {isLoadingRecipients ? (
-                              <span>Chargement des destinataires...</span>
-                            ) : (
-                              <span>{recipientsPreview.length} destinataire(s) trouvé(s) pour le statut "{formData.status}"</span>
-                            )}
-                          </p>
-                          
-                          {recipientsPreview.length > 0 && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                              <p className="text-xs font-medium text-gray-700 mb-1">Destinataires :</p>
-                              <ul className="text-xs space-y-1 max-h-96 overflow-y-auto">
-                                {recipientsPreview.map((user, index) => (
-                                  <li key={index} className="flex items-center py-1 px-2 hover:bg-gray-100 rounded">
-                                    <span className="truncate" title={`${user.displayName} <${user.email}>`}>
-                                      <span className="font-medium">{user.displayName}</span> 
-                                      <span className="text-gray-500">&lt;{user.email}&gt;</span>
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
+                  <label htmlFor="useBCC" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer select-none">
+                    <span className="font-semibold">Destinataires en copie cachée (CCI)</span>
+                    <span className="text-gray-500 ml-2">Ajouter des destinataires masqués</span>
+                  </label>
+                </div>
+                {formData.useBCC && (
+                  <div className="ml-6 space-y-4">
+                    <div>
+                      <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                        Sélectionner un groupe
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        disabled={sending}
+                        className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="all">Tous les utilisateurs</option>
+                        <option value="esigelec">Étudiants ESIGELEC</option>
+                        <option value="alumni">Alumni</option>
+                        <option value="cps">Étudiants CPS</option>
+                        <option value="autres">Autres statuts</option>
+                      </select>
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-2">
+                          {isLoadingRecipients ? (
+                            <span>Chargement des destinataires...</span>
+                          ) : (
+                            <span>
+                              {formData.status === 'all' 
+                                ? `${recipientsPreview.length} destinataire(s) trouvé(s) pour tous les utilisateurs`
+                                : `${recipientsPreview.length} destinataire(s) trouvé(s) pour le statut "${formData.status}"`
+                              }
+                            </span>
                           )}
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="bcc" className="block text-sm font-medium text-gray-700 mb-1">
-                          Ou saisir des adresses manuellement
-                        </label>
-                        <input
-                          type="text"
-                          name="bcc"
-                          value={formData.bcc}
-                          onChange={handleChange}
-                          placeholder="email1@exemple.com, email2@exemple.com"
-                          className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          disabled={sending}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          Séparez les adresses par des virgules
                         </p>
+                        
+                        {recipientsPreview.length > 0 && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                            <p className="text-xs font-medium text-gray-700 mb-1">Destinataires :</p>
+                            <ul className="text-xs space-y-1 max-h-96 overflow-y-auto">
+                              {recipientsPreview.map((user, index) => (
+                                <li key={index} className="flex items-center py-1 px-2 hover:bg-gray-100 rounded">
+                                  <span className="truncate" title={`${user.displayName} <${user.email}>`}>
+                                    <span className="font-medium">{user.displayName}</span> 
+                                    <span className="text-gray-500">&lt;{user.email}&gt;</span>
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <label htmlFor="bcc" className="block text-sm font-medium text-gray-700 mb-1">
+                        Ou saisir des adresses manuellement
+                      </label>
+                      <EmailBadgeInput
+                        emails={formData.bcc}
+                        onChange={(emails) => setFormData(prev => ({ ...prev, bcc: emails }))}
+                        placeholder="Ajouter des adresses en copie cachée..."
+                        disabled={sending}
+                        className="w-full"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formData.bcc.length} adresse(s) en copie cachée
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div>
@@ -582,7 +644,7 @@ const AdminEmailBroadcast: React.FC = () => {
               </button>
               <button
                 type="submit"
-                disabled={sending || !formData.subject || !formData.message}
+                disabled={sending || formData.recipients.length === 0 || !formData.subject || !formData.message}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 {sending ? (
@@ -593,7 +655,7 @@ const AdminEmailBroadcast: React.FC = () => {
                 ) : (
                   <>
                     <Send className="-ml-1 mr-2 h-4 w-4" />
-                    Envoyer à tous
+                    Envoyer à {formData.recipients.length} destinataire(s)
                   </>
                 )}
               </button>

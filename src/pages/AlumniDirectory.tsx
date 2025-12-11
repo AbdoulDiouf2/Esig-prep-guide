@@ -324,8 +324,17 @@ const AlumniDirectory: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher instantanément par nom, bio, expertise, entreprise..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 

@@ -455,7 +455,25 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Nettoyer les données undefined avant la soumission
+    const cleanedData = {
+      ...formData,
+      availability: formData.availability || undefined,
+      availabilityNote: formData.availabilityNote || undefined,
+      company: formData.company || undefined,
+      position: formData.position || undefined,
+      companyDescription: formData.companyDescription || undefined,
+      companyWebsite: formData.companyWebsite || undefined,
+      personalWebsite: formData.personalWebsite || undefined,
+      linkedin: formData.linkedin || undefined,
+      github: formData.github || undefined,
+      twitter: formData.twitter || undefined,
+      city: formData.city || undefined,
+      country: formData.country || undefined,
+    };
+    
+    onSubmit(cleanedData);
   };
 
   return (
@@ -1676,10 +1694,23 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
 
       {/* Section 15 : Disponibilité */}
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-          <Users className="w-5 h-5 mr-2 text-blue-600" />
-          Disponibilités
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+            <Users className="w-5 h-5 mr-2 text-blue-600" />
+            Disponibilités
+          </h3>
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ 
+              ...prev, 
+              availability: '', 
+              availabilityNote: '' 
+            }))}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-medium text-sm"
+          >
+            Réinitialiser
+          </button>
+        </div>
 
         <div className="space-y-4">
           <div>
@@ -1703,14 +1734,25 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
             <label htmlFor="availabilityNote" className="block text-sm font-medium text-gray-700 mb-1">
               Notes de disponibilité
             </label>
-            <textarea
-              id="availabilityNote"
-              rows={2}
-              value={formData.availabilityNote || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, availabilityNote: e.target.value }))}
-              placeholder="Précise tes disponibilités, tarifs si applicable, etc."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <textarea
+                id="availabilityNote"
+                rows={2}
+                value={formData.availabilityNote || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, availabilityNote: e.target.value }))}
+                placeholder="Précise tes disponibilités, tarifs si applicable, etc."
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {formData.availabilityNote && (
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, availabilityNote: undefined }))}
+                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
