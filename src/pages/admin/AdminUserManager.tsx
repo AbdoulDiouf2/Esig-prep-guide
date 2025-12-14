@@ -160,7 +160,7 @@ const AdminUserManager: React.FC = () => {
     const targetUser = users.find(u => u.uid === pendingUser.uid);
     // Permettre à un super admin de modifier d'autres super admins
     if (targetUser?.isSuperAdmin && targetUser.uid !== currentUser?.uid && !currentUserIsSuperAdmin) {
-      setModalError("Impossible de modifier le rôle d'un admin principal.");
+      setModalError("Impossible de modifier le rôle d'un SuperAdmin.");
       setModalLoading(false);
       return;
     }
@@ -560,34 +560,48 @@ const AdminUserManager: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users
-                  // Fonction pour convertir la date de création en timestamp pour comparaison
+                  // Fonction pour convertir la dernière connexion en timestamp pour comparaison
                   .sort((a, b) => {
-                    // Fonction utilitaire pour convertir un createdAt en timestamp
+                    // Fonction utilitaire pour convertir un lastLogin en timestamp
                     const getTimestamp = (user: UserDoc): number => {
-                      if (!user.createdAt) return 0; // Si pas de date, mettre en dernier
+                      if (!user.lastLogin) return 0; // Si pas de date, mettre en dernier
                       
                       // Si c'est un timestamp Firestore
-                      if (user.createdAt && 
-                          typeof user.createdAt === 'object' && 
-                          'toDate' in user.createdAt && 
-                          typeof user.createdAt.toDate === 'function') {
+                      if (user.lastLogin && 
+                          typeof user.lastLogin === 'object' && 
+                          'toDate' in user.lastLogin && 
+                          typeof user.lastLogin.toDate === 'function') {
                         // Conversion du timestamp Firestore en date
-                        const date = user.createdAt.toDate();
+                        const date = user.lastLogin.toDate();
                         
                         return date.getTime();
                       }
                       
+                      // Si c'est un objet avec seconds (timestamp Firestore brut)
+                      if (user.lastLogin && 
+                          typeof user.lastLogin === 'object' && 
+                          'seconds' in user.lastLogin && 
+                          'nanoseconds' in user.lastLogin) {
+                        const timestamp = user.lastLogin as FirestoreTimestamp;
+                        return timestamp.seconds * 1000;
+                      }
+                      
                       // Si c'est un nombre (timestamp)
-                      if (typeof user.createdAt === 'number') {
-                        return user.createdAt;
+                      if (typeof user.lastLogin === 'number') {
+                        return user.lastLogin;
                       }
                       
                       // Si c'est une chaîne, essayer de la convertir en date
-                      if (typeof user.createdAt === 'string') {
-                        const date = new Date(user.createdAt);
+                      if (typeof user.lastLogin === 'string') {
+                        const date = new Date(user.lastLogin);
                         if (!isNaN(date.getTime())) {
                           return date.getTime();
                         }
+                      }
+                      
+                      // Si c'est une date
+                      if (user.lastLogin instanceof Date) {
+                        return user.lastLogin.getTime();
                       }
                       
                       return 0; // Valeur par défaut
@@ -623,7 +637,7 @@ const AdminUserManager: React.FC = () => {
                       )}
                       {user.displayName || user.email}
                       {user.isSuperAdmin && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">SuperAdmin</span>
                       )}
                       {user.uid === currentUser?.uid && (
                         <span className="ml-2 text-xs text-blue-600">(Moi)</span>
@@ -674,7 +688,7 @@ const AdminUserManager: React.FC = () => {
                         )}
                         
                         {user.isSuperAdmin && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Admin principal</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">SuperAdmin</span>
                         )}
                       </div>
                     </td>
@@ -985,7 +999,7 @@ const AdminUserManager: React.FC = () => {
                           <button
                             className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
                             disabled={true}
-                            title="Impossible de modifier le rôle d'un admin principal"
+                            title="Impossible de modifier le rôle d'un SuperAdmin"
                           >
                             Impossible de modifier
                           </button>
