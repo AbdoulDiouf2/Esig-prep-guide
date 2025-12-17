@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Briefcase, Calendar, MapPin, Globe, Users } from 'lucide-react';
 import { getApprovedAlumniProfiles } from '../services/alumniService';
 import AlumniCard from '../components/alumni/AlumniCard';
 import FilterModal, { AlumniFilters } from '../components/alumni/FilterModal';
@@ -42,37 +42,27 @@ const AlumniDirectory: React.FC = () => {
     'Esprit critique', 'Intelligence émotionnelle', 'Prise de décision', 'Négociation'
   ];
 
-  // Villes et pays par défaut à exclure (mémorisés pour éviter les recréations)
-  const defaultCities = React.useMemo(() => 
-    ['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome'], 
-    []
-  );
-  const defaultCountries = React.useMemo(() => 
-    ['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie'], 
-    []
-  );
-
   // Extraire les années de promotion uniques et triées
   const availableYears = React.useMemo(() => {
     const years = [...new Set(allProfiles.map(p => p.yearPromo).filter(year => year !== undefined))];
     return years.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
   }, [allProfiles]);
 
-  // Extraire les villes uniques et triées (exclure les villes par défaut)
+  // Extraire les villes uniques et triées
   const availableCities = React.useMemo(() => {
     const cities = [...new Set(allProfiles.map(p => p.city).filter((city): city is string => 
-      city !== undefined && !defaultCities.includes(city)
+      city !== undefined
     ))];
     return cities.sort();
-  }, [allProfiles, defaultCities]);
+  }, [allProfiles]);
 
-  // Extraire les pays uniques et triés (exclure les pays par défaut)
+  // Extraire les pays uniques et triés
   const availableCountries = React.useMemo(() => {
     const countries = [...new Set(allProfiles.map(p => p.country).filter((country): country is string => 
-      country !== undefined && !defaultCountries.includes(country)
+      country !== undefined
     ))];
     return countries.sort();
-  }, [allProfiles, defaultCountries]);
+  }, [allProfiles]);
 
   // Charger tous les profils une seule fois
   useEffect(() => {
@@ -144,10 +134,20 @@ const AlumniDirectory: React.FC = () => {
         profile.headline?.toLowerCase().includes(query) ||
         profile.position?.toLowerCase().includes(query) ||
         profile.company?.toLowerCase().includes(query) ||
-        profile.city?.toLowerCase().includes(query) ||
-        profile.country?.toLowerCase().includes(query) ||
+        profile.city?.toLowerCase().split(',').map(v => v.trim()).some(v => v.toLowerCase().includes(query)) ||
+        profile.country?.toLowerCase().split(',').map(c => c.trim()).some(c => c.toLowerCase().includes(query)) ||
         profile.sectors?.some(sector => sector.toLowerCase().includes(query)) ||
-        profile.expertise?.some(exp => exp.toLowerCase().includes(query))
+        profile.expertise?.some(exp => exp.toLowerCase().includes(query)) ||
+        // Ajout des nouveaux champs
+        profile.seeking?.some(item => item.toLowerCase().includes(query)) ||
+        profile.offering?.some(item => item.toLowerCase().includes(query)) ||
+        profile.softSkills?.some(skill => skill.toLowerCase().includes(query)) ||
+        profile.languages?.some(lang => lang.name.toLowerCase().includes(query)) ||
+        profile.availability?.toLowerCase().includes(query) ||
+        // Ajout des autres champs
+        profile.companyDescription?.toLowerCase().includes(query) ||
+        profile.companyWebsite?.toLowerCase().includes(query) ||
+        profile.personalWebsite?.toLowerCase().includes(query)
       );
     });
 
@@ -166,7 +166,9 @@ const AlumniDirectory: React.FC = () => {
       expertise: newFilters.expertise || [],
       yearPromos: newFilters.singleYear 
         ? [newFilters.singleYear] 
-        : Array.from({ length: newFilters.yearPromo.max - newFilters.yearPromo.min + 1 }, (_, i) => newFilters.yearPromo.min + i),
+        : (newFilters.yearPromo.min > 0 && newFilters.yearPromo.max > 0)
+        ? Array.from({ length: newFilters.yearPromo.max - newFilters.yearPromo.min + 1 }, (_, i) => newFilters.yearPromo.min + i)
+        : [], // Plage vide si min = 0 ou max = 0
       city: newFilters.city || undefined,
       country: newFilters.country || undefined,
       company: undefined,
@@ -235,44 +237,71 @@ const AlumniDirectory: React.FC = () => {
     }
     
     // Filtrer par ville
-    if (filters.city) {
+    if (filtersToApply.city) {
+      const filterCities = filtersToApply.city.toLowerCase().split(',').map(v => v.trim());
       filtered = filtered.filter(profile => 
-        profile.city?.toLowerCase().includes(filters.city!.toLowerCase())
+        profile.city?.toLowerCase().split(',').map(v => v.trim()).some(city => 
+          filterCities.includes(city.toLowerCase())
+        )
       );
     }
     
     // Filtrer par pays
-    if (filters.country) {
+    if (filtersToApply.country) {
+      const filterCountries = filtersToApply.country.toLowerCase().split(',').map(c => c.trim());
       filtered = filtered.filter(profile => 
-        profile.country?.toLowerCase().includes(filters.country!.toLowerCase())
+        profile.country?.toLowerCase().split(',').map(c => c.trim()).some(country => 
+          filterCountries.includes(country.toLowerCase())
+        )
       );
     }
     
     // Filtrer par entreprise
-    if (filters.company) {
+    if (filtersToApply.company) {
       filtered = filtered.filter(profile => 
-        profile.company === filters.company
+        profile.company === filtersToApply.company
       );
     }
     
     // Filtrer par poste
-    if (filters.position) {
+    if (filtersToApply.position) {
       filtered = filtered.filter(profile => 
-        profile.position?.toLowerCase().includes(filters.position!.toLowerCase())
+        profile.position?.toLowerCase().includes(filtersToApply.position!.toLowerCase())
       );
     }
     
     // Filtrer par "je cherche"
-    if (filters.seeking && filters.seeking.length > 0) {
+    if (filtersToApply.seeking && filtersToApply.seeking.length > 0) {
       filtered = filtered.filter(profile => 
-        profile.seeking?.some(item => filters.seeking!.includes(item))
+        profile.seeking?.some(item => filtersToApply.seeking!.includes(item))
       );
     }
     
     // Filtrer par "je propose"
-    if (filters.offering && filters.offering.length > 0) {
+    if (filtersToApply.offering && filtersToApply.offering.length > 0) {
       filtered = filtered.filter(profile => 
-        profile.offering?.some(item => filters.offering!.includes(item))
+        profile.offering?.some(item => filtersToApply.offering!.includes(item))
+      );
+    }
+    
+    // Filtrer par soft skills
+    if (filtersToApply.softSkills && filtersToApply.softSkills.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.softSkills?.some(skill => filtersToApply.softSkills!.includes(skill))
+      );
+    }
+    
+    // Filtrer par langues
+    if (filtersToApply.languages && filtersToApply.languages.length > 0) {
+      filtered = filtered.filter(profile => 
+        profile.languages?.some(lang => filtersToApply.languages!.includes(lang.name))
+      );
+    }
+    
+    // Filtrer par disponibilité
+    if (filtersToApply.availability) {
+      filtered = filtered.filter(profile => 
+        profile.availability === filtersToApply.availability
       );
     }
     
@@ -396,24 +425,24 @@ const AlumniDirectory: React.FC = () => {
         </div>
 
         {/* Barre de recherche et filtres */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* Recherche instantanée */}
             <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher instantanément par nom, bio, expertise, entreprise..."
-                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -424,17 +453,73 @@ const AlumniDirectory: React.FC = () => {
             {/* Bouton filtres */}
             <button
               onClick={() => setShowFilters(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 relative"
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg hover:from-blue-100 hover:to-indigo-100 transition-all relative group"
             >
-              <Filter className="w-5 h-5" />
-              <span>Filtres</span>
+              <Filter className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold text-gray-700">Filtres</span>
               {activeFiltersCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pulse">
                   {activeFiltersCount}
                 </span>
               )}
             </button>
           </div>
+
+          {/* Filtres actifs */}
+          {hasActiveFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {filters.sectors && filters.sectors.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      <Briefcase className="w-3 h-3" />
+                      {filters.sectors.length} secteur{filters.sectors.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {filters.yearPromos && filters.yearPromos.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                      <Calendar className="w-3 h-3" />
+                      {filters.yearPromos.length === 1 
+                        ? filters.yearPromos[0] 
+                        : `${Math.min(...filters.yearPromos)}-${Math.max(...filters.yearPromos)}`
+                      }
+                    </span>
+                  )}
+                  {filters.city && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+                      <MapPin className="w-3 h-3" />
+                      {filters.city}
+                    </span>
+                  )}
+                  {filters.country && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                      <Globe className="w-3 h-3" />
+                      {filters.country}
+                    </span>
+                  )}
+                  {filters.availability && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
+                      <Users className="w-3 h-3" />
+                      Disponible
+                    </span>
+                  )}
+                  {searchQuery && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
+                      <Search className="w-3 h-3" />
+                      "{searchQuery.substring(0, 20)}{searchQuery.length > 20 ? '...' : ''}"
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors font-medium"
+                >
+                  <X className="w-4 h-4" />
+                  Effacer tout
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Modal de filtres */}
           <FilterModal
@@ -450,7 +535,7 @@ const AlumniDirectory: React.FC = () => {
                 ? { min: Math.min(...filters.yearPromos), max: Math.max(...filters.yearPromos) }
                 : filters.yearPromos && filters.yearPromos.length === 1
                 ? { min: filters.yearPromos[0], max: filters.yearPromos[0] }
-                : { min: 2020, max: 2030 },
+                : { min: 0, max: 0 }, // Plage vide par défaut
               singleYear: filters.yearPromos && filters.yearPromos.length === 1 ? filters.yearPromos[0] : undefined,
               country: filters.country || '',
               city: filters.city || '',
@@ -516,8 +601,8 @@ const AlumniDirectory: React.FC = () => {
             ))}
           </div>
         )}
-        </div>
       </div>
+    </div>
   );
 };
 

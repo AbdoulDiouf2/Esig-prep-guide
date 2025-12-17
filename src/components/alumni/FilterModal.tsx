@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from '../common/Modal';
+import { Briefcase, Award, Search, Calendar, MapPin, Users } from 'lucide-react';
 
 interface FilterModalProps {
   isOpen: boolean;
@@ -80,7 +81,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setFilters(prev => ({ 
       ...prev, 
       singleYear: year,
-      yearPromo: year ? { min: year, max: year } : { min: 2020, max: 2030 } // Réinitialiser la plage si année unique
+      yearPromo: year ? { min: year, max: year } : { min: 0, max: 0 } // Plage vide si pas d'année unique
     }));
   };
 
@@ -94,7 +95,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       search: '',
       sectors: [],
       expertise: [],
-      yearPromo: { min: 2020, max: 2030 },
+      yearPromo: { min: 0, max: 0 }, // Plage vide par défaut
       singleYear: undefined, // Réinitialiser l'année unique
       country: '',
       city: '',
@@ -109,51 +110,119 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Filtres avancés" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="Filtres avancés" size="xl">
       <div className="space-y-6">
         {/* Secteurs */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Secteurs</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-blue-600" />
+            Secteurs d'activité
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {availableSectors.map(sector => (
-              <label key={sector} className="flex items-center space-x-2 cursor-pointer">
+              <label key={sector} className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
                 <input
                   type="checkbox"
                   checked={filters.sectors.includes(sector)}
                   onChange={() => handleSectorToggle(sector)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">{sector}</span>
+                <span className="text-sm text-gray-700 font-medium">{sector}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* Expertise */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Expertise</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-green-600" />
+            Compétences techniques
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {availableExpertise.map(exp => (
-              <label key={exp} className="flex items-center space-x-2 cursor-pointer">
+              <label key={exp} className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
                 <input
                   type="checkbox"
                   checked={filters.expertise.includes(exp)}
                   onChange={() => handleExpertiseToggle(exp)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">{exp}</span>
+                <span className="text-sm text-gray-700 font-medium">{exp}</span>
               </label>
             ))}
           </div>
         </div>
 
+        {/* Je cherche / Je propose */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Search className="w-5 h-5 text-indigo-600" />
+            Je cherche / Je propose
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Je cherche */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Je cherche</label>
+              <div className="space-y-2">
+                {['Collaborateur', 'Développeur', 'Designer', 'Mentor', 'Opportunité', 'Stage', 'Emploi', 'Recrutement', 'Partenariat', 'Investissement', 'Expertise technique', 'Réseau'].map(item => (
+                  <label key={item} className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={filters.seeking?.includes(item)}
+                      onChange={() => {
+                        setFilters(prev => ({
+                          ...prev,
+                          seeking: prev.seeking?.includes(item)
+                            ? prev.seeking.filter(s => s !== item)
+                            : [...(prev.seeking || []), item]
+                        }));
+                      }}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Je propose */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Je propose</label>
+              <div className="space-y-2">
+                {['Mentorat', 'Collaboration', 'Conseil', 'Expertise technique', 'Investissement', 'Partenariat', 'Recrutement', 'Opportunité', 'Stage', 'Emploi', 'Réseau', 'Support'].map(item => (
+                  <label key={item} className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={filters.offering?.includes(item)}
+                      onChange={() => {
+                        setFilters(prev => ({
+                          ...prev,
+                          offering: prev.offering?.includes(item)
+                            ? prev.offering.filter(o => o !== item)
+                            : [...(prev.offering || []), item]
+                        }));
+                      }}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Année de promotion */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Année de promotion</h3>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-purple-600" />
+            Année de promotion
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Plage d'années */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Plage d'années</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Plage d'années</label>
               <div className="flex items-center space-x-2">
                 <div className="flex-1">
                   <input
@@ -162,11 +231,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     max="2030"
                     value={filters.yearPromo.min}
                     onChange={(e) => handleYearRangeChange('min', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!!filters.singleYear} // Désactiver si année unique sélectionnée
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    disabled={!!filters.singleYear}
                   />
                 </div>
-                <span className="text-gray-500">—</span>
+                <span className="text-gray-500 font-medium">—</span>
                 <div className="flex-1">
                   <input
                     type="number"
@@ -174,8 +243,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     max="2030"
                     value={filters.yearPromo.max}
                     onChange={(e) => handleYearRangeChange('max', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!!filters.singleYear} // Désactiver si année unique sélectionnée
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    disabled={!!filters.singleYear}
                   />
                 </div>
               </div>
@@ -183,14 +252,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
             
             {/* Année unique */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ou année unique</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ou année unique</label>
               <select
                 value={filters.singleYear || ''}
                 onChange={(e) => {
                   const year = e.target.value ? parseInt(e.target.value) : undefined;
                   handleSingleYearChange(year);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Sélectionner une année</option>
                 {availableYears?.map(year => (
@@ -202,36 +271,33 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </div>
 
         {/* Localisation */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Localisation</h3>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-orange-600" />
+            Localisation
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pays</label>
               <select
                 value={filters.country}
                 onChange={(e) => setFilters(prev => ({ ...prev, country: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">Tous les pays</option>
-                {['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie'].map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
                 {availableCountries.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ville</label>
               <select
                 value={filters.city}
                 onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">Toutes les villes</option>
-                {['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome'].map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
                 {availableCities.map(city => (
                   <option key={city} value={city}>{city}</option>
                 ))}
@@ -241,36 +307,40 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </div>
 
         {/* Disponibilité */}
-        <div>
-          <label className="flex items-center space-x-2 cursor-pointer">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-green-600" />
+            Disponibilité
+          </h3>
+          <label className="flex items-center space-x-3 cursor-pointer hover:bg-white p-3 rounded-lg transition-colors">
             <input
               type="checkbox"
               checked={filters.availability}
               onChange={(e) => setFilters(prev => ({ ...prev, availability: e.target.checked }))}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-gray-300 text-green-600 focus:ring-green-500 w-4 h-4"
             />
-            <span className="text-sm text-gray-700">Uniquement les alumni disponibles</span>
+            <span className="text-sm text-gray-700 font-medium">Uniquement les alumni disponibles</span>
           </label>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+        <div className="flex justify-between items-center pt-6 border-t border-gray-200 bg-gray-50 rounded-b-lg px-6 pb-6 -mx-4">
           <button
             onClick={handleReset}
-            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
+            className="px-6 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all transform hover:scale-105"
           >
-            Réinitialiser
+            Réinitialiser tout
           </button>
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
+              className="px-6 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all transform hover:scale-105"
             >
               Annuler
             </button>
             <button
               onClick={handleApply}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               Appliquer les filtres
             </button>

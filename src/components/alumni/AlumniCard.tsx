@@ -78,9 +78,23 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
       {(profile.city || profile.country) && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">
-            {[profile.city, profile.country].filter(Boolean).join(', ')}
-          </span>
+          <div className="flex flex-wrap gap-1">
+            {profile.city && (
+              profile.city.split(',').map((city, index) => (
+                <span
+                  key={`city-${index}`}
+                  className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+                >
+                  {city.trim()}
+                </span>
+              ))
+            )}
+            {profile.country && (
+              <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                {profile.country}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
