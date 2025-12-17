@@ -11,6 +11,7 @@ interface FilterModalProps {
   availableExpertise: string[];
   availableCountries: string[];
   availableCities: string[];
+  availableYears?: number[]; // Ajout des années disponibles
 }
 
 export interface AlumniFilters {
@@ -18,6 +19,7 @@ export interface AlumniFilters {
   sectors: string[];
   expertise: string[];
   yearPromo: { min: number; max: number };
+  singleYear?: number; // Nouveau champ pour année unique
   country: string;
   city: string;
   availability: boolean;
@@ -36,7 +38,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   availableSectors,
   availableExpertise,
   availableCountries,
-  availableCities
+  availableCities,
+  availableYears
 }) => {
   const [filters, setFilters] = React.useState<AlumniFilters>(initialFilters);
 
@@ -68,7 +71,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
       yearPromo: {
         ...prev.yearPromo,
         [type]: value
-      }
+      },
+      singleYear: undefined // Réinitialiser l'année unique quand on modifie la plage
+    }));
+  };
+
+  const handleSingleYearChange = (year: number | undefined) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      singleYear: year,
+      yearPromo: year ? { min: year, max: year } : { min: 2020, max: 2030 } // Réinitialiser la plage si année unique
     }));
   };
 
@@ -83,6 +95,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       sectors: [],
       expertise: [],
       yearPromo: { min: 2020, max: 2030 },
+      singleYear: undefined, // Réinitialiser l'année unique
       country: '',
       city: '',
       availability: false,
@@ -137,29 +150,53 @@ const FilterModal: React.FC<FilterModalProps> = ({
         {/* Année de promotion */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-3">Année de promotion</h3>
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Min</label>
-              <input
-                type="number"
-                min="2020"
-                max="2030"
-                value={filters.yearPromo.min}
-                onChange={(e) => handleYearRangeChange('min', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Plage d'années */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plage d'années</label>
+              <div className="flex items-center space-x-2">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    min="2020"
+                    max="2030"
+                    value={filters.yearPromo.min}
+                    onChange={(e) => handleYearRangeChange('min', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!!filters.singleYear} // Désactiver si année unique sélectionnée
+                  />
+                </div>
+                <span className="text-gray-500">—</span>
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    min="2020"
+                    max="2030"
+                    value={filters.yearPromo.max}
+                    onChange={(e) => handleYearRangeChange('max', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!!filters.singleYear} // Désactiver si année unique sélectionnée
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex items-center text-gray-500">—</div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
-              <input
-                type="number"
-                min="2020"
-                max="2030"
-                value={filters.yearPromo.max}
-                onChange={(e) => handleYearRangeChange('max', parseInt(e.target.value))}
+            
+            {/* Année unique */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ou année unique</label>
+              <select
+                value={filters.singleYear || ''}
+                onChange={(e) => {
+                  const year = e.target.value ? parseInt(e.target.value) : undefined;
+                  handleSingleYearChange(year);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="">Sélectionner une année</option>
+                {availableYears?.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

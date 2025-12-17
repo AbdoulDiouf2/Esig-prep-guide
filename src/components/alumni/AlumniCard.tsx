@@ -175,64 +175,64 @@ const AlumniCard: React.FC<AlumniCardProps> = ({ profile }) => {
         {/* Réseaux sociaux */}
         <div className="flex items-center gap-3">
           {profile.linkedin && (
-            <a
-              href={profile.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-gray-600 hover:text-blue-600 transition-colors"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(profile.linkedin, '_blank', 'noopener,noreferrer');
+              }}
+              className="text-gray-600 hover:text-blue-600 transition-colors p-1 rounded"
               title="LinkedIn"
             >
               <Linkedin className="w-4 h-4" />
-            </a>
+            </button>
           )}
           {profile.github && (
-            <a
-              href={profile.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(profile.github, '_blank', 'noopener,noreferrer');
+              }}
+              className="text-gray-600 hover:text-gray-900 transition-colors p-1 rounded"
               title="GitHub"
             >
               <Github className="w-4 h-4" />
-            </a>
+            </button>
           )}
           {profile.twitter && (
-            <a
-              href={profile.twitter}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-gray-600 hover:text-blue-400 transition-colors"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(profile.twitter, '_blank', 'noopener,noreferrer');
+              }}
+              className="text-gray-600 hover:text-blue-400 transition-colors p-1 rounded"
               title="Twitter"
             >
               <Twitter className="w-4 h-4" />
-            </a>
+            </button>
           )}
           {profile.personalWebsite && (
-            <a
-              href={profile.personalWebsite}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-gray-600 hover:text-purple-600 transition-colors"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(profile.personalWebsite, '_blank', 'noopener,noreferrer');
+              }}
+              className="text-gray-600 hover:text-purple-600 transition-colors p-1 rounded"
               title="Site web personnel"
             >
               <Globe className="w-4 h-4" />
-            </a>
+            </button>
           )}
           {profile.companyWebsite && (
-            <a
-              href={profile.companyWebsite}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-gray-600 hover:text-orange-600 transition-colors"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(profile.companyWebsite, '_blank', 'noopener,noreferrer');
+              }}
+              className="text-gray-600 hover:text-orange-600 transition-colors p-1 rounded"
               title="Site web de l'entreprise"
             >
               <Building2 className="w-4 h-4" />
-            </a>
+            </button>
           )}
         </div>
         

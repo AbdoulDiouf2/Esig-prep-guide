@@ -16,20 +16,17 @@ export default function UserStatusModal() {
     const checkUserStatus = async () => {
       // Si pas d'utilisateur connecté, on ne fait rien
       if (!currentUser) {
-        console.log('Pas d\'utilisateur connecté');
         setIsLoading(false);
         return;
       }
       
       try {
-        console.log('Vérification du statut pour', currentUser.uid);
         const userRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
         
         // ÉTAPE 1: Vérification de l'existence du champ statut
         if (!userDoc.exists()) {
           // Le document utilisateur n'existe pas, on le crée avec statut 'none'
-          console.log('Document utilisateur inexistant, création avec statut "none"');
           await setDoc(userRef, {
             uid: currentUser.uid,
             email: currentUser.email,
@@ -42,22 +39,19 @@ export default function UserStatusModal() {
         } else {
           // Le document existe
           const userData = userDoc.data();
-          console.log('Données utilisateur:', userData);
           
           // Si le statut n'existe pas, on l'initialise à 'none'
           if (userData.status === undefined) {
-            console.log('Champ statut inexistant, initialisation à "none"');
             await updateDoc(userRef, { status: 'none' });
             setShowModal(true);
           }
           // ÉTAPE 2: Vérification de la valeur du statut
           else if (userData.status === 'none') {
-            console.log('Statut "none", affichage du modal');
             setShowModal(true);
           }
           // ÉTAPE 3: Si statut déjà initialisé, ne rien faire
           else {
-            console.log('Statut déjà défini:', userData.status);
+            // Statut déjà défini, pas d'action nécessaire
           }
         }
       } catch (error) {
@@ -77,15 +71,10 @@ export default function UserStatusModal() {
     
     try {
       setIsLoading(true);
-      console.log(`Mise à jour du statut: "${status}" pour l'utilisateur`, currentUser.uid);
       
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        status,
-        updatedAt: new Date()
-      });
-      
-      console.log('Statut mis à jour avec succès');
+      // Mise à jour du statut dans Firestore
+      await updateDoc(userRef, { status });
       setShowModal(false);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
@@ -94,15 +83,11 @@ export default function UserStatusModal() {
     }
   };
 
-  console.log('Rendu du composant UserStatusModal', { isLoading, showModal, currentUser: !!currentUser });
-  
   if (isLoading) {
-    console.log('Chargement en cours...');
     return null;
   }
   
   if (!showModal) {
-    console.log('Modal non affiché car showModal est false');
     return null;
   }
 

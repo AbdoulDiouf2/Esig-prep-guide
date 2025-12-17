@@ -52,6 +52,12 @@ const AlumniDirectory: React.FC = () => {
     []
   );
 
+  // Extraire les années de promotion uniques et triées
+  const availableYears = React.useMemo(() => {
+    const years = [...new Set(allProfiles.map(p => p.yearPromo).filter(year => year !== undefined))];
+    return years.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
+  }, [allProfiles]);
+
   // Extraire les villes uniques et triées (exclure les villes par défaut)
   const availableCities = React.useMemo(() => {
     const cities = [...new Set(allProfiles.map(p => p.city).filter((city): city is string => 
@@ -158,7 +164,9 @@ const AlumniDirectory: React.FC = () => {
     const convertedFilters: AlumniSearchFilters = {
       sectors: newFilters.sectors || [],
       expertise: newFilters.expertise || [],
-      yearPromos: Array.from({ length: newFilters.yearPromo.max - newFilters.yearPromo.min + 1 }, (_, i) => newFilters.yearPromo.min + i),
+      yearPromos: newFilters.singleYear 
+        ? [newFilters.singleYear] 
+        : Array.from({ length: newFilters.yearPromo.max - newFilters.yearPromo.min + 1 }, (_, i) => newFilters.yearPromo.min + i),
       city: newFilters.city || undefined,
       country: newFilters.country || undefined,
       company: undefined,
@@ -438,9 +446,12 @@ const AlumniDirectory: React.FC = () => {
               search: searchQuery,
               sectors: filters.sectors || [],
               expertise: filters.expertise || [],
-              yearPromo: filters.yearPromos && filters.yearPromos.length > 0 
+              yearPromo: filters.yearPromos && filters.yearPromos.length > 1 
                 ? { min: Math.min(...filters.yearPromos), max: Math.max(...filters.yearPromos) }
+                : filters.yearPromos && filters.yearPromos.length === 1
+                ? { min: filters.yearPromos[0], max: filters.yearPromos[0] }
                 : { min: 2020, max: 2030 },
+              singleYear: filters.yearPromos && filters.yearPromos.length === 1 ? filters.yearPromos[0] : undefined,
               country: filters.country || '',
               city: filters.city || '',
               availability: !!filters.availability,
@@ -453,6 +464,7 @@ const AlumniDirectory: React.FC = () => {
             availableExpertise={availableSoftSkills}
             availableCountries={availableCountries}
             availableCities={availableCities}
+            availableYears={availableYears}
           />
         </div>
 
