@@ -31,7 +31,8 @@ import {
   CalendarCheck,
   Phone,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  Book
 } from 'lucide-react';
 
 interface AppFeature {
@@ -611,11 +612,31 @@ const ApplicationsDashboard: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Plateforme CPS Connect · Centre d'applications</h1>
-        <p className="text-gray-600 mt-2">
-          Bienvenue <strong>{currentUser?.displayName || 'Utilisateur'}</strong>, cet espace centralise l'ensemble des modules et fonctionnalités disponibles pour votre profil
-          (Étudiants CPS, Alumni, administration, édition, outils et services).
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Plateforme CPS Connect · Centre d'applications</h1>
+            <p className="text-gray-600 mt-2">
+              Bienvenue <strong>{currentUser?.displayName || 'Utilisateur'}</strong>, cet espace centralise l'ensemble des modules et fonctionnalités disponibles pour votre profil
+              (Étudiants CPS, Alumni, administration, édition, outils et services).
+            </p>
+          </div>
+          <div className="flex items-center space-x-3 ml-4">
+            <Link 
+              to="/tutorial" 
+              className="flex items-center px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors duration-200"
+            >
+              <Book className="w-4 h-4 mr-2" />
+              <span className="font-medium">Tutoriel</span>
+            </Link>
+            <Link 
+              to="/help" 
+              className="flex items-center p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              title="Aide"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Notification profil alumni brouillon */}

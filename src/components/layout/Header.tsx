@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, HelpCircle, Bot, FileText, MessageSquare, Book, Home, Shield, Edit, Grid, Users } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
@@ -82,6 +82,12 @@ const Header: React.FC = () => {
                   <Home className="w-4 h-4 mr-1" />
                   <span>Accueil</span>
                 </Link>
+                <Link to="/alumni" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <Users className="w-4 h-4 mr-1" />
+                  <span>Annuaire</span>
+                </Link>
                 <Link to="/dashboard" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
@@ -100,7 +106,7 @@ const Header: React.FC = () => {
                   <MessageSquare className="w-4 h-4 mr-1" />
                   <span>FAQ</span>
                 </Link>
-                <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
+                {/* <Link to="/tutorial" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
                 }`}>
                   <Book className="w-4 h-4 mr-1" />
@@ -111,13 +117,7 @@ const Header: React.FC = () => {
                 }`}>
                   <HelpCircle className="w-4 h-4 mr-1" />
                   <span>Aide</span>
-                </Link>
-                <Link to="/alumni" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
-                  isScrolled ? 'text-blue-800' : 'text-white'
-                }`}>
-                  <Users className="w-4 h-4 mr-1" />
-                  <span>Annuaire</span>
-                </Link>
+                </Link> */}
                 <SuperAdminCheck>
                   <Link to="/chat-ai" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                     isScrolled ? 'text-blue-800' : 'text-white'
@@ -286,6 +286,14 @@ const Header: React.FC = () => {
                     <span>Accueil</span>
                   </Link>
                   <Link 
+                    to="/alumni" 
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    <span>Annuaire Alumni</span>
+                  </Link>
+                  <Link 
                     to="/dashboard" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
@@ -309,7 +317,7 @@ const Header: React.FC = () => {
                     <MessageSquare className="w-4 h-4 mr-2" />
                     <span>FAQ</span>
                   </Link>
-                  <Link 
+                  {/* <Link 
                     to="/tutorial" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
@@ -324,15 +332,7 @@ const Header: React.FC = () => {
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
                     <span>Aide</span>
-                  </Link>
-                  <Link 
-                    to="/alumni" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>Annuaire Alumni</span>
-                  </Link>
+                  </Link> */}
                   <SuperAdminCheck>
                     <Link 
                       to="/chat-ai" 
