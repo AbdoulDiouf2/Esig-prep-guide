@@ -87,11 +87,17 @@
   - [x] Gestion webinaires & propositions
   - [x] Tableau de bord Éditeur (sans données sensibles)
 
-- **Centre d’applications**
+- **Centre d'applications**
   - [x] Hub centralisé (ApplicationsDashboard)
   - [x] Catégories par type de fonctionnalités (Principales, Administration, Édition, Voyage, Outils, Avancées)
   - [x] Filtrage dynamique par rôle (user, editor, admin)
   - [x] Marquage "Bientôt disponible" pour les modules futurs
+  - [x] **Améliorations UX/ergonomie (avis structuré)**
+    - [ ] Section "Actions prioritaires" en haut (3 cartes max selon rôle/statut/activité)
+    - [x] Toggle pour masquer/afficher les fonctionnalités "Coming Soon"
+    - [x] Navigation par catégories expressive (compteurs, activation par profil)
+    - [x] Micro-UX des cartes (clic entier, tooltips, badges "Nouveau")
+    - [x] Mini-recherche de fonctionnalités (optionnel)
 
 - **Pages légales & conformité**
   - [x] CGU
