@@ -176,6 +176,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tous les pays</option>
+                {['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie'].map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
                 {availableCountries.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
@@ -189,6 +192,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Toutes les villes</option>
+                {['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome'].map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
                 {availableCities.map(city => (
                   <option key={city} value={city}>{city}</option>
                 ))}

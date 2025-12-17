@@ -32,6 +32,9 @@ const AlumniDirectory: React.FC = () => {
     'Consulting', 'Education', 'Santé', 'E-commerce', 'Entreprenariat', 'Autre'
   ];
 
+  // État pour tous les profils (non filtrés)
+  const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]);
+
   // Options pour les nouveaux filtres enrichis
   const availableSoftSkills = [
     'Communication', 'Leadership', 'Gestion d\'équipe', 'Résolution de problèmes',
@@ -39,14 +42,31 @@ const AlumniDirectory: React.FC = () => {
     'Esprit critique', 'Intelligence émotionnelle', 'Prise de décision', 'Négociation'
   ];
 
-  // const availableLanguages = [
-  //   'Français', 'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais',
-  //   'Néerlandais', 'Chinois', 'Japonais', 'Arabe', 'Russe', 'Coréen', 'Turc'
-  // ];
+  // Villes et pays par défaut à exclure (mémorisés pour éviter les recréations)
+  const defaultCities = React.useMemo(() => 
+    ['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome'], 
+    []
+  );
+  const defaultCountries = React.useMemo(() => 
+    ['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie'], 
+    []
+  );
 
-  // const availabilityOptions = [
-  //   'Disponible', 'Freelance', 'Ouvert à opportunités', 'Non disponible', 'Contactez-moi'
-  // ];
+  // Extraire les villes uniques et triées (exclure les villes par défaut)
+  const availableCities = React.useMemo(() => {
+    const cities = [...new Set(allProfiles.map(p => p.city).filter((city): city is string => 
+      city !== undefined && !defaultCities.includes(city)
+    ))];
+    return cities.sort();
+  }, [allProfiles, defaultCities]);
+
+  // Extraire les pays uniques et triés (exclure les pays par défaut)
+  const availableCountries = React.useMemo(() => {
+    const countries = [...new Set(allProfiles.map(p => p.country).filter((country): country is string => 
+      country !== undefined && !defaultCountries.includes(country)
+    ))];
+    return countries.sort();
+  }, [allProfiles, defaultCountries]);
 
   // Charger tous les profils une seule fois
   useEffect(() => {
@@ -67,9 +87,6 @@ const AlumniDirectory: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // État pour tous les profils (non filtrés)
-  const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]);
 
   // // Extraire les promotions uniques et triées
   // const availablePromos = React.useMemo(() => {
@@ -135,11 +152,13 @@ const AlumniDirectory: React.FC = () => {
 
   // Gestion du modal de filtres
   const handleApplyFiltersModal = (newFilters: AlumniFilters) => {
+    // console.log('Filtres reçus du modal:', newFilters);
+    
     // Convertir AlumniFilters vers AlumniSearchFilters
     const convertedFilters: AlumniSearchFilters = {
       sectors: newFilters.sectors || [],
       expertise: newFilters.expertise || [],
-      yearPromos: [], // Convertir yearPromo en tableau si nécessaire
+      yearPromos: Array.from({ length: newFilters.yearPromo.max - newFilters.yearPromo.min + 1 }, (_, i) => newFilters.yearPromo.min + i),
       city: newFilters.city || undefined,
       country: newFilters.country || undefined,
       company: undefined,
@@ -150,6 +169,9 @@ const AlumniDirectory: React.FC = () => {
       languages: newFilters.languages || [],
       availability: newFilters.availability ? 'Disponible' : undefined,
     };
+    
+    // console.log('Filtres convertis:', convertedFilters);
+    // console.log('Nombre de profils avant filtrage:', allProfiles.length);
     
     setFilters(convertedFilters);
     applyFilters(convertedFilters);
@@ -176,6 +198,7 @@ const AlumniDirectory: React.FC = () => {
 
   // Appliquer les filtres côté client
   const applyFilters = (filtersToApply: AlumniSearchFilters) => {
+    // console.log('applyFilters appelé avec:', filtersToApply);
     let filtered = [...allProfiles];
     
     // Filtrer par secteurs
@@ -192,11 +215,15 @@ const AlumniDirectory: React.FC = () => {
       );
     }
     
-    // Filtrer par promotions
-    if (filters.yearPromos && filters.yearPromos.length > 0) {
-      filtered = filtered.filter(profile => 
-        filters.yearPromos!.includes(profile.yearPromo)
-      );
+    // Filtrer par promotions - CORRIGÉ
+    if (filtersToApply.yearPromos && filtersToApply.yearPromos.length > 0) {
+      // console.log('Filtrage par années:', filtersToApply.yearPromos);
+      filtered = filtered.filter(profile => {
+        const matches = filtersToApply.yearPromos!.includes(profile.yearPromo);
+        // console.log(`Profile ${profile.name} (${profile.yearPromo}) matches:`, matches);
+        return matches;
+      });
+      // console.log('Résultats après filtrage année:', filtered.length);
     }
     
     // Filtrer par ville
@@ -332,7 +359,7 @@ const AlumniDirectory: React.FC = () => {
   const activeFiltersCount = 
     (filters.sectors?.length || 0) + 
     (filters.expertise?.length || 0) +
-    (filters.yearPromos?.length || 0) +
+    (filters.yearPromos && filters.yearPromos.length > 0 ? 1 : 0) +
     (filters.city ? 1 : 0) +
     (filters.country ? 1 : 0) +
     (filters.seeking?.length || 0) +
@@ -341,6 +368,8 @@ const AlumniDirectory: React.FC = () => {
     (filters.softSkills?.length || 0) +
     (filters.languages?.length || 0) +
     (filters.availability ? 1 : 0);
+
+  const hasActiveFilters = activeFiltersCount > 0 || searchQuery.trim() !== '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -409,7 +438,9 @@ const AlumniDirectory: React.FC = () => {
               search: searchQuery,
               sectors: filters.sectors || [],
               expertise: filters.expertise || [],
-              yearPromo: { min: 2020, max: 2030 },
+              yearPromo: filters.yearPromos && filters.yearPromos.length > 0 
+                ? { min: Math.min(...filters.yearPromos), max: Math.max(...filters.yearPromos) }
+                : { min: 2020, max: 2030 },
               country: filters.country || '',
               city: filters.city || '',
               availability: !!filters.availability,
@@ -420,8 +451,8 @@ const AlumniDirectory: React.FC = () => {
             }}
             availableSectors={availableSectors}
             availableExpertise={availableSoftSkills}
-            availableCountries={['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie']}
-            availableCities={['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome']}
+            availableCountries={availableCountries}
+            availableCities={availableCities}
           />
         </div>
 
@@ -448,10 +479,23 @@ const AlumniDirectory: React.FC = () => {
           </div>
         ) : profiles.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Aucun profil trouvé</p>
-            <p className="text-gray-400 text-sm mt-2">
-              Essayez de modifier vos critères de recherche
+            <p className="text-gray-500 text-lg">
+              {hasActiveFilters ? 'Aucun résultat pour vos filtres' : 'Aucun profil trouvé'}
             </p>
+            <p className="text-gray-400 text-sm mt-2">
+              {hasActiveFilters 
+                ? 'Essayez d\'élargir vos critères ou d\'effacer les filtres'
+                : 'Aucun alumni n\'est encore inscrit sur la plateforme'
+              }
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Effacer tous les filtres
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
