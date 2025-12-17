@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, MapPin, Link as LinkIcon, Award, Package, Users, GraduationCap, Globe, Heart, Eye, Star, X } from 'lucide-react';
+import { X, Briefcase, Award, Users, Globe, Eye, MapPin, Link as LinkIcon, Package, GraduationCap, Heart, Star } from 'lucide-react';
+import LocationAutocomplete from '../common/LocationAutocomplete';
 import { EducationEntry, ExperienceEntry, CertificationEntry } from '../../types/alumni';
 
 interface AlumniProfileFormData {
@@ -1353,55 +1354,21 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
           Localisation
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div>
             <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-              Ville
+              Ville et/ou Pays
             </label>
-            <div className="relative">
-              <input
-                id="city"
-                type="text"
-                value={formData.city || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                placeholder="Ex: Dakar"
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {formData.city && (
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, city: undefined }))}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-              Pays
-            </label>
-            <div className="relative">
-              <input
-                id="country"
-                type="text"
-                value={formData.country || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                placeholder="Ex: Sénégal"
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {formData.country && (
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, country: undefined }))}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            <LocationAutocomplete
+              city={formData.city || ''}
+              country={formData.country || ''}
+              onChange={(city, country) => setFormData(prev => ({ ...prev, city, country }))}
+              placeholder="Rechercher une ville ou un pays (ex: Paris, Dakar...)"
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Saisissez une ville, un pays ou une combinaison (ex: "Paris, France")
+            </p>
           </div>
         </div>
       </div>
