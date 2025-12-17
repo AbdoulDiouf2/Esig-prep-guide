@@ -686,10 +686,10 @@ const ApplicationsDashboard: React.FC = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Rechercher une fonctionnalité..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-80"
             />
             <div className="absolute left-3 top-2.5 text-gray-400">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -758,7 +758,7 @@ const ApplicationsDashboard: React.FC = () => {
                     Bientôt disponible
                   </span>
                 )}
-                {!feature.comingSoon && !feature.disabled && (
+                {(feature.title === "Annuaire Alumni" || feature.title === "Mon profil Alumni") && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">
                     Nouveau
                   </span>
