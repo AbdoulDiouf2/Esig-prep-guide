@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { getApprovedAlumniProfiles } from '../services/alumniService';
 import AlumniCard from '../components/alumni/AlumniCard';
+import FilterModal, { AlumniFilters } from '../components/alumni/FilterModal';
 import type { AlumniProfile, AlumniSearchFilters } from '../types/alumni';
 
 const AlumniDirectory: React.FC = () => {
@@ -9,8 +10,6 @@ const AlumniDirectory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  
-  // États des filtres
   const [filters, setFilters] = useState<AlumniSearchFilters>({
     sectors: [],
     expertise: [],
@@ -40,14 +39,14 @@ const AlumniDirectory: React.FC = () => {
     'Esprit critique', 'Intelligence émotionnelle', 'Prise de décision', 'Négociation'
   ];
 
-  const availableLanguages = [
-    'Français', 'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais',
-    'Néerlandais', 'Chinois', 'Japonais', 'Arabe', 'Russe', 'Coréen'
-  ];
+  // const availableLanguages = [
+  //   'Français', 'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais',
+  //   'Néerlandais', 'Chinois', 'Japonais', 'Arabe', 'Russe', 'Coréen', 'Turc'
+  // ];
 
-  const availabilityOptions = [
-    'Disponible', 'Freelance', 'Ouvert à opportunités', 'Non disponible', 'Contactez-moi'
-  ];
+  // const availabilityOptions = [
+  //   'Disponible', 'Freelance', 'Ouvert à opportunités', 'Non disponible', 'Contactez-moi'
+  // ];
 
   // Charger tous les profils une seule fois
   useEffect(() => {
@@ -58,8 +57,10 @@ const AlumniDirectory: React.FC = () => {
     setLoading(true);
     try {
       const data = await getApprovedAlumniProfiles('dateCreated', 1000); // Charger plus pour filtrer côté client
-      setAllProfiles(data);
-      setProfiles(data);
+      // Trier par ordre alphabétique
+      const sortedData = data.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase(), 'fr'));
+      setAllProfiles(sortedData);
+      setProfiles(sortedData);
     } catch (error) {
       console.error('Erreur chargement profils:', error);
     } finally {
@@ -70,36 +71,36 @@ const AlumniDirectory: React.FC = () => {
   // État pour tous les profils (non filtrés)
   const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]);
 
-  // Extraire les promotions uniques et triées
-  const availablePromos = React.useMemo(() => {
-    const promos = [...new Set(allProfiles.map(p => p.yearPromo).filter(Boolean))];
-    return promos.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
-  }, [allProfiles]);
+  // // Extraire les promotions uniques et triées
+  // const availablePromos = React.useMemo(() => {
+  //   const promos = [...new Set(allProfiles.map(p => p.yearPromo).filter(Boolean))];
+  //   return promos.sort((a, b) => b - a); // Tri décroissant (plus récent d'abord)
+  // }, [allProfiles]);
 
-  // Extraire les expertises uniques
-  const availableExpertise = React.useMemo(() => {
-    const expertise = [...new Set(allProfiles.flatMap(p => p.expertise || []))];
-    return expertise.sort();
-  }, [allProfiles]);
+  // // Extraire les expertises uniques
+  // const availableExpertise = React.useMemo(() => {
+  //   const expertise = [...new Set(allProfiles.flatMap(p => p.expertise || []))];
+  //   return expertise.sort();
+  // }, [allProfiles]);
 
-  // Extraire les entreprises uniques
-  const availableCompanies = React.useMemo(() => {
-    const companies = [...new Set(allProfiles.map(p => p.company).filter(Boolean))];
-    return companies.sort();
-  }, [allProfiles]);
+  // // Extraire les entreprises uniques
+  // const availableCompanies = React.useMemo(() => {
+  //   const companies = [...new Set(allProfiles.map(p => p.company).filter(Boolean))];
+  //   return companies.sort();
+  // }, [allProfiles]);
 
-  // Options pour "Je cherche / Je propose"
-  const seekingOptions = [
-    'Collaborateur', 'Développeur', 'Designer', 'Mentor', 'Opportunité',
-    'Stage', 'Emploi', 'Recrutement', 'Partenariat', 'Investissement',
-    'Expertise technique', 'Réseau'
-  ];
+  // // Options pour "Je cherche / Je propose"
+  // const seekingOptions = [
+  //   'Collaborateur', 'Développeur', 'Designer', 'Mentor', 'Opportunité',
+  //   'Stage', 'Emploi', 'Recrutement', 'Partenariat', 'Investissement',
+  //   'Expertise technique', 'Réseau'
+  // ];
 
-  const offeringOptions = [
-    'Mentorat', 'Collaboration', 'Conseil', 'Expertise technique',
-    'Investissement', 'Partenariat', 'Recrutement', 'Opportunité',
-    'Stage', 'Emploi', 'Réseau', 'Support'
-  ];
+  // const offeringOptions = [
+  //   'Mentorat', 'Collaboration', 'Conseil', 'Expertise technique',
+  //   'Investissement', 'Partenariat', 'Recrutement', 'Opportunité',
+  //   'Stage', 'Emploi', 'Réseau', 'Support'
+  // ];
 
   // Recherche instantanée côté client
   useEffect(() => {
@@ -127,24 +128,67 @@ const AlumniDirectory: React.FC = () => {
       );
     });
 
-    setProfiles(filtered);
+    // Maintenir le tri alphabétique après filtrage
+    const sortedFiltered = filtered.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase(), 'fr'));
+    setProfiles(sortedFiltered);
   }, [searchQuery, allProfiles]);
 
+  // Gestion du modal de filtres
+  const handleApplyFiltersModal = (newFilters: AlumniFilters) => {
+    // Convertir AlumniFilters vers AlumniSearchFilters
+    const convertedFilters: AlumniSearchFilters = {
+      sectors: newFilters.sectors || [],
+      expertise: newFilters.expertise || [],
+      yearPromos: [], // Convertir yearPromo en tableau si nécessaire
+      city: newFilters.city || undefined,
+      country: newFilters.country || undefined,
+      company: undefined,
+      position: undefined,
+      seeking: newFilters.seeking || [],
+      offering: newFilters.offering || [],
+      softSkills: newFilters.softSkills || [],
+      languages: newFilters.languages || [],
+      availability: newFilters.availability ? 'Disponible' : undefined,
+    };
+    
+    setFilters(convertedFilters);
+    applyFilters(convertedFilters);
+  };
+
+  const handleResetFiltersModal = () => {
+    const resetFilters: AlumniSearchFilters = {
+      sectors: [],
+      expertise: [],
+      yearPromos: [],
+      city: undefined,
+      country: undefined,
+      company: undefined,
+      position: undefined,
+      seeking: [],
+      offering: [],
+      softSkills: [],
+      languages: [],
+      availability: undefined,
+    };
+    setFilters(resetFilters);
+    setProfiles(allProfiles);
+  };
+
   // Appliquer les filtres côté client
-  const handleApplyFilters = () => {
+  const applyFilters = (filtersToApply: AlumniSearchFilters) => {
     let filtered = [...allProfiles];
     
     // Filtrer par secteurs
-    if (filters.sectors && filters.sectors.length > 0) {
+    if (filtersToApply.sectors && filtersToApply.sectors.length > 0) {
       filtered = filtered.filter(profile => 
-        profile.sectors?.some(sector => filters.sectors!.includes(sector))
+        profile.sectors?.some(sector => filtersToApply.sectors!.includes(sector))
       );
     }
     
     // Filtrer par expertise
-    if (filters.expertise && filters.expertise.length > 0) {
+    if (filtersToApply.expertise && filtersToApply.expertise.length > 0) {
       filtered = filtered.filter(profile => 
-        profile.expertise?.some(exp => filters.expertise!.includes(exp))
+        profile.expertise?.some(exp => filtersToApply.expertise!.includes(exp))
       );
     }
     
@@ -197,7 +241,9 @@ const AlumniDirectory: React.FC = () => {
       );
     }
     
-    setProfiles(filtered);
+    // Maintenir le tri alphabétique après application des filtres
+    const sortedFiltered = filtered.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase(), 'fr'));
+    setProfiles(sortedFiltered);
     setShowFilters(false);
   };
 
@@ -220,68 +266,68 @@ const AlumniDirectory: React.FC = () => {
     setProfiles(allProfiles);
   };
 
-  // Fonctions pour gérer les filtres
-  const toggleSector = (sector: string) => {
-    setFilters(prev => ({
-      ...prev,
-      sectors: prev.sectors?.includes(sector)
-        ? prev.sectors.filter(s => s !== sector)
-        : [...(prev.sectors || []), sector]
-    }));
-  };
+  // // Fonctions pour gérer les filtres
+  // const toggleSector = (sector: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     sectors: prev.sectors?.includes(sector)
+  //       ? prev.sectors.filter(s => s !== sector)
+  //       : [...(prev.sectors || []), sector]
+  //   }));
+  // };
 
-  const toggleExpertise = (exp: string) => {
-    setFilters(prev => ({
-      ...prev,
-      expertise: prev.expertise?.includes(exp)
-        ? prev.expertise.filter(e => e !== exp)
-        : [...(prev.expertise || []), exp]
-    }));
-  };
+  // const toggleExpertise = (exp: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     expertise: prev.expertise?.includes(exp)
+  //       ? prev.expertise.filter(e => e !== exp)
+  //       : [...(prev.expertise || []), exp]
+  //   }));
+  // };
 
-  const toggleSeeking = (item: string) => {
-    setFilters(prev => ({
-      ...prev,
-      seeking: prev.seeking?.includes(item)
-        ? prev.seeking.filter(s => s !== item)
-        : [...(prev.seeking || []), item]
-    }));
-  };
+  // const toggleSeeking = (item: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     seeking: prev.seeking?.includes(item)
+  //       ? prev.seeking.filter(s => s !== item)
+  //       : [...(prev.seeking || []), item]
+  //   }));
+  // };
 
-  const toggleOffering = (item: string) => {
-    setFilters(prev => ({
-      ...prev,
-      offering: prev.offering?.includes(item)
-        ? prev.offering.filter(o => o !== item)
-        : [...(prev.offering || []), item]
-    }));
-  };
+  // const toggleOffering = (item: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     offering: prev.offering?.includes(item)
+  //       ? prev.offering.filter(o => o !== item)
+  //       : [...(prev.offering || []), item]
+  //   }));
+  // };
 
-  // Fonctions pour les nouveaux filtres enrichis
-  const toggleSoftSkill = (skill: string) => {
-    setFilters(prev => ({
-      ...prev,
-      softSkills: prev.softSkills?.includes(skill)
-        ? prev.softSkills.filter(s => s !== skill)
-        : [...(prev.softSkills || []), skill]
-    }));
-  };
+  // // Fonctions pour les nouveaux filtres enrichis
+  // const toggleSoftSkill = (skill: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     softSkills: prev.softSkills?.includes(skill)
+  //       ? prev.softSkills.filter(s => s !== skill)
+  //       : [...(prev.softSkills || []), skill]
+  //   }));
+  // };
 
-  const toggleLanguage = (language: string) => {
-    setFilters(prev => ({
-      ...prev,
-      languages: prev.languages?.includes(language)
-        ? prev.languages.filter(l => l !== language)
-        : [...(prev.languages || []), language]
-    }));
-  };
+  // const toggleLanguage = (language: string) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     languages: prev.languages?.includes(language)
+  //       ? prev.languages.filter(l => l !== language)
+  //       : [...(prev.languages || []), language]
+  //   }));
+  // };
 
-  const setAvailability = (availability: string | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      availability: availability
-    }));
-  };
+  // const setAvailability = (availability: string | undefined) => {
+  //   setFilters(prev => ({
+  //     ...prev,
+  //     availability: availability
+  //   }));
+  // };
 
   const activeFiltersCount = 
     (filters.sectors?.length || 0) + 
@@ -340,7 +386,7 @@ const AlumniDirectory: React.FC = () => {
 
             {/* Bouton filtres */}
             <button
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => setShowFilters(true)}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 relative"
             >
               <Filter className="w-5 h-5" />
@@ -353,268 +399,30 @@ const AlumniDirectory: React.FC = () => {
             </button>
           </div>
 
-          {/* Panel de filtres */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Secteurs */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Secteurs
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableSectors.map(sector => (
-                      <button
-                        key={sector}
-                        onClick={() => toggleSector(sector)}
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          filters.sectors?.includes(sector)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {sector}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Année de promo */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Promotions
-                  </label>
-                  <div className="relative">
-                    <select
-                      multiple
-                      value={filters.yearPromos?.map(String) || []}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value));
-                        setFilters(prev => ({ ...prev, yearPromos: selected }));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      size={4}
-                    >
-                      {availablePromos.map(promo => (
-                        <option key={promo} value={promo}>
-                          Promo {promo}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Maintenez Ctrl/Cmd pour sélection multiple
-                    </p>
-                  </div>
-                </div>
-
-                {/* Localisation */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Localisation
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={filters.city || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value || undefined }))}
-                      placeholder="Ville"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="text"
-                      value={filters.country || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, country: e.target.value || undefined }))}
-                      placeholder="Pays"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Expertise */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expertise
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {availableExpertise.map(exp => (
-                      <button
-                        key={exp}
-                        onClick={() => toggleExpertise(exp)}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          filters.expertise?.includes(exp)
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {exp}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Entreprise */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Entreprise
-                  </label>
-                  <select
-                    value={filters.company || ''}
-                    onChange={(e) => setFilters(prev => ({ ...prev, company: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Toutes les entreprises</option>
-                    {availableCompanies.map(company => (
-                      <option key={company} value={company}>
-                        {company}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Poste */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Poste
-                  </label>
-                  <input
-                    type="text"
-                    value={filters.position || ''}
-                    onChange={(e) => setFilters(prev => ({ ...prev, position: e.target.value || undefined }))}
-                    placeholder="Ex: Développeur, Manager..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Je cherche */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Je cherche
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {seekingOptions.map(option => (
-                      <button
-                        key={option}
-                        onClick={() => toggleSeeking(option)}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          filters.seeking?.includes(option)
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Je propose */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Je propose
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {offeringOptions.map(option => (
-                      <button
-                        key={option}
-                        onClick={() => toggleOffering(option)}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          filters.offering?.includes(option)
-                            ? 'bg-orange-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* NOUVEAUX FILTRES ENRICHIS */}
-
-                {/* Soft Skills */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Soft Skills
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {availableSoftSkills.map(skill => (
-                      <button
-                        key={skill}
-                        onClick={() => toggleSoftSkill(skill)}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          filters.softSkills?.includes(skill)
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {skill}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Langues */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Langues
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {availableLanguages.map(language => (
-                      <button
-                        key={language}
-                        onClick={() => toggleLanguage(language)}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          filters.languages?.includes(language)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {language}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Disponibilité */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Disponibilité
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {availabilityOptions.map(option => (
-                      <button
-                        key={option}
-                        onClick={() => setAvailability(filters.availability === option ? undefined : option)}
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          filters.availability === option
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Boutons d'action */}
-              <div className="flex justify-end gap-2 mt-4">
-                <button
-                  onClick={handleResetFilters}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                >
-                  Réinitialiser
-                </button>
-                <button
-                  onClick={handleApplyFilters}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Appliquer les filtres
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Modal de filtres */}
+          <FilterModal
+            isOpen={showFilters}
+            onClose={() => setShowFilters(false)}
+            onApplyFilters={handleApplyFiltersModal}
+            onResetFilters={handleResetFiltersModal}
+            initialFilters={{
+              search: searchQuery,
+              sectors: filters.sectors || [],
+              expertise: filters.expertise || [],
+              yearPromo: { min: 2020, max: 2030 },
+              country: filters.country || '',
+              city: filters.city || '',
+              availability: !!filters.availability,
+              seeking: filters.seeking || [],
+              offering: filters.offering || [],
+              softSkills: filters.softSkills || [],
+              languages: filters.languages || [],
+            }}
+            availableSectors={availableSectors}
+            availableExpertise={availableSoftSkills}
+            availableCountries={['France', 'Canada', 'USA', 'UK', 'Allemagne', 'Suisse', 'Belgique', 'Luxembourg', 'Italie']}
+            availableCities={['Paris', 'Lyon', 'Marseille', 'Lille', 'Bordeaux', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg', 'Montpellier', 'Rome']}
+          />
         </div>
 
         {/* Résultats */}
@@ -652,8 +460,8 @@ const AlumniDirectory: React.FC = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
-    </div>
   );
 };
 
