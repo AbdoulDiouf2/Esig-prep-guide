@@ -294,7 +294,7 @@ const Header: React.FC = () => {
                     <span>CPS</span>
                   </Link>
                   <Link 
-                    to="/resources" 
+                    to="/all-resources" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
