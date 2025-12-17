@@ -93,7 +93,7 @@
   - [x] Filtrage dynamique par rôle (user, editor, admin)
   - [x] Marquage "Bientôt disponible" pour les modules futurs
   - [x] **Améliorations UX/ergonomie (avis structuré)**
-    - [ ] Section "Actions prioritaires" en haut (3 cartes max selon rôle/statut/activité)
+    - [x] Section "Actions prioritaires" en haut (3 cartes max selon rôle/statut/activité)
     - [x] Toggle pour masquer/afficher les fonctionnalités "Coming Soon"
     - [x] Navigation par catégories expressive (compteurs, activation par profil)
     - [x] Micro-UX des cartes (clic entier, tooltips, badges "Nouveau")
@@ -112,6 +112,24 @@
   - [x] Gestion des notifications globales (bannières)
   - [x] Page 404 personnalisée
   - [x] Intégration analytics (Vercel)
+
+- **Actualités de la communauté**
+  - [ ] Page "Actualités" (/news) avec affichage des articles
+  - [ ] Système de gestion des articles (admin/éditeur)
+  - [ ] Types d'articles : Annonces officielles, Success stories, Événements, Nouvelles fonctionnalités
+  - [ ] Éditeur riche avec mise en forme (titres, images, liens)
+  - [ ] Catégories et tags pour organiser le contenu
+  - [ ] Publication programmée des articles
+  - [ ] Notifications aux utilisateurs pour nouveaux articles
+  - [ ] Section "Articles récents" sur le dashboard
+  - [ ] Intégration avec les profils alumni (auteur visible)
+  - [ ] Commentaires et likes sur les articles
+  - [ ] Recherche et filtrage par catégorie/date
+  - [ ] Export PDF des articles importants
+  - [ ] Statistiques de lecture et d'engagement
+  - [ ] Archive mensuelle des actualités
+  - [ ] Bouton "Partager" sur réseaux sociaux
+  - [ ] Template d'email pour newsletter mensuelle
 
 ---
 

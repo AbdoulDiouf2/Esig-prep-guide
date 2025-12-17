@@ -561,6 +561,46 @@ const ApplicationsDashboard: React.FC = () => {
 
   const categories = Object.keys(filteredCategories);
 
+  // Déterminer les actions prioritaires selon le rôle et le statut
+  const getPriorityActions = () => {
+    const actions: AppFeature[] = [];
+    
+    if (isAdmin()) {
+      // Actions prioritaires pour les admins
+      actions.push(
+        allFeatures.admin?.features.find(f => f.title === "Administration") || allFeatures.admin?.features[0],
+        allFeatures.admin?.features.find(f => f.title === "Vue progression globale") || allFeatures.admin?.features[1],
+        allFeatures.admin?.features.find(f => f.title === "Gestion des utilisateurs") || allFeatures.admin?.features[2]
+      );
+    } else if (isEditor() && !isAdmin()) {
+      // Actions prioritaires pour les éditeurs
+      actions.push(
+        allFeatures.editor?.features.find(f => f.title === "Édition du contenu") || allFeatures.editor?.features[0],
+        allFeatures.editor?.features.find(f => f.title === "Gestion FAQ") || allFeatures.editor?.features[1],
+        allFeatures.mentorship?.features.find(f => f.title === "Annuaire Alumni") || allFeatures.mentorship?.features[0]
+      );
+    } else {
+      // Actions prioritaires pour les utilisateurs simples
+      if (alumniProfile?.status === 'pending') {
+        actions.push(
+          allFeatures.mentorship?.features.find(f => f.title === "Mon profil Alumni") || allFeatures.mentorship?.features[1]
+        );
+      }
+      actions.push(
+        allFeatures.mentorship?.features.find(f => f.title === "Annuaire Alumni") || allFeatures.mentorship?.features[0]
+      );
+      
+      // Ajouter 2 fonctionnalités "coming soon" de la catégorie mentorship
+      const mentorshipComingSoon = allFeatures.mentorship?.features.filter(f => f.comingSoon) || [];
+      actions.push(...mentorshipComingSoon.slice(0, 2));
+    }
+    
+    // Filtrer les undefined et limiter à 3 actions
+    return actions.filter(action => action !== undefined).slice(0, 3);
+  };
+
+  const priorityActions = getPriorityActions();
+
   // S'assurer que la catégorie active existe toujours après filtrage
   useEffect(() => {
     if (!categories.includes(activeCategory) && categories.length > 0) {
@@ -597,6 +637,65 @@ const ApplicationsDashboard: React.FC = () => {
                 Compléter mon profil →
               </Link>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actions Prioritaires */}
+      {priorityActions.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <Star className="w-5 h-5 text-yellow-500 mr-2" />
+            <h2 className="text-xl font-semibold text-gray-800">Actions prioritaires</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {priorityActions.map((action, index) => (
+              <Link
+                key={index}
+                to={action.disabled ? '#' : action.link}
+                className={`bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 flex flex-col ${
+                  action.disabled 
+                    ? 'opacity-60 cursor-not-allowed' 
+                    : 'hover:shadow-md hover:from-blue-100 hover:to-indigo-100 transition-all cursor-pointer'
+                }`}
+                onClick={(e) => action.disabled && e.preventDefault()}
+              >
+                <div className="flex items-start mb-3">
+                  <div className="mr-3 text-blue-600">
+                    {action.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 text-sm mb-1">
+                      {action.title}
+                    </h3>
+                    {action.comingSoon && (
+                      <span className="inline-block bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded mb-2">
+                        Bientôt disponible
+                      </span>
+                    )}
+                    {(action.title === "Annuaire Alumni" || action.title === "Mon profil Alumni") && (
+                      <span className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded mb-2">
+                        Nouveau
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-gray-600 text-xs flex-grow">
+                  {action.description}
+                </p>
+                <div className="mt-3">
+                  {action.disabled ? (
+                    <span className="text-gray-500 text-xs font-medium">
+                      {action.comingSoon ? 'En développement' : 'Non disponible'}
+                    </span>
+                  ) : (
+                    <span className="text-blue-600 text-xs font-medium hover:text-blue-800">
+                      Accéder →
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}
