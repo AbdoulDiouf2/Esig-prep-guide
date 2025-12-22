@@ -7,7 +7,7 @@ import { createAlumniProfileOnSignup } from '../services/alumniService';
 
 const CompleteUserProfile: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
   
   const [yearPromo, setYearPromo] = useState<number>(new Date().getFullYear() + 1);
   const [wantsAlumniProfile, setWantsAlumniProfile] = useState<boolean | null>(null);
@@ -43,6 +43,9 @@ const CompleteUserProfile: React.FC = () => {
         profileComplete: true,
         updatedAt: new Date(),
       });
+
+      // Mettre à jour manuellement le contexte utilisateur
+      updateCurrentUser({ profileComplete: true, yearPromo: yearPromo });
 
       // Si l'utilisateur veut un profil alumni, créer le profil
       if (wantsAlumniProfile) {

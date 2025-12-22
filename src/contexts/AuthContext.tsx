@@ -50,6 +50,7 @@ type AuthContextType = {
   isEditor: () => boolean;
   isSuperAdmin: () => Promise<boolean>;
   sendVerificationEmail: () => Promise<void>;
+  updateCurrentUser: (data: Partial<AppUser>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -449,7 +450,10 @@ const value = {
   isAdmin,
   isEditor,
   isSuperAdmin,
-  sendVerificationEmail
+  sendVerificationEmail,
+  updateCurrentUser: (data: Partial<AppUser>) => {
+    setCurrentUser(prevUser => prevUser ? { ...prevUser, ...data } : null);
+  }
 };
 
   return (
