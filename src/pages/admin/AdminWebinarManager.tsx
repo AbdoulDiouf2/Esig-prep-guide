@@ -97,7 +97,6 @@ const AdminWebinarManager: React.FC = () => {
   const [currentWebinarTitle, setCurrentWebinarTitle] = useState('');
   
   // Onglets
-  const [activeTab, setActiveTab] = useState('upcoming');
   
   useEffect(() => {
     fetchWebinars();
@@ -148,22 +147,27 @@ const AdminWebinarManager: React.FC = () => {
     }
   };
 
-  // Filtrer les webinaires selon l'onglet actif
+  // Filtrer, séparer et trier les webinaires
   const filteredWebinars = webinars.filter(webinar => {
-    // Filtrer par statut
-    if (activeTab === 'upcoming' && !webinar.isUpcoming) return false;
-    if (activeTab === 'live' && !webinar.isLive) return false;
-    if (activeTab === 'completed' && !webinar.isCompleted) return false;
-    
-    // Filtrer par recherche
-    if (searchTerm && !webinar.title.toLowerCase().includes(searchTerm.toLowerCase()) && 
+    if (searchTerm && !webinar.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !webinar.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !webinar.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))) {
       return false;
     }
-    
     return true;
   });
+
+  const liveWebinars = filteredWebinars
+    .filter(w => w.isLive)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const upcomingWebinars = filteredWebinars
+    .filter(w => w.isUpcoming && !w.isLive)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const completedWebinars = filteredWebinars
+    .filter(w => w.isCompleted)
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const handleCreateWebinar = () => {
     // Réinitialiser le formulaire avec des valeurs par défaut
@@ -722,31 +726,7 @@ const AdminWebinarManager: React.FC = () => {
       </div>
       
       {/* Filtres et recherche */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveTab('upcoming')}
-            className={`px-3 py-1.5 rounded-full flex items-center ${activeTab === 'upcoming' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <Calendar className="w-4 h-4 mr-1" />
-            À venir
-          </button>
-          <button
-            onClick={() => setActiveTab('live')}
-            className={`px-3 py-1.5 rounded-full flex items-center ${activeTab === 'live' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <Video className="w-4 h-4 mr-1" />
-            En direct
-          </button>
-          <button
-            onClick={() => setActiveTab('completed')}
-            className={`px-3 py-1.5 rounded-full flex items-center ${activeTab === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Terminés
-          </button>
-        </div>
-        
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-end gap-4">
         <div className="relative">
           <input
             type="text"
@@ -774,12 +754,12 @@ const AdminWebinarManager: React.FC = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : filteredWebinars.length === 0 ? (
+      ) : filteredWebinars.length === 0 && !searchTerm ? (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Aucun webinaire trouvé</h2>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Aucun webinaire créé</h2>
           <p className="text-gray-500 mb-4">
-            {searchTerm ? "Aucun résultat pour votre recherche" : "Aucun webinaire n'est disponible dans cette catégorie"}
+            Commencez par créer votre premier webinaire pour le proposer aux étudiants.
           </p>
           <button
             onClick={handleCreateWebinar}
@@ -790,107 +770,128 @@ const AdminWebinarManager: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWebinars.map(webinar => (
-            <div key={webinar.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              {/* Image de couverture */}
-              <div className="h-40 bg-gray-200 relative">
-                {webinar.imageUrl ? (
-                  <img src={webinar.imageUrl} alt={webinar.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-blue-50">
-                    <Video className="w-16 h-16 text-blue-300" />
+        <div className="space-y-12">
+          {/* Section En direct */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <Video className="w-6 h-6 mr-2 text-red-600" />
+              En direct
+            </h2>
+            {liveWebinars.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {liveWebinars.map(webinar => (
+                  <div key={webinar.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="h-40 bg-gray-200 relative">
+                      {webinar.imageUrl ? <img src={webinar.imageUrl} alt={webinar.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-blue-50"><Video className="w-16 h-16 text-blue-300" /></div>}
+                      <div className="absolute top-2 right-2">
+                        {webinar.isLive && <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium inline-flex items-center"><span className="w-2 h-2 rounded-full bg-white mr-1 animate-pulse"></span>En direct</span>}
+                        {webinar.isUpcoming && !webinar.isLive && <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">À venir</span>}
+                        {webinar.isCompleted && <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">Terminé</span>}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{webinar.title}</h3>
+                      <div className="flex items-start mb-3"><Calendar className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}<span className="mx-1">•</span>{webinar.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                      <div className="flex items-start mb-3"><Users className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.currentParticipants}/{webinar.maxParticipants} participants</span></div>
+                      <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
+                      <div className="flex border-t pt-3 mt-2">
+                        <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
+                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
+                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
+                      </div>
+                    </div>
                   </div>
-                )}
-                {/* Badge statut */}
-                <div className="absolute top-2 right-2">
-                  {webinar.isLive && (
-                    <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium inline-flex items-center">
-                      <span className="w-2 h-2 rounded-full bg-white mr-1 animate-pulse"></span>
-                      En direct
-                    </span>
-                  )}
-                  {webinar.isUpcoming && !webinar.isLive && (
-                    <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                      À venir
-                    </span>
-                  )}
-                  {webinar.isCompleted && (
-                    <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                      Terminé
-                    </span>
-                  )}
-                </div>
+                ))}
               </div>
-              
-              {/* Contenu */}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{webinar.title}</h3>
-                
-                <div className="flex items-start mb-3">
-                  <Calendar className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">
-                    {webinar.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    <span className="mx-1">•</span>
-                    {webinar.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                
-                <div className="flex items-start mb-3">
-                  <Users className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">
-                    {webinar.currentParticipants}/{webinar.maxParticipants} participants
-                  </span>
-                </div>
-                
-                <div className="flex items-start mb-4">
-                  <Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div className="flex flex-wrap gap-1">
-                    {webinar.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                    {webinar.tags.length > 3 && (
-                      <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>
-                    )}
+            ) : (
+              <p className="text-gray-500 italic">Aucun webinaire en direct pour le moment.</p>
+            )}
+          </section>
+
+          {/* Section À venir */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <Calendar className="w-6 h-6 mr-2 text-blue-600" />
+              À venir
+            </h2>
+            {upcomingWebinars.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upcomingWebinars.map(webinar => (
+                  <div key={webinar.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="h-40 bg-gray-200 relative">
+                      {webinar.imageUrl ? <img src={webinar.imageUrl} alt={webinar.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-blue-50"><Video className="w-16 h-16 text-blue-300" /></div>}
+                      <div className="absolute top-2 right-2">
+                        {webinar.isLive && <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium inline-flex items-center"><span className="w-2 h-2 rounded-full bg-white mr-1 animate-pulse"></span>En direct</span>}
+                        {webinar.isUpcoming && !webinar.isLive && <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">À venir</span>}
+                        {webinar.isCompleted && <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">Terminé</span>}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{webinar.title}</h3>
+                      <div className="flex items-start mb-3"><Calendar className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}<span className="mx-1">•</span>{webinar.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                      <div className="flex items-start mb-3"><Users className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.currentParticipants}/{webinar.maxParticipants} participants</span></div>
+                      <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
+                      <div className="flex border-t pt-3 mt-2">
+                        <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
+                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
+                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex border-t pt-3 mt-2">
-                  <button
-                    onClick={() => handleViewDetails(webinar.id)}
-                    className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Voir
-                  </button>
-                  <button
-                    onClick={() => handleEditWebinar(webinar)}
-                    className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDeleteWebinar(webinar.id)}
-                    className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Supprimer
-                  </button>
-                  <button
-                    onClick={() => handleViewRegistrations(webinar.id, webinar.title)}
-                    className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"
-                  >
-                    <UserCheck className="w-4 h-4 mr-1" />
-                    Voir les inscriptions
-                  </button>
-                </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-gray-500 italic">Aucun webinaire à venir pour le moment.</p>
+            )}
+          </section>
+
+          {/* Section Terminés */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <CheckCircle className="w-6 h-6 mr-2 text-green-600" />
+              Terminés
+            </h2>
+            {completedWebinars.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedWebinars.map(webinar => (
+                  <div key={webinar.id} className="bg-white rounded-lg shadow-md overflow-hidden opacity-75 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300">
+                    <div className="h-40 bg-gray-200 relative">
+                      {webinar.imageUrl ? <img src={webinar.imageUrl} alt={webinar.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-blue-50"><Video className="w-16 h-16 text-blue-300" /></div>}
+                      <div className="absolute top-2 right-2">
+                        {webinar.isLive && <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium inline-flex items-center"><span className="w-2 h-2 rounded-full bg-white mr-1 animate-pulse"></span>En direct</span>}
+                        {webinar.isUpcoming && !webinar.isLive && <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">À venir</span>}
+                        {webinar.isCompleted && <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">Terminé</span>}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{webinar.title}</h3>
+                      <div className="flex items-start mb-3"><Calendar className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}<span className="mx-1">•</span>{webinar.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                      <div className="flex items-start mb-3"><Users className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><span className="text-sm text-gray-600">{webinar.currentParticipants}/{webinar.maxParticipants} participants</span></div>
+                      <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
+                      <div className="flex border-t pt-3 mt-2">
+                        <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
+                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
+                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">Aucun webinaire n'est encore terminé.</p>
+            )}
+          </section>
+          
+          {filteredWebinars.length === 0 && searchTerm && (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">Aucun résultat</h2>
+              <p className="text-gray-500">Votre recherche pour "{searchTerm}" n'a donné aucun résultat.</p>
             </div>
-          ))}
+          )}
         </div>
       )}
       

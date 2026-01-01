@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -75,10 +75,16 @@ const AdminUserManager: React.FC = () => {
   // Filtres
   const [roleFilter, setRoleFilter] = useState<'tous' | 'admin' | 'editor' | 'standard'>('tous');
   const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
+  const [yearPromoFilter, setYearPromoFilter] = useState<string>('');
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 15;
+
+  const promoYears = useMemo(() => {
+    const years = new Set(users.map(user => user.yearPromo).filter(Boolean));
+    return Array.from(years).sort((a, b) => (b ?? 0) - (a ?? 0)); // Sort descending
+  }, [users]);
 
   // Fonction fetchUsers accessible partout dans le composant
   const fetchUsers = async () => {
@@ -441,8 +447,8 @@ const AdminUserManager: React.FC = () => {
         </div>
         
         {/* Filtres */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <div className="lg:col-span-1">
             <label htmlFor="role-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par rôle</label>
             <select
               id="role-filter"
@@ -460,7 +466,7 @@ const AdminUserManager: React.FC = () => {
             </select>
           </div>
           
-          <div className="flex-1">
+          <div className="lg:col-span-1">
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par statut</label>
             <select
               id="status-filter"
@@ -478,24 +484,45 @@ const AdminUserManager: React.FC = () => {
               <option value="autres">Autres</option>
             </select>
           </div>
-          <button
-            onClick={syncUserStatuses}
-            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 whitespace-nowrap"
-          >
-            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Synchro Statuts
-          </button>
-          <button
-            onClick={exportCpsUsersToCsv}
-            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 whitespace-nowrap"
-          >
-            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Exporter CPS
-          </button>
+
+          <div className="lg:col-span-1">
+            <label htmlFor="year-promo-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par promotion</label>
+            <select
+              id="year-promo-filter"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              value={yearPromoFilter}
+              onChange={e => {
+                setYearPromoFilter(e.target.value);
+                setCurrentPage(1); // Réinitialiser la pagination
+              }}
+            >
+              <option value="">Toutes les promotions</option>
+              {promoYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="lg:col-span-2 flex flex-col sm:flex-row gap-2 justify-end">
+            <button
+              onClick={syncUserStatuses}
+              className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+            >
+              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Synchro Statuts
+            </button>
+            <button
+              onClick={exportCpsUsersToCsv}
+              className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+            >
+              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exporter CPS
+            </button>
+          </div>
         </div>
 
         {/* Utilisateurs Auth sans profil Firestore */}
@@ -540,9 +567,14 @@ const AdminUserManager: React.FC = () => {
                     if (statusFilter === 'tous') return true;
                     if (statusFilter === 'autres') return !user.status || user.status === 'autres';
                     return user.status === statusFilter;
+                  })
+                  .filter(user => {
+                    // Filtrage par année de promotion
+                    if (!yearPromoFilter) return true;
+                    return user.yearPromo?.toString() === yearPromoFilter;
                   });
                 
-                return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${roleFilter !== 'tous' || statusFilter !== 'tous' ? ' (filtrés)' : ''}`;
+                return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${roleFilter !== 'tous' || statusFilter !== 'tous' || yearPromoFilter ? ' (filtrés)' : ''}`;
               })()}
             </p>
             <table className="min-w-full divide-y divide-gray-200">
@@ -624,6 +656,11 @@ const AdminUserManager: React.FC = () => {
                     if (statusFilter === 'autres') return !user.status || user.status === 'autres';
                     return user.status === statusFilter;
                   })
+                  .filter(user => {
+                    // Filtrage par année de promotion
+                    if (!yearPromoFilter) return true;
+                    return user.yearPromo?.toString() === yearPromoFilter;
+                  })
                   .slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage)
                   .map((user) => (
                   <tr key={user.uid} className="hover:bg-gray-50">
@@ -644,7 +681,7 @@ const AdminUserManager: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 whitespace-nowrap">
                       {user.yearPromo ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
                           Promo {user.yearPromo}
@@ -1034,6 +1071,11 @@ const AdminUserManager: React.FC = () => {
                         if (statusFilter === 'tous') return true;
                         if (statusFilter === 'autres') return !user.status || user.status === 'autres';
                         return user.status === statusFilter;
+                      })
+                      .filter(user => {
+                        // Filtrage par année de promotion
+                        if (!yearPromoFilter) return true;
+                        return user.yearPromo?.toString() === yearPromoFilter;
                       });
                     
                     setCurrentPage(p => Math.min(Math.ceil(filteredUsers.length / usersPerPage), p + 1));
@@ -1052,6 +1094,11 @@ const AdminUserManager: React.FC = () => {
                           if (statusFilter === 'tous') return true;
                           if (statusFilter === 'autres') return !user.status || user.status === 'autres';
                           return user.status === statusFilter;
+                        })
+                        .filter(user => {
+                          // Filtrage par année de promotion
+                          if (!yearPromoFilter) return true;
+                          return user.yearPromo?.toString() === yearPromoFilter;
                         });
                       
                       return currentPage >= Math.ceil(filteredUsers.length / usersPerPage);
@@ -1075,6 +1122,11 @@ const AdminUserManager: React.FC = () => {
                       if (statusFilter === 'tous') return true;
                       if (statusFilter === 'autres') return !user.status || user.status === 'autres';
                       return user.status === statusFilter;
+                    })
+                    .filter(user => {
+                      // Filtrage par année de promotion
+                      if (!yearPromoFilter) return true;
+                      return user.yearPromo?.toString() === yearPromoFilter;
                     });
                   
                   return `Page ${currentPage} sur ${Math.ceil(filteredUsers.length / usersPerPage) || 1}`;

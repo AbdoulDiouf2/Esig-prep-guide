@@ -17,11 +17,14 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      setMessage('Un email de réinitialisation a été envoyé.');
-    } catch {
-      setError("Erreur lors de l'envoi de l'email. Vérifiez l'adresse saisie.");
+      // We intentionally do nothing here on success to have a single path
+    } catch (error) {
+      // We intentionally swallow the error to prevent user enumeration attacks.
+      // You can log the error here for debugging if you wish.
+      console.error("Password reset attempt failed (error hidden from user):", error);
     } finally {
       setLoading(false);
+      setMessage("Si un compte est associé à cette adresse e-mail, un lien de réinitialisation vient d'être envoyé.");
     }
   };
 
