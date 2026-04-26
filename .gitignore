@@ -59,3 +59,8 @@ build
 # Local Netlify folder
 .netlify
 firebase.rules
+.aidesigner/*
+!.aidesigner/.gitkeep
+.claude/
+.aidesigner/
+.agents/

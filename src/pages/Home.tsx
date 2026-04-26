@@ -1,681 +1,527 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Book, Workflow, Map, Users, GraduationCap, Award, Briefcase, MapPin, Star, TrendingUp, Building2, Handshake } from 'lucide-react';
+import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
+import {
+  ArrowRight, ArrowUpRight, Handshake, MessageCircle, FileText,
+  Briefcase, Users, MapPin, Building2, GraduationCap, Check,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import InfiniteLogoScroll from '../components/InfiniteLogoScroll';
 
+// ---------------------------------------------------------------------------
+// Animated counter
+// ---------------------------------------------------------------------------
+function AnimatedCounter({ target }: { target: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-50px' });
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.floor(v));
+  useEffect(() => {
+    if (!inView) return;
+    const c = animate(count, target, { duration: 2, ease: [0.16, 1, 0.3, 1] });
+    return c.stop;
+  }, [inView, count, target]);
+  return <motion.span ref={ref}>{rounded}</motion.span>;
+}
+
+// ---------------------------------------------------------------------------
+// Scroll reveal
+// ---------------------------------------------------------------------------
+function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  return (
+    <motion.div ref={ref} className={className}
+      initial={{ opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+const SCHOOLS = [
+  'École Polytechnique', 'CentraleSupélec', 'Mines Paris', 'INSA Rouen',
+  'Paris-Saclay', 'ESMT', 'ESIGELEC', 'Télécom Paris',
+  'INSA Rennes', 'UTT Troyes',
+];
+
+const FORUM_THREADS = [
+  {
+    initials: 'FS', avatarBg: 'bg-rose-100 text-rose-600',
+    author: 'Fatou S.',
+    tag: 'Logement', tagColor: 'text-rose-600 bg-rose-50 border-rose-100',
+    title: 'Recherche Colocataire Massy-Palaiseau, urgent (Centrale)',
+    replies: 4, delay: 0,
+  },
+  {
+    initials: 'MD', avatarBg: 'bg-emerald-100 text-emerald-600',
+    author: 'Mamadou D.',
+    tag: 'Démarches', tagColor: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+    title: "Comment justifier ses revenus Campus France ? (Garant dispo)",
+    replies: 21, delay: 0.08,
+  },
+  {
+    initials: 'AK', avatarBg: 'bg-purple-100 text-purple-600',
+    author: 'Aminata K.',
+    tag: 'Études', tagColor: 'text-purple-600 bg-purple-50 border-purple-100',
+    title: "Retour d'expérience : 1ère année INSA Lyon vs Prépas CPS",
+    replies: 8, delay: 0.16,
+  },
+];
+
+const ALUMNI = [
+  {
+    name: 'Cheikh Diallo', role: 'Ingénieur Data & IA', promo: '2017',
+    company: 'Thales Group', city: 'Paris, France', school: 'Télécom Paris',
+    initials: 'CD', avatarBg: 'bg-blue-100 text-blue-700',
+    bg: 'https://images.unsplash.com/photo-1550305080-4e029753abcf?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Aïssatou Sy', role: 'Consultante Finance', promo: '2019',
+    company: 'Société Générale', city: 'La Défense, France', school: 'HEC Paris',
+    initials: 'AS', avatarBg: 'bg-rose-100 text-rose-700',
+    bg: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Omar Faye', role: 'Étudiant Chercheur', promo: '2021',
+    company: 'Labo CNRS', city: 'Lyon, France', school: 'INSA Lyon',
+    initials: 'OF', avatarBg: 'bg-emerald-100 text-emerald-700',
+    bg: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
-  const [isVisible, setIsVisible] = React.useState(false);
-  const [currentSlide, setCurrentSlide] = React.useState(0);
 
-  React.useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  // Drag-to-scroll for alumni strip
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
 
-  // Auto-slide for mobile carousel (5 slides)
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 5);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  const onMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    startX.current = e.pageX - (sliderRef.current?.offsetLeft ?? 0);
+    scrollLeft.current = sliderRef.current?.scrollLeft ?? 0;
+  };
+  const onMouseLeave = () => { isDragging.current = false; };
+  const onMouseUp = () => { isDragging.current = false; };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !sliderRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - sliderRef.current.offsetLeft;
+    sliderRef.current.scrollLeft = scrollLeft.current - (x - startX.current) * 1.5;
+  };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="md:w-1/2 mb-8 md:mb-0">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-                CPS Connect - La communauté qui réunit étudiants CPS et alumni
-              </h1>
-              <p className="text-lg md:text-xl text-blue-100 mb-8">
-                Où que tu sois - en prépa, à l'ESIGELEC, en France ou au Sénégal - rejoins le réseau des alumni CPS pour du mentorat, des opportunités et du networking.
-              </p>
-              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                {currentUser ? (
-                  <Link 
-                    to="/applications" 
-                    className="bg-white text-blue-900 hover:bg-blue-50 px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-                  >
-                    Accéder au centre d'applications
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Link>
-                ) : (
-                  <>
-                    <Link 
-                      to="/register" 
-                      className="bg-white text-blue-900 hover:bg-blue-50 px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-                    >
-                      Je suis étudiant CPS
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </Link>
-                    <Link 
-                      to="/register" 
-                      className="border-2 border-white text-white hover:bg-white hover:text-blue-900 px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-                    >
-                      Je suis alumni
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="md:w-1/2 flex justify-center md:pl-8 mt-6 md:mt-0">
-              {/* Mobile Carousel */}
-              <div className="md:hidden w-full px-4">
-                <div className="relative w-full max-w-[320px] mx-auto">
-                  <div className="overflow-hidden rounded-xl">
-                    <div 
-                      className="flex transition-transform duration-500 ease-out"
-                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-                    >
-                      {/* Slide 1 - Campus */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
-                            alt="Campus ESIGELEC"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                      {/* Slide 2 - Étudiants */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://scontent-cdg4-3.cdninstagram.com/v/t51.82787-15/589119822_17941717707086573_8171928204936619206_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&ig_cache_key=Mzc3NDYwNzU0Njk5MzQwMDU1Ng%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjk2MHgxMjgwLnNkci5DMyJ9&_nc_ohc=qDBGhWpuJ38Q7kNvwHzvRAK&_nc_oc=Adlx3Q8m5L6w1szJMZXEJ_PJFCQVL_PhREY-b8lb3fighWPgEcj4CyXmjpqHldt9f80&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-cdg4-3.cdninstagram.com&_nc_gid=9kjGyAxtiF3oWq7RQTruPg&oh=00_Afmw-0JYQv2mpTAJeXXmz7XKUcNV71NJF7_AO_E2PzO38Q&oe=6938E201"
-                            alt="Prepa"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                      {/* Slide 3 - Laboratoire */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://imgs.search.brave.com/TfuVQndwQnhqjuioKEAKgagCmlFw6ilFLNCseatl5XA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93ZWxj/b21lLWVzaWdlbGVj/LmZyL3dwLWNvbnRl/bnQvdXBsb2Fkcy8y/MDI1LzA0L0VTSUdF/TEVDLVJvdWVuLTEw/MjR4NjgzLmpwZw"
-                            alt="ESIGELEC Interior"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                      {/* Slide 4 - Vie étudiante */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://imgs.search.brave.com/l0_8OXrK88wprAigYJXjUME-yHcbU7ggiHzmjhaJzF4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9mYXN0/bHkuNHNxaS5uZXQv/aW1nL2dlbmVyYWwv/NjAweDYwMC80ODMy/OTkyX2hxWjZrdlNj/UUV1a0Z5QVVyZjJx/Q2dwd3E0dHFtX2ky/VzhIQ1Y2RFJCWUUu/anBn"
-                            alt="Cérémonie d'ouverture Prépa"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                      {/* Slide 5 - Networking */}
-                      <div className="w-full flex-shrink-0">
-                        <div className="relative group">
-                          <img
-                            src="https://imgs.search.brave.com/x9VPPz4yvbZZEVamO9HNdE3giVYZADtBa6TxHhF0omE/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9saDUu/Z29vZ2xldXNlcmNv/bnRlbnQuY29tL3Av/QUYxUWlwTTN1c09U/TEVkV01PYWRjNW5j/M1pKc3ZtZEF4c2dC/dFRzbmRXVHA9dzQ0/Ny1oMjk4LWstbm8"
-                            alt="ESMT"
-                            className="w-full h-[240px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Dots indicator */}
-                  <div className="flex justify-center mt-4 space-x-2">
-                    {[0, 1, 2, 3, 4].map((index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentSlide(index)}
-                        className={`h-2 rounded-full transition-all duration-300 ${currentSlide === index ? 'bg-white w-8' : 'bg-white/50 w-2'}`}
-                        aria-label={`Slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+    <div className="flex flex-col min-h-screen bg-zinc-50 text-zinc-900 overflow-x-hidden">
 
-              {/* Desktop Overlapping Images */}
-              <div className="hidden md:block relative w-full max-w-[380px] h-[400px]">
-                {/* Photo CPS (en haut à gauche) avec effet glass */}
-                <div className={`absolute top-0 left-0 z-20 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-                  <div className="relative group cursor-pointer">
-                    <img
-                      src="https://scontent-cdg4-3.cdninstagram.com/v/t51.82787-15/589119822_17941717707086573_8171928204936619206_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&ig_cache_key=Mzc3NDYwNzU0Njk5MzQwMDU1Ng%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjk2MHgxMjgwLnNkci5DMyJ9&_nc_ohc=qDBGhWpuJ38Q7kNvwHzvRAK&_nc_oc=Adlx3Q8m5L6w1szJMZXEJ_PJFCQVL_PhREY-b8lb3fighWPgEcj4CyXmjpqHldt9f80&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-cdg4-3.cdninstagram.com&_nc_gid=9kjGyAxtiF3oWq7RQTruPg&oh=00_Afmw-0JYQv2mpTAJeXXmz7XKUcNV71NJF7_AO_E2PzO38Q&oe=6938E201"
-                      alt="Étudiants CPS"
-                      className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {/* Glass border effect */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
-                  </div>
-                </div>
-                
-                {/* Photo ESIGELEC (en bas à droite, chevauche la première) avec effet glass */}
-                <div className={`absolute bottom-0 right-0 z-10 transition-all duration-700 ease-out delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                  <div className="relative group cursor-pointer">
-                    <img
-                      src="https://welcome-esigelec.fr/wp-content/uploads/2023/01/J8A1391hd-800x800.jpg"
-                      alt="Campus ESIGELEC"
-                      className="rounded-xl w-[280px] h-[220px] object-cover shadow-2xl transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {/* Glass border effect */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-transparent to-white/5 border-2 border-white/40 pointer-events-none group-hover:border-white/70 group-hover:from-white/20 transition-all duration-300"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ================================================================== */}
+      {/* HERO                                                                 */}
+      {/* ================================================================== */}
+      <section className="relative pt-16 pb-24 overflow-hidden">
+        {/* Ambient glows */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-400/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Tout ce dont tu as besoin en un seul endroit
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              CPS Connect réunit étudiants et alumni autour de quatre piliers essentiels pour réussir ton parcours.
+        <div className="container mx-auto px-6 md:px-12 grid lg:grid-cols-12 gap-12 items-center relative z-10">
+
+          {/* Left copy */}
+          <Reveal className="lg:col-span-5 flex flex-col gap-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-200/60 border border-zinc-300/50 w-max">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-semibold text-zinc-600">Le réseau par et pour les élèves du CPS</span>
+            </div>
+
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter leading-[0.95] text-zinc-900">
+              L'esprit <br />
+              <span className="text-blue-900">sans</span> frontières.
+            </h1>
+
+            <p className="text-zinc-500 text-lg font-medium max-w-md leading-relaxed">
+              De Dakar aux plus grandes écoles d'ingénieurs. Un lien indéfectible, une entraide concrète.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-gray-50 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Book className="w-7 h-7 text-blue-900" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Guides & Ressources
-              </h3>
-              <p className="text-gray-600">
-                Démarches administratives, ressources académiques et guides de vie en France pour tous les étudiants CPS.
-              </p>
-            </div>
+          {/* Right dual portal */}
+          <Reveal delay={0.15} className="lg:col-span-7 grid md:grid-cols-2 gap-4">
 
-            {/* Feature 2 */}
-            <div className="bg-gray-50 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Users className="w-7 h-7 text-green-900" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Annuaire Alumni
-              </h3>
-              <p className="text-gray-600">
-                Alumni des prépas CPS, ESIGELEC et autres écoles d'ingénieurs. Entrepreneurs, salariés, consultants de tous secteurs.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-gray-50 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <Workflow className="w-7 h-7 text-purple-900" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Mentorat & Networking
-              </h3>
-              <p className="text-gray-600">
-                Trouve des mentors qui ont vécu le même parcours. Connecte-toi avec des alumni dans ton domaine.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="bg-gray-50 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <Map className="w-7 h-7 text-orange-900" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Opportunités
-              </h3>
-              <p className="text-gray-600">
-                Stages, projets, collaborations et offres d'emploi partagées par la communauté alumni.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Who Can Join Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Qui peut rejoindre CPS Connect ?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Cette plateforme est ouverte à tous ceux qui font ou ont fait partie de la communauté CPS.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Pour les étudiants */}
-            <div className="bg-white rounded-xl p-8 shadow-md hover:shadow-lg transition-shadow duration-300 border-t-4 border-blue-600">
-              <div className="flex items-center mb-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                  <GraduationCap className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Pour les étudiants CPS
-                </h3>
-              </div>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu es actuellement en prépa CPS</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu prépares ton départ pour la France</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu cherches des conseils et du mentorat</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Pour les alumni */}
-            <div className="bg-white rounded-xl p-8 shadow-md hover:shadow-lg transition-shadow duration-300 border-t-4 border-green-600">
-              <div className="flex items-center mb-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                  <Award className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Pour les alumni
-                </h3>
-              </div>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-green-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu as fait les CPS (Dakar ou ailleurs)</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-green-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu es à l'ESIGELEC, dans une autre école, ou déjà diplômé</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-green-600"></div>
-                  </div>
-                  <span className="text-gray-700">Tu veux partager ton expérience et ton réseau</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Comment ça marche ?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Deux parcours simples et efficaces selon ton profil.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* Parcours Étudiant */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 shadow-md">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
-                  <GraduationCap className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Parcours Étudiant CPS
-                </h3>
-              </div>
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Inscription</h4>
-                    <p className="text-gray-700">Accède aux guides et ressources</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Explore</h4>
-                    <p className="text-gray-700">Ressources académiques et administratives</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Connecte</h4>
-                    <p className="text-gray-700">Trouve des alumni mentors (toutes écoles)</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    4
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Participe</h4>
-                    <p className="text-gray-700">Forum, FAQ, événements</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Parcours Alumni */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-8 shadow-md">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4">
-                  <Award className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Parcours Alumni
-                </h3>
-              </div>
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Inscription</h4>
-                    <p className="text-gray-700">Indique ton parcours (prépa + école)</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Profil</h4>
-                    <p className="text-gray-700">Partage ton expertise et ton secteur</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Validation</h4>
-                    <p className="text-gray-700">Profil vérifié et publié</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold mr-4 mt-1">
-                    4
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Engage</h4>
-                    <p className="text-gray-700">Mentorat, opportunités, networking</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Alumni Directory Preview Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-24">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Découvre les alumni de la communauté CPS
-            </h2>
-          </div>
-
-          {/* Alumni Cards Grid with Blur Effect */}
-          <div className="relative max-w-6xl mx-auto mb-8">
-            {/* Blurred Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 blur-sm pointer-events-none select-none">
-              {/* Alumni Card 1 */}
-              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-                <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                    AM
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">Abdou Mbaye</h3>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <GraduationCap className="w-4 h-4 mr-1" />
-                      <span>ESIGELEC 2020</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <Briefcase className="w-4 h-4 mr-1" />
-                      <span>Ingénieur Data • Tech</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      <span>Paris, France</span>
-                    </div>
-                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                      <Star className="w-3 h-3 mr-1" />
-                      Disponible pour mentorat
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Alumni Card 2 */}
-              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-                <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                    FD
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">Fatou Diop</h3>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <GraduationCap className="w-4 h-4 mr-1" />
-                      <span>Centrale Lyon 2019</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <Briefcase className="w-4 h-4 mr-1" />
-                      <span>Product Manager • Startup</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      <span>Lyon, France</span>
-                    </div>
-                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                      <Star className="w-3 h-3 mr-1" />
-                      Disponible pour mentorat
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Alumni Card 3 */}
-              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-                <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                    MS
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">Moussa Sarr</h3>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <GraduationCap className="w-4 h-4 mr-1" />
-                      <span>INSA Toulouse 2021</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <Briefcase className="w-4 h-4 mr-1" />
-                      <span>Consultant • Finance</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      <span>Toulouse, France</span>
-                    </div>
-                    <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                      <Star className="w-3 h-3 mr-1" />
-                      Disponible pour mentorat
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Overlay Message */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-12 max-w-md mx-4 text-center border-2 border-blue-200">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  +{currentUser ? '300' : '300'} alumni disponibles
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {currentUser 
-                    ? "Découvre tous les profils alumni et connecte-toi avec eux !"
-                    : "Inscris-toi gratuitement pour accéder à l'annuaire complet et contacter les alumni"
-                  }
-                </p>
-                <Link
-                  to={currentUser ? "/alumni-directory" : "/register"}
-                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-300"
-                >
-                  {currentUser ? "Voir l'annuaire" : "S'inscrire gratuitement"}
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              La communauté CPS Connect en chiffres
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Une communauté grandissante qui connecte étudiants et alumni
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {/* Stat 1 - Étudiants */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-blue-200">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-blue-900 mb-2">50+</div>
-              <div className="text-blue-700 font-medium">Étudiants CPS actifs</div>
-            </div>
-
-            {/* Stat 2 - Alumni */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-green-200">
-              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-green-900 mb-2">300+</div>
-              <div className="text-green-700 font-medium">Alumni dans l'annuaire</div>
-            </div>
-
-            {/* Stat 3 - Écoles */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-purple-200">
-              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-purple-900 mb-2">8+</div>
-              <div className="text-purple-700 font-medium">Écoles représentées</div>
-            </div>
-
-            {/* Stat 4 - Connexions */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border border-orange-200">
-              <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Handshake className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-orange-900 mb-2">30+</div>
-              <div className="text-orange-700 font-medium">Connexions mentorat</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feedback CTA Section */}
-      <section className="py-12 bg-blue-50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 flex flex-col items-center text-center border border-blue-100">
-            <h2 className="text-2xl md:text-3xl font-bold text-blue-900 mb-3">Votre avis compte !</h2>
-            <p className="text-blue-800 mb-6">Aidez-nous à améliorer la plateforme en partageant vos suggestions, remarques ou critiques constructives. Nous lisons chaque retour avec attention.</p>
-            <Link
-              to="/feedback"
-              className="inline-block px-6 py-3 bg-blue-700 text-white font-semibold rounded-lg shadow hover:bg-blue-800 transition-colors text-lg"
+            {/* Card étudiant */}
+            <motion.div
+              className="relative bg-white rounded-3xl p-8 flex flex-col justify-between overflow-hidden cursor-pointer group"
+              style={{ border: '1px solid rgba(255,255,255,0.4)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 10px 30px -10px rgba(30,58,138,0.06)', minHeight: 380 }}
+              whileHover={{ y: -8, boxShadow: '0 30px 60px -20px rgba(0,0,0,0.1)' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
-              Donner mon avis
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-50/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                  <GraduationCap className="w-7 h-7 text-amber-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-zinc-900 leading-tight mb-1">Tu arrives en France ?</h2>
+                <p className="text-zinc-500 text-sm font-medium mb-6">Étudiants et admis récents.</p>
+                <ul className="space-y-2.5 mb-8">
+                  {['Trouver un parrain', 'Conseils démarches / Visas', 'Accès au réseau de caution'].map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-sm text-zinc-600 font-medium">
+                      <Check className="w-4 h-4 text-amber-500 flex-shrink-0" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Link to="/register" className="relative z-10 inline-flex items-center gap-2 text-blue-900 font-bold text-sm group-hover:gap-3 transition-all duration-300">
+                Rejoindre le pôle accueil <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+
+            {/* Card alumni — décalée vers le bas */}
+            <motion.div
+              className="relative bg-blue-900 rounded-3xl p-8 flex flex-col justify-between overflow-hidden cursor-pointer md:mt-12"
+              style={{ minHeight: 380 }}
+              whileHover={{ y: -8, boxShadow: '0 30px 60px -20px rgba(30,58,138,0.5)' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="absolute -right-20 -bottom-20 w-64 h-64 border-[40px] border-white/5 rounded-full" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
+                  <Briefcase className="w-7 h-7 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white leading-tight mb-1">Tu es déjà alumni ?</h2>
+                <p className="text-white/60 text-sm font-medium mb-6">Diplômés et étudiants en cycle.</p>
+                <ul className="space-y-2.5 mb-8">
+                  {["Poster une offre de stage", "Devenir garant ou parrain", "Annuaire des anciens"].map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-sm text-white/80 font-medium">
+                      <Check className="w-4 h-4 text-amber-400 flex-shrink-0" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Link to="/register" className="relative z-10 inline-flex items-center gap-2 text-white font-bold text-sm hover:gap-3 transition-all duration-300">
+                Rendre la pareille <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* SOCIAL PROOF BAR                                                     */}
+      {/* ================================================================== */}
+      <div className="border-y border-zinc-200 bg-white py-8 overflow-hidden">
+        <div className="container mx-auto px-6 md:px-12 grid md:grid-cols-[auto_1fr] gap-8 md:gap-16 items-center">
+
+          {/* Avatars + texte */}
+          <Reveal className="flex items-center gap-4 min-w-max">
+            <div className="flex -space-x-3">
+              {['FS', 'MD', 'AK'].map((initials, i) => (
+                <div key={i} className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold ${['bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-rose-100 text-rose-700'][i]}`}>
+                  {initials}
+                </div>
+              ))}
+              <div className="w-10 h-10 rounded-full border-2 border-white bg-zinc-100 flex items-center justify-center text-xs font-bold text-zinc-600">+4k</div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-900">15+ pays · 40+ Top Entreprises</p>
+              <p className="text-xs text-zinc-500 font-medium mt-0.5">La force du réseau académique.</p>
+            </div>
+          </Reveal>
+
+          {/* Marquee écoles */}
+          <div className="relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+            <div className="flex items-center gap-10 animate-marquee whitespace-nowrap" style={{ animation: 'marquee 35s linear infinite' }}>
+              {[...SCHOOLS, ...SCHOOLS].map((s, i) => (
+                <React.Fragment key={i}>
+                  <span className="text-lg font-bold text-zinc-400 flex-shrink-0">{s}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flex-shrink-0" />
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }`}</style>
+
+      {/* ================================================================== */}
+      {/* ACTIONS BENTO                                                        */}
+      {/* ================================================================== */}
+      <section className="py-24">
+        <div className="container mx-auto px-6 md:px-12">
+          <Reveal className="mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 mb-3">
+              Pas que des mots.<br />Des <span className="text-amber-500">actions.</span>
+            </h2>
+            <p className="text-zinc-500 text-lg font-medium max-w-xl">
+              L'interface est pensée pour résoudre les problématiques réelles des étudiants CPS en quelques clics.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[280px]">
+
+            {/* Grande carte — Garant */}
+            <Reveal className="md:col-span-2">
+              <motion.div
+                className="h-full relative bg-blue-900 rounded-3xl p-8 md:p-10 flex flex-col justify-end overflow-hidden group cursor-pointer"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=1200&q=80"
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900 via-blue-900/80 to-transparent" />
+                <div className="relative z-10 flex justify-between items-end">
+                  <div className="max-w-sm">
+                    <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white mb-4">
+                      <Handshake className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-3xl font-bold text-white leading-none mb-3">Trouver un garant</h3>
+                    <p className="text-white/70 text-sm font-medium">Base d'anciens prêts à se porter caution solidaire pour vos logements.</p>
+                  </div>
+                  <motion.div
+                    className="w-12 h-12 rounded-full bg-white text-blue-900 flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    whileHover={{ scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ArrowUpRight className="w-5 h-5" />
+                  </motion.div>
+                </div>
+              </motion.div>
+            </Reveal>
+
+            {/* Contacter un ancien */}
+            <Reveal delay={0.08}>
+              <motion.div
+                className="h-full bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col justify-between group cursor-pointer hover:border-amber-400 hover:shadow-lg transition-all duration-300"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-zinc-900 mb-2">Contacter un ancien</h3>
+                  <p className="text-zinc-500 text-sm font-medium">Filtrez par école, ville ou entreprise pour des conseils concrets.</p>
+                </div>
+              </motion.div>
+            </Reveal>
+
+            {/* Visa & Démarches */}
+            <Reveal delay={0.12}>
+              <motion.div
+                className="h-full bg-zinc-100 border border-zinc-200/50 rounded-3xl p-8 flex flex-col justify-between overflow-hidden group cursor-pointer hover:bg-zinc-200/60 transition-colors"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-white shadow-sm text-zinc-600 flex items-center justify-center">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-zinc-900 mb-2">Visa & Démarches</h3>
+                  <p className="text-zinc-500 text-sm font-medium">Guides vérifiés par la communauté pour Campus France, OFII, etc.</p>
+                </div>
+              </motion.div>
+            </Reveal>
+
+            {/* Offres de stage */}
+            <Reveal delay={0.16} className="md:col-span-2">
+              <motion.div
+                className="h-full relative bg-blue-900 rounded-3xl p-8 flex items-center justify-between overflow-hidden group cursor-pointer"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80"
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900 via-blue-900/80 to-transparent" />
+                <div className="relative z-10 max-w-md">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-white/10 bg-white/5 text-zinc-300 text-xs font-semibold mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    34 offres actives
+                  </div>
+                  <h3 className="text-3xl font-bold text-white leading-tight group-hover:text-amber-400 transition-colors">
+                    Voir les offres de stage du réseau
+                  </h3>
+                </div>
+                <div className="hidden md:flex relative z-10 w-16 h-16 rounded-2xl bg-white/10 items-center justify-center text-white border border-white/20 group-hover:bg-white group-hover:text-zinc-900 transition-colors duration-300">
+                  <Briefcase className="w-7 h-7" />
+                </div>
+              </motion.div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* FORUM PULSE                                                          */}
+      {/* ================================================================== */}
+      <section className="py-24 border-t border-zinc-200 bg-white">
+        <div className="container mx-auto px-6 md:px-12 grid lg:grid-cols-[1fr_1.5fr] gap-16 items-start">
+
+          {/* Sticky left */}
+          <Reveal className="lg:sticky lg:top-28">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 leading-none mb-6">
+              La communauté <br />
+              <span className="bg-gradient-to-r from-blue-900 to-blue-600 bg-clip-text text-transparent">
+                en direct.
+              </span>
+            </h2>
+            <p className="text-zinc-500 font-medium text-lg mb-8 max-w-sm">
+              Le forum est le cœur battant de la communauté. Posez vos questions, partagez vos doutes, célébrez vos admissions.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/forum"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-700 text-white font-semibold rounded-full hover:bg-blue-600 transition-all duration-300"
+            >
+              Rejoindre la discussion <MessageCircle className="w-4 h-4" />
+            </Link>
+            <a
+              href="DISCORD_INVITE_LINK"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#5865F2] text-white font-semibold rounded-full hover:bg-[#4752c4] transition-all duration-300"
+            >
+              Rejoindre le Discord
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+              </svg>
+            </a>
+            </div>
+          </Reveal>
+
+          {/* Threads */}
+          <div className="flex flex-col gap-3">
+            {FORUM_THREADS.map((t, i) => (
+              <Reveal key={i} delay={t.delay}>
+                <Link
+                  to="/forum"
+                  className="group flex flex-col sm:flex-row gap-4 items-start sm:items-center p-5 rounded-2xl border border-zinc-100 bg-zinc-50/50 hover:bg-white hover:shadow-md hover:border-zinc-200 transition-all duration-300"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${t.avatarBg}`}>{t.initials}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className={`px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider border rounded ${t.tagColor}`}>{t.tag}</span>
+                      <span className="text-xs text-zinc-400 font-medium">par {t.author}</span>
+                    </div>
+                    <p className="font-semibold text-zinc-900 group-hover:text-blue-900 transition-colors truncate">{t.title}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-zinc-400 text-sm font-medium bg-white px-3 py-1.5 rounded-full border border-zinc-100 shadow-sm flex-shrink-0 group-hover:text-blue-900 group-hover:border-blue-900/20 transition-colors">
+                    <MessageCircle className="w-3.5 h-3.5" /> {t.replies}
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+
+            <Reveal delay={0.2} className="pt-2 text-center">
+              <Link to="/forum" className="text-sm font-bold text-zinc-400 hover:text-blue-900 transition-colors border-b border-dashed border-zinc-300 hover:border-blue-900 pb-1">
+                Voir toutes les discussions
+              </Link>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* ALUMNI SHOWCASE                                                      */}
+      {/* ================================================================== */}
+      <section className="py-24 bg-zinc-50 overflow-hidden">
+        <div className="container mx-auto px-6 md:px-12 mb-10">
+          <Reveal>
+            <h2 className="text-4xl font-bold tracking-tight text-zinc-900 mb-1">Le Réseau en action</h2>
+            <p className="text-zinc-500 font-medium text-lg">Ils sont passés par là. Découvrez leurs parcours.</p>
+          </Reveal>
+        </div>
+
+        <div
+          ref={sliderRef}
+          className="flex gap-5 px-6 md:px-12 pb-6 overflow-x-auto snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
+          style={{ scrollbarWidth: 'none' }}
+          onMouseDown={onMouseDown}
+          onMouseLeave={onMouseLeave}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+        >
+          {ALUMNI.map((a, i) => (
+            <div key={i} className="snap-center flex-shrink-0 w-[280px] md:w-[300px] bg-white rounded-2xl border border-zinc-200 overflow-hidden group hover:shadow-xl transition-all duration-300">
+              <div className="h-28 relative overflow-hidden">
+                <img src={a.bg} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/40 to-transparent" />
+                <span className="absolute top-3 right-3 px-2 py-0.5 bg-white/90 text-[0.65rem] font-bold tracking-wide uppercase rounded text-blue-900">
+                  Promo {a.promo}
+                </span>
+              </div>
+              <div className="px-5 pb-6 pt-10 relative">
+                <div className={`w-14 h-14 rounded-full border-4 border-white absolute -top-7 left-4 shadow-sm flex items-center justify-center font-bold text-base ${a.avatarBg}`}>{a.initials}</div>
+                <h3 className="font-bold text-lg text-zinc-900">{a.name}</h3>
+                <p className="text-zinc-400 text-sm font-medium mb-4">{a.role}</p>
+                <div className="space-y-1.5 border-t border-zinc-100 pt-4">
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                    <Building2 className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" /> {a.company}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                    <MapPin className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" /> {a.city}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                    <GraduationCap className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" /> {a.school}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Voir l'annuaire */}
+          <Link to="/alumni" className="snap-center flex-shrink-0 w-[280px] md:w-[300px] bg-zinc-100 rounded-2xl border border-zinc-200 hover:bg-zinc-200 transition-colors flex flex-col justify-center items-center p-8 text-center group">
+            <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-zinc-400 mb-4 group-hover:text-blue-900 group-hover:scale-110 transition-all duration-300">
+              <Users className="w-7 h-7" />
+            </div>
+            <h3 className="font-bold text-lg text-zinc-900 mb-1">Voir l'annuaire</h3>
+            <p className="text-zinc-500 text-sm font-medium">Recherchez par promotion, ville ou domaine.</p>
+          </Link>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* FINAL CTA                                                            */}
+      {/* ================================================================== */}
+      <section className="bg-blue-950 text-white py-32 relative overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-amber-500/10 rounded-full blur-[150px] pointer-events-none" />
+        <Reveal className="container mx-auto px-6 text-center relative z-10">
+          <p className="text-amber-400 font-semibold tracking-widest uppercase text-xs mb-6">Le pont entre les générations</p>
+          <h2 className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-none mb-8">
+            On ne réussit jamais{' '}
+            <span className="text-zinc-400 italic font-medium">seul.</span>
+          </h2>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 max-w-lg mx-auto">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-500 hover:-translate-y-1 transition-all duration-300 shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)]"
+            >
+              Je cherche un parrain <Handshake className="w-5 h-5" />
+            </Link>
+            <Link
+              to="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 border border-blue-400/40 text-blue-100 font-bold rounded-full hover:bg-blue-800 hover:-translate-y-1 transition-all duration-300"
+            >
+              Rejoindre en tant qu'alumni <GraduationCap className="w-5 h-5" />
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-green-800 to-green-700 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">
-            Rejoins la communauté CPS Connect
-          </h2>
-          <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
-            Que tu sois étudiant CPS ou alumni (ESIGELEC, Centrale, INSA, ou autre), cette plateforme est pour toi.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            {currentUser ? (
-              <Link 
-                to="/applications" 
-                className="bg-white text-green-900 hover:bg-green-50 px-8 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-              >
-                Accéder au centre d'applications
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
-            ) : (
-              <>
-                <Link 
-                  to="/register" 
-                  className="bg-white text-green-900 hover:bg-green-50 px-8 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-                >
-                  Commencer en tant qu'étudiant
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-                <Link 
-                  to="/register" 
-                  className="border-2 border-white text-white hover:bg-white hover:text-green-900 px-8 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
-                >
-                  Rejoindre en tant qu'alumni
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Logo Slider Section */}
-      <InfiniteLogoScroll />
     </div>
   );
 };
