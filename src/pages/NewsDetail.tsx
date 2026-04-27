@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, User, Tag, Edit } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Tag, Edit, Share2, Check } from 'lucide-react';
 import { getNewsArticle, getNewsArticles } from '../services/newsService';
 import { NewsArticle, NewsArticleType, NEWS_TYPE_LABELS } from '../types/news';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,7 @@ const NewsDetail: React.FC = () => {
   const [related, setRelated] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +52,21 @@ const NewsDetail: React.FC = () => {
     new Date(ms).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const canEdit = isAdmin() || isEditor();
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: article?.title, url });
+      } catch {
+        // annulé par l'utilisateur
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   if (loading) {
     return (
@@ -98,15 +114,33 @@ const NewsDetail: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Retour
           </button>
-          {canEdit && (
-            <Link
-              to="/admin/news"
-              className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-blue-700 transition-colors"
             >
-              <Edit className="w-4 h-4" />
-              Modifier
-            </Link>
-          )}
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-green-600">Copié !</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  Partager
+                </>
+              )}
+            </button>
+            {canEdit && (
+              <Link
+                to="/admin/news"
+                className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors"
+              >
+                <Edit className="w-4 h-4" />
+                Modifier
+              </Link>
+            )}
+          </div>
         </div>
 
         <motion.article
