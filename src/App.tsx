@@ -69,6 +69,9 @@ import Ressources from './pages/Ressources';
 import Maintenance from './pages/Maintenance';
 import MaintenanceToggle from './pages/admin/MaintenanceToggle';
 import ImportAlumni from './pages/admin/ImportAlumni';
+import News from './pages/News';
+import NewsDetail from './pages/NewsDetail';
+import AdminNews from './pages/admin/AdminNews';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -278,6 +281,17 @@ function App() {
                     <NewThread />
                   </AuthWrapper>
                 } />
+                {/* Actualités */}
+                <Route path="/news" element={
+                  <AuthWrapper>
+                    <News />
+                  </AuthWrapper>
+                } />
+                <Route path="/news/:id" element={
+                  <AuthWrapper>
+                    <NewsDetail />
+                  </AuthWrapper>
+                } />
                 <Route path="/profile" element={
                   <AuthWrapper>
                     <UserProfile />
@@ -374,6 +388,13 @@ function App() {
                   <AuthWrapper>
                     <AdminRoute>
                       <FeedbackAdmin />
+                    </AdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/news" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AdminNews />
                     </AdminRoute>
                   </AuthWrapper>
                 } />
@@ -488,6 +509,13 @@ function App() {
                   <AuthWrapper>
                     <EditorRoute>
                       <AdminDropboxManager />
+                    </EditorRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/editor/news" element={
+                  <AuthWrapper>
+                    <EditorRoute>
+                      <AdminNews />
                     </EditorRoute>
                   </AuthWrapper>
                 } />

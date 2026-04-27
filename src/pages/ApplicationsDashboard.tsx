@@ -32,7 +32,8 @@ import {
   Phone,
   CreditCard,
   AlertCircle,
-  Book
+  Book,
+  Newspaper
 } from 'lucide-react';
 
 interface AppFeature {
@@ -133,6 +134,13 @@ const ApplicationsDashboard: React.FC = () => {
           title: "Forum",
           description: "Participez aux discussions avec les autres étudiants et alumni",
           link: "/forum",
+          roles: ["admin", "editor", "user"]
+        },
+        {
+          icon: <Newspaper className="w-8 h-8 text-amber-500" />,
+          title: "Actualités",
+          description: "Annonces, success stories, événements et nouveautés de la communauté",
+          link: "/news",
           roles: ["admin", "editor", "user"]
         },
         {
@@ -344,6 +352,13 @@ const ApplicationsDashboard: React.FC = () => {
           title: "Modération du forum",
           description: "Modérer les discussions et gérer les catégories",
           link: "/editor/forum",
+          roles: ["editor"]
+        },
+        {
+          icon: <Newspaper className="w-8 h-8 text-amber-500" />,
+          title: "Actualités",
+          description: "Créer et gérer les articles de la communauté",
+          link: "/editor/news",
           roles: ["editor"]
         }
       ]

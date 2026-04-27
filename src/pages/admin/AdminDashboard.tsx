@@ -26,7 +26,8 @@ import {
   Award,
   BarChart,
   Wrench,
-  Upload
+  Upload,
+  Newspaper
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 import AlumniStats from './AlumniStats';
@@ -891,6 +892,19 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
               
+              {/* Carte Actualités */}
+              <Link to="/admin/news" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                <div className="flex items-start">
+                  <div className="p-2 bg-amber-100 rounded-lg mr-4">
+                    <Newspaper className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Actualités</h3>
+                    <p className="text-sm text-gray-600 mt-1">Créer et gérer les articles de la communauté</p>
+                  </div>
+                </div>
+              </Link>
+
               {/* Carte Webinaires */}
               <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
                 <div className="flex items-start">

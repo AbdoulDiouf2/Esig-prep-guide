@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
@@ -99,6 +99,12 @@ const Header: React.FC = () => {
                 }`}>
                   <FileText className="w-4 h-4 mr-1" />
                   <span>Ressources</span>
+                </Link>
+                <Link to="/news" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
+                  isScrolled ? 'text-blue-800' : 'text-white'
+                }`}>
+                  <Newspaper className="w-4 h-4 mr-1" />
+                  <span>Actualités</span>
                 </Link>
                 <Link to="/faq" className={`transition-colors duration-300 hover:text-blue-400 flex items-center text-base whitespace-nowrap ${
                   isScrolled ? 'text-blue-800' : 'text-white'
@@ -313,15 +319,23 @@ const Header: React.FC = () => {
                     <FileText className="w-4 h-4 mr-2" />
                     <span>Ressources</span>
                   </Link>
-                  <Link 
-                    to="/faq" 
+                  <Link
+                    to="/faq"
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     <span>FAQ</span>
                   </Link>
-                  {/* <Link 
+                  <Link
+                    to="/news"
+                    className="flex items-center py-2 text-white"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Newspaper className="w-4 h-4 mr-2" />
+                    <span>Actualités</span>
+                  </Link>
+                  {/* <Link
                     to="/tutorial" 
                     className="flex items-center py-2 text-white"
                     onClick={() => setIsMenuOpen(false)}
