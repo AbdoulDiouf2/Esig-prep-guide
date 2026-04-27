@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
-import { DocumentData } from 'firebase/firestore';
+import { DocumentData, collection, query, where, getCountFromServer } from 'firebase/firestore';
 import SuperAdminCheck from '../../components/routes/SuperAdminCheck';
 import { UserDoc } from './AdminUserManager';
 
@@ -71,6 +71,8 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
+  const [pendingWorkshopsCount, setPendingWorkshopsCount] = useState(0);
+  const [newFeedbacksCount, setNewFeedbacksCount] = useState(0);
   // Tabs
   const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps'>('general');
 
@@ -115,6 +117,24 @@ const AdminDashboard: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser?.uid]);
 
+  // Propositions d'ateliers en attente
+  useEffect(() => {
+    getCountFromServer(
+      query(collection(db, 'workshopProposals'), where('status', '==', 'pending'))
+    ).then((snap) => setPendingWorkshopsCount(snap.data().count)).catch(() => {});
+  }, []);
+
+  // Nouveaux feedbacks (comparaison avec le total vu en localStorage)
+  useEffect(() => {
+    getCountFromServer(collection(db, 'feedback'))
+      .then((snap) => {
+        const total = snap.data().count;
+        const seen = parseInt(localStorage.getItem('admin_feedbacks_seen') ?? '0', 10);
+        setNewFeedbacksCount(Math.max(0, total - seen));
+      })
+      .catch(() => {});
+  }, []);
+
   // Calcul progression globale
   const getUserGlobalProgress = (completedSections: string[]) => {
     if (!guideSections || guideSections.length === 0) return 0;
@@ -133,19 +153,23 @@ const AdminDashboard: React.FC = () => {
               </p>
             </div>
             <div className="order-2 md:order-none flex flex-col gap-2 sm:flex-row sm:space-x-2 sm:gap-0 w-full md:w-auto mt-2 md:mt-0">
-              <Link 
-                to="/admin/feedbacks" 
-                className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
+              <Link
+                to="/admin/feedbacks"
+                onClick={() => {
+                  getCountFromServer(collection(db, 'feedback'))
+                    .then((snap) => localStorage.setItem('admin_feedbacks_seen', String(snap.data().count)))
+                    .catch(() => {});
+                  setNewFeedbacksCount(0);
+                }}
+                className="relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
               >
                 <MessageSquare className="w-4 h-4 mr-1.5" />
                 Feedbacks
-              </Link>
-              <Link 
-                to="/admin/future-features" 
-                className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
-              >
-                <Star className="w-4 h-4 mr-1.5" />
-                Fonctionnalités à venir
+                {newFeedbacksCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
+                    {newFeedbacksCount > 9 ? '9+' : newFeedbacksCount}
+                  </span>
+                )}
               </Link>
               <Link 
                 to="/admin/tutorial" 
@@ -212,10 +236,6 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/dropbox" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <Cloud className="-ml-1 mr-2 h-5 w-5" />
                 Gestionnaire Dropbox
-              </Link>
-              <Link to="/admin/users" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <Users className="-ml-1 mr-2 h-5 w-5" />
-                Gérer les utilisateurs
               </Link>
               <Link to="/admin/activity" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                 <ClipboardList className="-ml-1 mr-2 h-5 w-5" />
@@ -599,6 +619,269 @@ const AdminDashboard: React.FC = () => {
               </ul>
             </div>
           </div>
+          <div className="bg-white rounded-lg shadow p-6 w-full col-span-full mt-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Ajouter du contenu</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+              <Link
+                to="/admin/content?new=section"
+                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span>Ajouter une section de guide</span>
+              </Link>
+              <Link
+                to="/admin/resources?new=resource"
+                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span>Ajouter une ressource</span>
+              </Link>
+              <Link
+                to="/admin/content?new=faq"
+                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span>Ajouter une question FAQ</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Fonctionnalités principales (affiché uniquement onglet Général) */}
+        {activeTab === 'general' && (
+        <div className="container mx-auto px-4 py-6">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Fonctionnalités principales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              {/* Carte Contenu */}
+              <Link
+                to="/admin/content"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Edit className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion du contenu</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les sections, ressources et questions FAQ</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Utilisateurs */}
+              <Link
+                to="/admin/users"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion des utilisateurs</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les utilisateurs et leurs rôles</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Chat Administrateur */}
+              <SuperAdminCheck>
+                <Link
+                  to="/admin/chat-interface"
+                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
+                >
+                  {hasUnreadMessages && (
+                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
+                  <div className="flex items-start">
+                    <div className="p-2 bg-green-100 rounded-lg mr-4">
+                      <MessageSquare className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900">Chat Utilisateurs</h3>
+                      <p className="text-sm text-gray-600 mt-1">Répondre aux messages des utilisateurs</p>
+                    </div>
+                  </div>
+                </Link>
+              </SuperAdminCheck>
+
+              {/* Carte FAQ */}
+              <Link
+                to="/admin/content?faq=moderate"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <MessageSquare className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Modérer la FAQ</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les questions et réponses de la FAQ</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Actualités */}
+              <Link to="/admin/news" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                <div className="flex items-start">
+                  <div className="p-2 bg-amber-100 rounded-lg mr-4">
+                    <Newspaper className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Actualités</h3>
+                    <p className="text-sm text-gray-600 mt-1">Créer et gérer les articles de la communauté</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Webinaires */}
+              <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Video className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion des webinaires</h3>
+                    <p className="text-sm text-gray-600 mt-1">Créer, modifier et supprimer des webinaires</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Propositions d'ateliers */}
+              <Link to="/admin/workshop-proposals" className="relative block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                {pendingWorkshopsCount > 0 && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {pendingWorkshopsCount} en attente
+                  </span>
+                )}
+                <div className="flex items-start">
+                  <div className="p-2 bg-amber-100 rounded-lg mr-4">
+                    <ClipboardList className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Propositions d'ateliers</h3>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les propositions d'ateliers soumises par les membres</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Cours en ligne - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-green-100 rounded-lg mr-4">
+                    <BookOpen className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Cours en ligne</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des cours en ligne et e-learning</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte Podcasts - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-purple-100 rounded-lg mr-4">
+                    <Podcast className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Podcasts</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des podcasts et contenus audio</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte Événements - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-red-100 rounded-lg mr-4">
+                    <Calendar className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Événements</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des événements physiques et virtuels</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte Certificats - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Award className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Certificats</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Gestion des certificats et badges de compétence</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte Statistiques avancées - Désactivée */}
+              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
+                <div className="flex items-start">
+                  <div className="p-2 bg-indigo-100 rounded-lg mr-4">
+                    <BarChart className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="text-md font-semibold text-gray-900">Statistiques avancées</h3>
+                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Analyse approfondie des données utilisateurs</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Outils Super Admin */}
+          <SuperAdminCheck>
+            <div className="bg-white rounded-lg shadow p-6 mt-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Outils Super Admin</h2>
+              <p className="text-sm text-gray-600 mb-4">Outils avancés réservés aux super administrateurs</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Link
+                  to="/admin/email-broadcast"
+                  className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="p-2 rounded-md bg-purple-100 text-purple-800 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium">Diffusion d'emails</p>
+                    <p className="text-xs text-gray-500">Envoyer des emails en masse aux utilisateurs</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </SuperAdminCheck>
         </div>
         )}
 
@@ -639,16 +922,6 @@ const AdminDashboard: React.FC = () => {
               </Link>
               
               <Link
-                to="/admin/users"
-                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
-                  <Users className="h-5 w-5" />
-                </div>
-                <span>Gérer les utilisateurs</span>
-              </Link>
-              
-              <Link
                 to="/admin/alumni-validation"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -670,43 +943,9 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
                     
-          <div className="bg-white rounded-lg shadow p-6 w-full col-span-full">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Ajouter du contenu</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-              <Link
-                to="/admin/content?new=section"
-                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <span>Ajouter une section de guide</span>
-              </Link>
-              
-              <Link
-                to="/admin/resources?new=resource"
-                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <span>Ajouter une ressource</span>
-              </Link>
-              
-              <Link
-                to="/admin/content?new=faq"
-                className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="p-2 rounded-md bg-green-100 text-green-800 mr-3">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <span>Ajouter une question FAQ</span>
-              </Link>
-            </div>
-          </div>
         </div>
         )}
-        
+
         {/* Recent activity (affiché uniquement onglet Général) */}
         {activeTab === 'general' && (
         <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
@@ -744,8 +983,8 @@ const AdminDashboard: React.FC = () => {
         </div>
         )}
         
-        {/* Phase overview (affiché uniquement onglet Général) */}
-        {activeTab === 'general' && (
+        {/* Phase overview (affiché uniquement onglet CPS) */}
+        {activeTab === 'cps' && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Vue d'ensemble par phase</h2>
           
@@ -816,218 +1055,6 @@ const AdminDashboard: React.FC = () => {
         </div>
         )}
         
-        {/* Gestion du contenu avancé (affiché uniquement onglet Général) */}
-        {activeTab === 'general' && (
-        <div className="container mx-auto px-4 py-6">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Fonctionnalités principales</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              
-              {/* Carte Contenu */}
-              <Link 
-                to="/admin/content" 
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
-              >
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                    <Edit className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Gestion du contenu</h3>
-                    <p className="text-sm text-gray-600 mt-1">Gérer les sections, ressources et questions FAQ</p>
-                  </div>
-                </div>
-              </Link>
-              
-              {/* Carte Utilisateurs */}
-              <Link 
-                to="/admin/users" 
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
-              >
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                    <Users className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Gestion des utilisateurs</h3>
-                    <p className="text-sm text-gray-600 mt-1">Gérer les utilisateurs et leurs rôles</p>
-                  </div>
-                </div>
-              </Link>
-              
-              {/* Carte Chat Administrateur */}
-              <SuperAdminCheck>
-                <Link 
-                  to="/admin/chat-interface" 
-                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
-                >
-                  {hasUnreadMessages && (
-                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                  )}
-                  <div className="flex items-start">
-                    <div className="p-2 bg-green-100 rounded-lg mr-4">
-                      <MessageSquare className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-md font-semibold text-gray-900">Chat Utilisateurs</h3>
-                      <p className="text-sm text-gray-600 mt-1">Répondre aux messages des utilisateurs</p>
-                    </div>
-                  </div>
-                </Link>
-              </SuperAdminCheck>
-              
-              {/* Carte FAQ */}
-              <Link 
-                to="/admin/content?faq=moderate" 
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
-              >
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                    <MessageSquare className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Modérer la FAQ</h3>
-                    <p className="text-sm text-gray-600 mt-1">Gérer les questions et réponses de la FAQ</p>
-                  </div>
-                </div>
-              </Link>
-              
-              {/* Carte Actualités */}
-              <Link to="/admin/news" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
-                <div className="flex items-start">
-                  <div className="p-2 bg-amber-100 rounded-lg mr-4">
-                    <Newspaper className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Actualités</h3>
-                    <p className="text-sm text-gray-600 mt-1">Créer et gérer les articles de la communauté</p>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Carte Webinaires */}
-              <Link to="/admin/webinars" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                    <Video className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900">Gestion des webinaires</h3>
-                    <p className="text-sm text-gray-600 mt-1">Créer, modifier et supprimer des webinaires</p>
-                  </div>
-                </div>
-              </Link>
-              
-              {/* Carte Cours en ligne - Désactivée */}
-              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
-                <div className="flex items-start">
-                  <div className="p-2 bg-green-100 rounded-lg mr-4">
-                    <BookOpen className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="text-md font-semibold text-gray-900">Cours en ligne</h3>
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Gestion des cours en ligne et e-learning</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Carte Podcasts - Désactivée */}
-              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
-                <div className="flex items-start">
-                  <div className="p-2 bg-purple-100 rounded-lg mr-4">
-                    <Podcast className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="text-md font-semibold text-gray-900">Podcasts</h3>
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Gestion des podcasts et contenus audio</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Carte Événements - Désactivée */}
-              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
-                <div className="flex items-start">
-                  <div className="p-2 bg-red-100 rounded-lg mr-4">
-                    <Calendar className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="text-md font-semibold text-gray-900">Événements</h3>
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Gestion des événements physiques et virtuels</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Carte Certificats - Désactivée */}
-              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                    <Award className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="text-md font-semibold text-gray-900">Certificats</h3>
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Gestion des certificats et badges de compétence</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Carte Statistiques avancées - Désactivée */}
-              <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
-                <div className="flex items-start">
-                  <div className="p-2 bg-indigo-100 rounded-lg mr-4">
-                    <BarChart className="w-6 h-6 text-indigo-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="text-md font-semibold text-gray-900">Statistiques avancées</h3>
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Bientôt disponible</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Analyse approfondie des données utilisateurs</p>
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-          </div>
-          
-          {/* Outils Super Admin */}
-          <SuperAdminCheck>
-            <div className="bg-white rounded-lg shadow p-6 mt-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Outils Super Admin</h2>
-              <p className="text-sm text-gray-600 mb-4">Outils avancés réservés aux super administrateurs</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Link
-                  to="/admin/email-broadcast"
-                  className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="p-2 rounded-md bg-purple-100 text-purple-800 mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-medium">Diffusion d'emails</p>
-                    <p className="text-xs text-gray-500">Envoyer des emails en masse aux utilisateurs</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </SuperAdminCheck>
-        </div>
-        )}
       </div>
     </div>
   );
