@@ -73,6 +73,7 @@ const AdminUserManager: React.FC = () => {
   const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || '';
   
   // Filtres
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<'tous' | 'admin' | 'editor' | 'standard'>('tous');
   const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
   const [yearPromoFilter, setYearPromoFilter] = useState<string>('');
@@ -446,6 +447,34 @@ const AdminUserManager: React.FC = () => {
           </div>
         </div>
         
+        {/* Barre de recherche */}
+        <div className="mb-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher par nom, email ou année de promo..."
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Filtres */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           <div className="lg:col-span-1">
@@ -486,7 +515,7 @@ const AdminUserManager: React.FC = () => {
           </div>
 
           <div className="lg:col-span-1">
-            <label htmlFor="year-promo-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par promotion</label>
+            <label htmlFor="year-promo-filter" className="block text-sm font-medium text-gray-700 mb-1">Filtrer par promo prépa</label>
             <select
               id="year-promo-filter"
               className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -555,6 +584,15 @@ const AdminUserManager: React.FC = () => {
               {(() => {
                 const filteredUsers = users
                   .filter(user => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      user.displayName?.toLowerCase().includes(q) ||
+                      user.email?.toLowerCase().includes(q) ||
+                      user.yearPromo?.toString().includes(q)
+                    );
+                  })
+                  .filter(user => {
                     // Filtrage par rôle
                     if (roleFilter === 'tous') return true;
                     if (roleFilter === 'admin') return user.isAdmin;
@@ -573,8 +611,8 @@ const AdminUserManager: React.FC = () => {
                     if (!yearPromoFilter) return true;
                     return user.yearPromo?.toString() === yearPromoFilter;
                   });
-                
-                return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${roleFilter !== 'tous' || statusFilter !== 'tous' || yearPromoFilter ? ' (filtrés)' : ''}`;
+
+                return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${searchQuery || roleFilter !== 'tous' || statusFilter !== 'tous' || yearPromoFilter ? ' (filtrés)' : ''}`;
               })()}
             </p>
             <table className="min-w-full divide-y divide-gray-200">
@@ -582,7 +620,7 @@ const AdminUserManager: React.FC = () => {
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promo</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promo prépa</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de création</th>
@@ -643,6 +681,15 @@ const AdminUserManager: React.FC = () => {
                     return getTimestamp(b) - getTimestamp(a);
                   })
                   .filter(user => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      user.displayName?.toLowerCase().includes(q) ||
+                      user.email?.toLowerCase().includes(q) ||
+                      user.yearPromo?.toString().includes(q)
+                    );
+                  })
+                  .filter(user => {
                     // Filtrage par rôle
                     if (roleFilter === 'tous') return true;
                     if (roleFilter === 'admin') return user.isAdmin;
@@ -684,7 +731,7 @@ const AdminUserManager: React.FC = () => {
                     <td className="px-4 py-2 whitespace-nowrap">
                       {user.yearPromo ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                          Promo {user.yearPromo}
+                          Prépa {user.yearPromo}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-xs">Non défini</span>
@@ -1061,6 +1108,15 @@ const AdminUserManager: React.FC = () => {
                   onClick={() => {
                     const filteredUsers = users
                       .filter(user => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          user.displayName?.toLowerCase().includes(q) ||
+                          user.email?.toLowerCase().includes(q) ||
+                          user.yearPromo?.toString().includes(q)
+                        );
+                      })
+                      .filter(user => {
                         if (roleFilter === 'tous') return true;
                         if (roleFilter === 'admin') return user.isAdmin;
                         if (roleFilter === 'editor') return user.isEditor;
@@ -1073,16 +1129,33 @@ const AdminUserManager: React.FC = () => {
                         return user.status === statusFilter;
                       })
                       .filter(user => {
-                        // Filtrage par année de promotion
                         if (!yearPromoFilter) return true;
                         return user.yearPromo?.toString() === yearPromoFilter;
                       });
-                    
+
                     setCurrentPage(p => Math.min(Math.ceil(filteredUsers.length / usersPerPage), p + 1));
                   }}
                   disabled={
                     (() => {
                       const filteredUsers = users
+                        .filter(user => {
+                          if (!searchQuery) return true;
+                          const q = searchQuery.toLowerCase();
+                          return (
+                            user.displayName?.toLowerCase().includes(q) ||
+                            user.email?.toLowerCase().includes(q) ||
+                            user.yearPromo?.toString().includes(q)
+                          );
+                        })
+                        .filter(user => {
+                          if (!searchQuery) return true;
+                          const q = searchQuery.toLowerCase();
+                          return (
+                            user.displayName?.toLowerCase().includes(q) ||
+                            user.email?.toLowerCase().includes(q) ||
+                            user.yearPromo?.toString().includes(q)
+                          );
+                        })
                         .filter(user => {
                           if (roleFilter === 'tous') return true;
                           if (roleFilter === 'admin') return user.isAdmin;
@@ -1096,11 +1169,10 @@ const AdminUserManager: React.FC = () => {
                           return user.status === statusFilter;
                         })
                         .filter(user => {
-                          // Filtrage par année de promotion
                           if (!yearPromoFilter) return true;
                           return user.yearPromo?.toString() === yearPromoFilter;
                         });
-                      
+
                       return currentPage >= Math.ceil(filteredUsers.length / usersPerPage);
                     })()
                   }
@@ -1111,6 +1183,15 @@ const AdminUserManager: React.FC = () => {
               <div className="text-sm text-gray-500">
                 {(() => {
                   const filteredUsers = users
+                    .filter(user => {
+                      if (!searchQuery) return true;
+                      const q = searchQuery.toLowerCase();
+                      return (
+                        user.displayName?.toLowerCase().includes(q) ||
+                        user.email?.toLowerCase().includes(q) ||
+                        user.yearPromo?.toString().includes(q)
+                      );
+                    })
                     .filter(user => {
                       if (roleFilter === 'tous') return true;
                       if (roleFilter === 'admin') return user.isAdmin;
@@ -1124,11 +1205,10 @@ const AdminUserManager: React.FC = () => {
                       return user.status === statusFilter;
                     })
                     .filter(user => {
-                      // Filtrage par année de promotion
                       if (!yearPromoFilter) return true;
                       return user.yearPromo?.toString() === yearPromoFilter;
                     });
-                  
+
                   return `Page ${currentPage} sur ${Math.ceil(filteredUsers.length / usersPerPage) || 1}`;
                 })()}
               </div>
