@@ -109,7 +109,7 @@ const Footer: React.FC = () => {
             &copy; {currentYear} ESIGELEC Prep Guide. Tous droits réservés.
           </p>
           <p className="text-sm text-blue-200 mt-2 md:mt-0 flex items-center">
-            Développé avec <Heart className="w-4 h-4 mx-1 text-red-400" /> par Abdoul Ahad Mbacké DIOUF - PROMO CPS 2020/2022
+            Développé par Abdoul Ahad Mbacké DIOUF - ESIGELEC PROMO 2025 - CPS PROMO 2020/2022
           </p>
         </div>
       </div>

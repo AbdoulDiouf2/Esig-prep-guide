@@ -284,6 +284,6 @@ Projet: [https://github.com/AbdoulDiouf2/Esig-prep-guide](https://github.com/Abd
 
 ---
 
-Développé avec ❤️ pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
+Développé par Abdoul Ahad Mbacké DIOUF - ESIGELEC (Promo 2025) - CPS (Promo 2022) pour faciliter le parcours des étudiants sénégalais à l'ESIGELEC
 
-Dernière mise à jour: 5 Décembre 2025
+Dernière mise à jour: 27 Avril 2026
