@@ -83,6 +83,9 @@ const AdminUserManager: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 15;
 
+  const getEffectiveYearPromo = (user: UserDoc): number | undefined =>
+    alumniYearPromoMap[user.uid] ?? user.yearPromo;
+
   const promoYears = useMemo(() => {
     const years = new Set(users.map(user => getEffectiveYearPromo(user)).filter(Boolean));
     return Array.from(years).sort((a, b) => (b ?? 0) - (a ?? 0)); // Sort descending
@@ -114,9 +117,6 @@ const AdminUserManager: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const getEffectiveYearPromo = (user: UserDoc): number | undefined =>
-    alumniYearPromoMap[user.uid] ?? user.yearPromo;
 
   useEffect(() => {
     fetchUsers();
