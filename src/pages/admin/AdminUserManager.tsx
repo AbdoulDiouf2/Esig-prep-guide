@@ -62,6 +62,7 @@ const AdminUserManager: React.FC = () => {
   const [modalError, setModalError] = useState<string | null>(null);
   const [pendingUser, setPendingUser] = useState<{uid: string, action: 'toggleAdmin' | 'toggleEditor'} | null>(null);
   const [users, setUsers] = useState<UserDoc[]>([]);
+  const [alumniYearPromoMap, setAlumniYearPromoMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authUsers, setAuthUsers] = useState<FirebaseAuthUser[]>([]);
@@ -83,27 +84,39 @@ const AdminUserManager: React.FC = () => {
   const usersPerPage = 15;
 
   const promoYears = useMemo(() => {
-    const years = new Set(users.map(user => user.yearPromo).filter(Boolean));
+    const years = new Set(users.map(user => getEffectiveYearPromo(user)).filter(Boolean));
     return Array.from(years).sort((a, b) => (b ?? 0) - (a ?? 0)); // Sort descending
-  }, [users]);
+  }, [users, alumniYearPromoMap]);
 
   // Fonction fetchUsers accessible partout dans le composant
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
+      const [usersSnap, alumniSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'alumni')),
+      ]);
       const userList: UserDoc[] = [];
-      querySnapshot.forEach((docSnap) => {
+      usersSnap.forEach((docSnap) => {
         userList.push(docSnap.data() as UserDoc);
       });
+      const map: Record<string, number> = {};
+      alumniSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.uid && data.yearPromo) map[data.uid] = data.yearPromo;
+      });
       setUsers(userList);
+      setAlumniYearPromoMap(map);
     } catch {
       setError('Erreur lors du chargement des utilisateurs.');
     } finally {
       setLoading(false);
     }
   };
+
+  const getEffectiveYearPromo = (user: UserDoc): number | undefined =>
+    alumniYearPromoMap[user.uid] ?? user.yearPromo;
 
   useEffect(() => {
     fetchUsers();
@@ -355,13 +368,14 @@ const AdminUserManager: React.FC = () => {
       
       // Parcourir tous les utilisateurs
       for (const user of users) {
-        if (!user.yearPromo) continue; // Ignorer les utilisateurs sans année de promotion
-        
+        const effectiveYearPromo = getEffectiveYearPromo(user);
+        if (!effectiveYearPromo) continue; // Ignorer les utilisateurs sans année de promotion
+
         let newStatus: 'alumni' | 'cps' | 'future';
-        
-        if (user.yearPromo < currentYear) {
+
+        if (effectiveYearPromo < currentYear) {
           newStatus = 'alumni';
-        } else if (user.yearPromo >= currentYear && user.yearPromo <= currentYear + 1) {
+        } else if (effectiveYearPromo >= currentYear && effectiveYearPromo <= currentYear + 1) {
           newStatus = 'cps';
         } else {
           newStatus = 'future';
@@ -589,7 +603,7 @@ const AdminUserManager: React.FC = () => {
                     return (
                       user.displayName?.toLowerCase().includes(q) ||
                       user.email?.toLowerCase().includes(q) ||
-                      user.yearPromo?.toString().includes(q)
+                      getEffectiveYearPromo(user)?.toString().includes(q)
                     );
                   })
                   .filter(user => {
@@ -609,7 +623,7 @@ const AdminUserManager: React.FC = () => {
                   .filter(user => {
                     // Filtrage par année de promotion
                     if (!yearPromoFilter) return true;
-                    return user.yearPromo?.toString() === yearPromoFilter;
+                    return getEffectiveYearPromo(user)?.toString() === yearPromoFilter;
                   });
 
                 return `Affichage de ${filteredUsers.length ? Math.min((currentPage - 1) * usersPerPage + 1, filteredUsers.length) : 0} à ${Math.min(currentPage * usersPerPage, filteredUsers.length)} sur ${filteredUsers.length} utilisateurs${searchQuery || roleFilter !== 'tous' || statusFilter !== 'tous' || yearPromoFilter ? ' (filtrés)' : ''}`;
@@ -686,7 +700,7 @@ const AdminUserManager: React.FC = () => {
                     return (
                       user.displayName?.toLowerCase().includes(q) ||
                       user.email?.toLowerCase().includes(q) ||
-                      user.yearPromo?.toString().includes(q)
+                      getEffectiveYearPromo(user)?.toString().includes(q)
                     );
                   })
                   .filter(user => {
@@ -706,7 +720,7 @@ const AdminUserManager: React.FC = () => {
                   .filter(user => {
                     // Filtrage par année de promotion
                     if (!yearPromoFilter) return true;
-                    return user.yearPromo?.toString() === yearPromoFilter;
+                    return getEffectiveYearPromo(user)?.toString() === yearPromoFilter;
                   })
                   .slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage)
                   .map((user) => (
@@ -729,9 +743,9 @@ const AdminUserManager: React.FC = () => {
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      {user.yearPromo ? (
+                      {getEffectiveYearPromo(user) ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                          Prépa {user.yearPromo}
+                          Prépa {getEffectiveYearPromo(user)}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-xs">Non défini</span>
@@ -1113,7 +1127,7 @@ const AdminUserManager: React.FC = () => {
                         return (
                           user.displayName?.toLowerCase().includes(q) ||
                           user.email?.toLowerCase().includes(q) ||
-                          user.yearPromo?.toString().includes(q)
+                          getEffectiveYearPromo(user)?.toString().includes(q)
                         );
                       })
                       .filter(user => {
@@ -1130,7 +1144,7 @@ const AdminUserManager: React.FC = () => {
                       })
                       .filter(user => {
                         if (!yearPromoFilter) return true;
-                        return user.yearPromo?.toString() === yearPromoFilter;
+                        return getEffectiveYearPromo(user)?.toString() === yearPromoFilter;
                       });
 
                     setCurrentPage(p => Math.min(Math.ceil(filteredUsers.length / usersPerPage), p + 1));
@@ -1144,7 +1158,7 @@ const AdminUserManager: React.FC = () => {
                           return (
                             user.displayName?.toLowerCase().includes(q) ||
                             user.email?.toLowerCase().includes(q) ||
-                            user.yearPromo?.toString().includes(q)
+                            getEffectiveYearPromo(user)?.toString().includes(q)
                           );
                         })
                         .filter(user => {
@@ -1153,7 +1167,7 @@ const AdminUserManager: React.FC = () => {
                           return (
                             user.displayName?.toLowerCase().includes(q) ||
                             user.email?.toLowerCase().includes(q) ||
-                            user.yearPromo?.toString().includes(q)
+                            getEffectiveYearPromo(user)?.toString().includes(q)
                           );
                         })
                         .filter(user => {
@@ -1170,7 +1184,7 @@ const AdminUserManager: React.FC = () => {
                         })
                         .filter(user => {
                           if (!yearPromoFilter) return true;
-                          return user.yearPromo?.toString() === yearPromoFilter;
+                          return getEffectiveYearPromo(user)?.toString() === yearPromoFilter;
                         });
 
                       return currentPage >= Math.ceil(filteredUsers.length / usersPerPage);
@@ -1189,7 +1203,7 @@ const AdminUserManager: React.FC = () => {
                       return (
                         user.displayName?.toLowerCase().includes(q) ||
                         user.email?.toLowerCase().includes(q) ||
-                        user.yearPromo?.toString().includes(q)
+                        getEffectiveYearPromo(user)?.toString().includes(q)
                       );
                     })
                     .filter(user => {
@@ -1206,7 +1220,7 @@ const AdminUserManager: React.FC = () => {
                     })
                     .filter(user => {
                       if (!yearPromoFilter) return true;
-                      return user.yearPromo?.toString() === yearPromoFilter;
+                      return getEffectiveYearPromo(user)?.toString() === yearPromoFilter;
                     });
 
                   return `Page ${currentPage} sur ${Math.ceil(filteredUsers.length / usersPerPage) || 1}`;
