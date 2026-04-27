@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAlumniProfile } from '../services/alumniService';
+import { getNewsArticles } from '../services/newsService';
 import NewProfilesHighlight from '../components/alumni/NewProfilesHighlight';
 import type { AlumniProfile } from '../types/alumni';
 import { 
@@ -62,6 +63,7 @@ const ApplicationsDashboard: React.FC = () => {
   const [loadingAlumni, setLoadingAlumni] = useState(true);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [unreadNewsCount, setUnreadNewsCount] = useState(0);
 
   // Définir la catégorie par défaut selon le profil utilisateur
   useEffect(() => {
@@ -108,6 +110,16 @@ const ApplicationsDashboard: React.FC = () => {
     };
 
     checkAlumniProfile();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    getNewsArticles({ status: 'published' })
+      .then((articles) => {
+        const count = articles.filter((a) => !a.viewedBy.includes(currentUser.uid)).length;
+        setUnreadNewsCount(count);
+      })
+      .catch(() => {});
   }, [currentUser]);
 
   const allFeatures: CategoryFeatures = {
@@ -882,16 +894,22 @@ const ApplicationsDashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredCategories[activeCategory].features.map((feature, index) => (
-            <Link 
+            <Link
               key={index}
               to={feature.disabled ? '#' : feature.link}
-              className={`bg-white rounded-lg shadow-md p-6 flex flex-col ${
-                feature.disabled 
+              className={`relative bg-white rounded-lg shadow-md p-6 flex flex-col ${
+                feature.disabled
                   ? 'opacity-70 cursor-not-allowed'
                   : 'hover:shadow-lg transition-all cursor-pointer hover:scale-105'
               }`}
               onClick={(e) => feature.disabled && e.preventDefault()}
             >
+              {feature.title === "Actualités" && unreadNewsCount > 0 && (
+                <span className="absolute top-3 right-3 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block" />
+                  {unreadNewsCount} non lu{unreadNewsCount > 1 ? 's' : ''}
+                </span>
+              )}
               <div className="mb-4">{feature.icon}</div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
                 {feature.title}

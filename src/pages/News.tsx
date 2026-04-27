@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Newspaper, Search, Calendar, User, Eye, Heart } from 'lucide-react';
 import { getNewsArticles } from '../services/newsService';
 import { NewsArticle, NewsArticleType, NEWS_TYPE_LABELS } from '../types/news';
+import { useAuth } from '../contexts/AuthContext';
 
 const TYPE_BADGE_STYLES: Record<NewsArticleType, string> = {
   annonce: 'bg-blue-100 text-blue-800',
@@ -31,6 +32,7 @@ const cardVariants = {
 };
 
 const News: React.FC = () => {
+  const { currentUser } = useAuth();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,12 +131,20 @@ const News: React.FC = () => {
             initial="hidden"
             animate="visible"
           >
-            {filtered.map((article) => (
+            {filtered.map((article) => {
+              const isUnread = currentUser ? !article.viewedBy.includes(currentUser.uid) : false;
+              return (
               <motion.div key={article.id} variants={cardVariants}>
                 <Link
                   to={`/news/${article.id}`}
-                  className="block bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden hover:shadow-md hover:border-blue-200 transition-all duration-200 h-full"
+                  className={`relative block bg-white shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-all duration-200 h-full border ${isUnread ? 'border-blue-300' : 'border-zinc-200 hover:border-blue-200'}`}
                 >
+                  {isUnread && (
+                    <span className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block" />
+                      Non lu
+                    </span>
+                  )}
                   {article.coverImageUrl && (
                     <div className="aspect-video overflow-hidden">
                       <img
@@ -174,7 +184,8 @@ const News: React.FC = () => {
                   </div>
                 </Link>
               </motion.div>
-            ))}
+              );
+            })}
           </motion.div>
         )}
       </div>

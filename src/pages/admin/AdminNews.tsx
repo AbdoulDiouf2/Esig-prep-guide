@@ -113,10 +113,14 @@ const AdminNews: React.FC = () => {
         type: form.type,
         tags,
         status: form.status,
-        coverImageUrl: form.coverImageUrl || undefined,
         authorId: currentUser.uid,
         authorName: currentUser.displayName || currentUser.email || 'Admin',
-        publishedAt: form.status === 'published' ? Date.now() : undefined,
+        likesCount: editingArticle?.likesCount ?? 0,
+        likedBy: editingArticle?.likedBy ?? [],
+        viewsCount: editingArticle?.viewsCount ?? 0,
+        viewedBy: editingArticle?.viewedBy ?? [],
+        coverImageUrl: form.coverImageUrl || 'https://media.istockphoto.com/id/157399872/fr/photo/actualit%C3%A9s-internationales.jpg?s=612x612&w=0&k=20&c=-4OEG6_liRWPDafNNm3suSuA7-78etKVDe90fAZWHB8=',
+        ...(form.status === 'published' ? { publishedAt: Date.now() } : {}),
       };
       if (editingArticle) {
         await updateNewsArticle(editingArticle.id, payload);

@@ -152,7 +152,7 @@ const NewsDetail: React.FC = () => {
             </button>
             {canEdit && (
               <Link
-                to="/admin/news"
+                to={isAdmin() ? '/admin/news' : '/editor/news'}
                 className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors"
               >
                 <Edit className="w-4 h-4" />
@@ -277,28 +277,37 @@ const NewsDetail: React.FC = () => {
 
       {/* Articles suggérés */}
       {related.length > 0 && (
-        <div className="border-t border-zinc-200 bg-white mt-4">
+        <div className="border-t border-zinc-200 bg-zinc-50 mt-4">
           <div className="max-w-3xl mx-auto px-6 py-10">
-            <h2 className="text-lg font-bold text-blue-900 mb-6">À lire aussi</h2>
+            <h2 className="text-lg font-bold text-blue-900 mb-5">À lire aussi</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {related.map((a) => (
                 <Link
                   key={a.id}
                   to={`/news/${a.id}`}
-                  className="block bg-zinc-50 border border-zinc-200 rounded-xl p-4 hover:border-blue-200 hover:shadow-sm transition-all duration-200"
+                  className="flex flex-col bg-white border border-zinc-200 rounded-2xl overflow-hidden hover:border-blue-200 hover:shadow-md transition-all duration-200"
                 >
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold mb-2 ${TYPE_BADGE_STYLES[a.type]}`}>
-                    {NEWS_TYPE_LABELS[a.type]}
-                  </span>
-                  <p className="text-sm font-semibold text-zinc-800 line-clamp-2 leading-snug mb-2">{a.title}</p>
-                  <div className="flex items-center justify-between text-xs text-zinc-400">
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
-                      {formatDate(a.publishedAt ?? a.createdAt)}
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={a.coverImageUrl}
+                      alt={a.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    <span className={`inline-block self-start px-2 py-0.5 rounded-full text-xs font-semibold ${TYPE_BADGE_STYLES[a.type]}`}>
+                      {NEWS_TYPE_LABELS[a.type]}
                     </span>
-                    <span className="flex items-center gap-1 whitespace-nowrap ml-2">
-                      <Heart className="w-3 h-3 fill-red-400 text-red-400 flex-shrink-0" /> {a.likedBy.length}
-                    </span>
+                    <p className="text-sm font-bold text-blue-900 line-clamp-2 leading-snug">{a.title}</p>
+                    <div className="flex items-center gap-3 text-xs text-zinc-400 mt-auto pt-1">
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        {formatDate(a.publishedAt ?? a.createdAt)}
+                      </span>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Heart className="w-3 h-3 fill-red-400 text-red-400 flex-shrink-0" /> {a.likedBy.length}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               ))}
