@@ -11,6 +11,9 @@ import {
   deleteDoc,
   serverTimestamp,
   Timestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NewsArticle, NewsArticleType, NewsStatus } from '../types/news';
@@ -33,6 +36,10 @@ function docToArticle(docSnap: { id: string; data: () => Record<string, unknown>
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : Date.now(),
     publishedAt: data.publishedAt instanceof Timestamp ? data.publishedAt.toMillis() : undefined,
+    likesCount: (data.likesCount as number) || 0,
+    likedBy: (data.likedBy as string[]) || [],
+    viewsCount: (data.viewsCount as number) || 0,
+    viewedBy: (data.viewedBy as string[]) || [],
   };
 }
 
@@ -104,4 +111,18 @@ export const unpublishNewsArticle = async (id: string): Promise<void> => {
 
 export const deleteNewsArticle = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, NEWS_COLLECTION, id));
+};
+
+export const toggleLike = async (id: string, uid: string, currentlyLiked: boolean): Promise<void> => {
+  await updateDoc(doc(db, NEWS_COLLECTION, id), {
+    likedBy: currentlyLiked ? arrayRemove(uid) : arrayUnion(uid),
+    likesCount: increment(currentlyLiked ? -1 : 1),
+  });
+};
+
+export const recordView = async (id: string, uid: string): Promise<void> => {
+  await updateDoc(doc(db, NEWS_COLLECTION, id), {
+    viewedBy: arrayUnion(uid),
+    viewsCount: increment(1),
+  });
 };

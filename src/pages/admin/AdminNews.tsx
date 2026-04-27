@@ -12,6 +12,9 @@ import {
   XCircle,
   Eye,
   EyeOff,
+  BarChart2,
+  X,
+  Heart,
 } from 'lucide-react';
 import {
   getNewsArticles,
@@ -22,6 +25,8 @@ import {
   deleteNewsArticle,
 } from '../../services/newsService';
 import { NewsArticle, NewsArticleType, NewsStatus, NEWS_TYPE_LABELS } from '../../types/news';
+import { db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const TYPE_OPTIONS: { value: NewsArticleType; label: string }[] = [
   { value: 'annonce', label: 'Annonce' },
@@ -51,6 +56,9 @@ const AdminNews: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<NewsStatus | 'all'>('all');
+  const [statsArticle, setStatsArticle] = useState<NewsArticle | null>(null);
+  const [statsUsers, setStatsUsers] = useState<{ viewers: string[]; likers: string[] }>({ viewers: [], likers: [] });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const loadArticles = async () => {
     try {
@@ -148,6 +156,31 @@ const AdminNews: React.FC = () => {
       console.error(err);
       setError('Erreur lors de la suppression.');
     }
+  };
+
+  const openStats = async (article: NewsArticle) => {
+    setStatsArticle(article);
+    setStatsLoading(true);
+    setStatsUsers({ viewers: [], likers: [] });
+    const allUids = [...new Set([...article.viewedBy, ...article.likedBy])];
+    const names: Record<string, string> = {};
+    await Promise.all(
+      allUids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          names[uid] = snap.exists()
+            ? (snap.data().displayName as string) || snap.data().email as string || uid
+            : uid;
+        } catch {
+          names[uid] = uid;
+        }
+      })
+    );
+    setStatsUsers({
+      viewers: article.viewedBy.map((uid) => names[uid] || uid),
+      likers: article.likedBy.map((uid) => names[uid] || uid),
+    });
+    setStatsLoading(false);
   };
 
   const filtered = articles.filter((a) => {
@@ -248,6 +281,7 @@ const AdminNews: React.FC = () => {
                   <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Auteur</th>
                   <th className="text-left px-4 py-3 text-zinc-600 font-medium">Statut</th>
                   <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Date</th>
+                  <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden md:table-cell">Stats</th>
                   <th className="text-right px-4 py-3 text-zinc-600 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -272,8 +306,18 @@ const AdminNews: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">
+                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell whitespace-nowrap">
                       {formatDate(article.publishedAt ?? article.createdAt)}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <button
+                        onClick={() => openStats(article)}
+                        className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-700 transition-colors bg-zinc-50 border border-zinc-200 rounded-full px-2.5 py-1"
+                      >
+                        <Eye className="w-3 h-3" /> {article.viewedBy.length}
+                        <span className="w-px h-3 bg-zinc-200" />
+                        <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
@@ -311,6 +355,78 @@ const AdminNews: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal statistiques */}
+      {statsArticle && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setStatsArticle(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-blue-700" />
+                <h2 className="text-base font-bold text-blue-900 line-clamp-1">{statsArticle.title}</h2>
+              </div>
+              <button onClick={() => setStatsArticle(null)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-6">
+              {statsLoading ? (
+                <p className="text-center text-zinc-400 py-6">Chargement...</p>
+              ) : (
+                <>
+                  {/* Vues */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Eye className="w-4 h-4 text-zinc-400" />
+                      <h3 className="text-sm font-semibold text-zinc-700">
+                        Vues <span className="text-zinc-400 font-normal">({statsUsers.viewers.length})</span>
+                      </h3>
+                    </div>
+                    {statsUsers.viewers.length === 0 ? (
+                      <p className="text-zinc-400 text-sm">Aucune vue pour le moment.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {statsUsers.viewers.map((name, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
+                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                              {name.charAt(0).toUpperCase()}
+                            </span>
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Likes */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">❤️</span>
+                      <h3 className="text-sm font-semibold text-zinc-700">
+                        J'aime <span className="text-zinc-400 font-normal">({statsUsers.likers.length})</span>
+                      </h3>
+                    </div>
+                    {statsUsers.likers.length === 0 ? (
+                      <p className="text-zinc-400 text-sm">Aucun like pour le moment.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {statsUsers.likers.map((name, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-zinc-600 bg-red-50 rounded-lg px-3 py-2">
+                            <span className="w-6 h-6 rounded-full bg-red-100 text-red-500 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                              {name.charAt(0).toUpperCase()}
+                            </span>
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal formulaire */}
       {showForm && (

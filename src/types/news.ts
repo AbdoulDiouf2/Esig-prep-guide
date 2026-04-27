@@ -15,6 +15,10 @@ export interface NewsArticle {
   createdAt: number;
   updatedAt: number;
   publishedAt?: number;
+  likesCount: number;
+  likedBy: string[];
+  viewsCount: number;
+  viewedBy: string[];
 }
 
 export const NEWS_TYPE_LABELS: Record<NewsArticleType, string> = {

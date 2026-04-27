@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Newspaper, Search, Calendar, User } from 'lucide-react';
+import { Newspaper, Search, Calendar, User, Eye, Heart } from 'lucide-react';
 import { getNewsArticles } from '../services/newsService';
 import { NewsArticle, NewsArticleType, NEWS_TYPE_LABELS } from '../types/news';
 
@@ -145,12 +145,17 @@ const News: React.FC = () => {
                     </div>
                   )}
                   <div className="p-5">
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center justify-between mb-3">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${TYPE_BADGE_STYLES[article.type]}`}
                       >
                         {NEWS_TYPE_LABELS[article.type]}
                       </span>
+                      <div className="inline-flex items-center gap-2 text-xs text-zinc-400 bg-zinc-50 border border-zinc-100 rounded-full px-2.5 py-1 whitespace-nowrap">
+                        <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{article.viewedBy.length}</span>
+                        <span className="w-px h-3 bg-zinc-200 inline-block" />
+                        <span className="flex items-center gap-0.5"><Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}</span>
+                      </div>
                     </div>
                     <h2 className="text-base font-bold text-blue-900 mb-2 line-clamp-2 leading-snug">
                       {article.title}
