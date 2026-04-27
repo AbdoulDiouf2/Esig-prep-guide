@@ -93,17 +93,6 @@ const NewsDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Cover image */}
-      {article.coverImageUrl && (
-        <div className="w-full max-h-96 overflow-hidden">
-          <img
-            src={article.coverImageUrl}
-            alt={article.title}
-            className="w-full h-96 object-cover"
-          />
-        </div>
-      )}
-
       <div className="max-w-3xl mx-auto px-6 py-10">
         {/* Navigation */}
         <div className="flex items-center justify-between mb-8">
@@ -149,7 +138,7 @@ const NewsDetail: React.FC = () => {
           transition={{ duration: 0.4 }}
         >
           {/* Badge + date */}
-          <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${TYPE_BADGE_STYLES[article.type]}`}
             >
@@ -167,10 +156,24 @@ const NewsDetail: React.FC = () => {
           </h1>
 
           {/* Auteur */}
-          <div className="flex items-center gap-2 text-zinc-500 text-sm mb-8 pb-6 border-b border-zinc-200">
+          <div className="flex items-center gap-2 text-zinc-500 text-sm mb-6 pb-6 border-b border-zinc-200">
             <User className="w-4 h-4" />
             <span>Par {article.authorName}</span>
           </div>
+
+          {/* Cover image */}
+          {article.coverImageUrl && (
+            <>
+              <div className="mb-8 rounded-2xl overflow-hidden">
+                <img
+                  src={article.coverImageUrl}
+                  alt={article.title}
+                  className="w-full object-cover"
+                />
+              </div>
+              <hr className="border-zinc-200 mb-8" />
+            </>
+          )}
 
           {/* Contenu */}
           <div className="prose prose-zinc max-w-none">
