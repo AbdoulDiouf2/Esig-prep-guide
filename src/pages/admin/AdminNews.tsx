@@ -27,6 +27,7 @@ import {
 import { NewsArticle, NewsArticleType, NewsStatus, NEWS_TYPE_LABELS } from '../../types/news';
 import { db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const TYPE_OPTIONS: { value: NewsArticleType; label: string }[] = [
   { value: 'annonce', label: 'Annonce' },
@@ -59,6 +60,7 @@ const AdminNews: React.FC = () => {
   const [statsArticle, setStatsArticle] = useState<NewsArticle | null>(null);
   const [statsUsers, setStatsUsers] = useState<{ viewers: string[]; likers: string[] }>({ viewers: [], likers: [] });
   const [statsLoading, setStatsLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<NewsArticle | null>(null);
 
   const loadArticles = async () => {
     try {
@@ -151,10 +153,10 @@ const AdminNews: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Supprimer cet article définitivement ?')) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteNewsArticle(id);
+      await deleteNewsArticle(deleteTarget.id);
       await loadArticles();
     } catch (err) {
       console.error(err);
@@ -344,7 +346,7 @@ const AdminNews: React.FC = () => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(article.id)}
+                          onClick={() => setDeleteTarget(article)}
                           title="Supprimer"
                           className="text-zinc-400 hover:text-red-600 transition-colors"
                         >
@@ -359,6 +361,18 @@ const AdminNews: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal confirmation suppression */}
+      <ConfirmationModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Supprimer l'article"
+        message={`Voulez-vous vraiment supprimer "${deleteTarget?.title}" ? Cette action est irréversible.`}
+        confirmButtonText="Supprimer"
+        cancelButtonText="Annuler"
+        type="danger"
+      />
 
       {/* Modal statistiques */}
       {statsArticle && (
