@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, User, Tag, Edit } from 'lucide-react';
-import { getNewsArticle } from '../services/newsService';
+import { getNewsArticle, getNewsArticles } from '../services/newsService';
 import { NewsArticle, NewsArticleType, NEWS_TYPE_LABELS } from '../types/news';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +18,7 @@ const NewsDetail: React.FC = () => {
   const navigate = useNavigate();
   const { isAdmin, isEditor } = useAuth();
   const [article, setArticle] = useState<NewsArticle | null>(null);
+  const [related, setRelated] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,11 +27,15 @@ const NewsDetail: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const data = await getNewsArticle(id);
+        const [data, all] = await Promise.all([
+          getNewsArticle(id),
+          getNewsArticles({ status: 'published' }),
+        ]);
         if (!data) {
           setError('Article introuvable.');
         } else {
           setArticle(data);
+          setRelated(all.filter((a) => a.id !== id).slice(0, 3));
         }
       } catch (err) {
         console.error(err);
@@ -158,6 +163,33 @@ const NewsDetail: React.FC = () => {
           )}
         </motion.article>
       </div>
+
+      {/* Articles suggérés */}
+      {related.length > 0 && (
+        <div className="border-t border-zinc-200 bg-white mt-4">
+          <div className="max-w-3xl mx-auto px-6 py-10">
+            <h2 className="text-lg font-bold text-blue-900 mb-6">À lire aussi</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {related.map((a) => (
+                <Link
+                  key={a.id}
+                  to={`/news/${a.id}`}
+                  className="block bg-zinc-50 border border-zinc-200 rounded-xl p-4 hover:border-blue-200 hover:shadow-sm transition-all duration-200"
+                >
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold mb-2 ${TYPE_BADGE_STYLES[a.type]}`}>
+                    {NEWS_TYPE_LABELS[a.type]}
+                  </span>
+                  <p className="text-sm font-semibold text-zinc-800 line-clamp-2 leading-snug mb-2">{a.title}</p>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(a.publishedAt ?? a.createdAt)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

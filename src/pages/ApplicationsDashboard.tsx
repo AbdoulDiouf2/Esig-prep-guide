@@ -326,6 +326,13 @@ const ApplicationsDashboard: React.FC = () => {
           description: "Consulter et gérer les retours utilisateurs",
           link: "/admin/feedbacks",
           roles: ["admin", "editor"]
+        },
+        {
+          icon: <Newspaper className="w-8 h-8 text-amber-500" />,
+          title: "Actualités",
+          description: "Créer et gérer les articles de la communauté",
+          link: "/admin/news",
+          roles: ["admin", "editor"]
         }
       ]
     },
