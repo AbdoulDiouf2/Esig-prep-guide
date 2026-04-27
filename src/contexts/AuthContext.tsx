@@ -28,6 +28,7 @@ export type AppUser = {
   profileComplete?: boolean; // Indique si le profil est complet (pour migration)
   createdAt?: Date;
   lastLogin?: Date;
+  lastActive?: Date;
   photoURL?: string;
   providerData?: Array<{
     providerId: string;
@@ -121,6 +122,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const appUser = await mapFirebaseUser(firebaseUser);
         setCurrentUser(appUser);
+
+        // Mettre à jour lastActive à chaque visite (session persistante ou nouvelle connexion)
+        if (userSnapshot.exists()) {
+          await updateDoc(userDocRef, { lastActive: serverTimestamp() });
+        }
       } else {
         setCurrentUser(null);
       }

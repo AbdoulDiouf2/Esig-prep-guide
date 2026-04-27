@@ -53,7 +53,8 @@ export interface UserDoc {
   yearPromo?: number;     // Année de promotion (année de sortie de prépa)
   status?: string;        // Statut de l'utilisateur (actif, suspendu, etc.)
   createdAt?: string | FirestoreTimestamp | number | Date;  // Date de création du profil (plusieurs formats possibles)
-  lastLogin?: string | FirestoreTimestamp | number | Date;  // Ajout du champ lastLogin
+  lastLogin?: string | FirestoreTimestamp | number | Date;
+  lastActive?: FirestoreTimestamp | Date;
 }
 
 const AdminUserManager: React.FC = () => {
@@ -639,60 +640,37 @@ const AdminUserManager: React.FC = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de création</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière connexion</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière activité</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users
-                  // Fonction pour convertir la dernière connexion en timestamp pour comparaison
                   .sort((a, b) => {
-                    // Fonction utilitaire pour convertir un lastLogin en timestamp
-                    const getTimestamp = (user: UserDoc): number => {
-                      if (!user.lastLogin) return 0; // Si pas de date, mettre en dernier
-                      
-                      // Si c'est un timestamp Firestore
-                      if (user.lastLogin && 
-                          typeof user.lastLogin === 'object' && 
-                          'toDate' in user.lastLogin && 
-                          typeof user.lastLogin.toDate === 'function') {
-                        // Conversion du timestamp Firestore en date
-                        const date = user.lastLogin.toDate();
-                        
-                        return date.getTime();
-                      }
-                      
-                      // Si c'est un objet avec seconds (timestamp Firestore brut)
-                      if (user.lastLogin && 
-                          typeof user.lastLogin === 'object' && 
-                          'seconds' in user.lastLogin && 
-                          'nanoseconds' in user.lastLogin) {
-                        const timestamp = user.lastLogin as FirestoreTimestamp;
-                        return timestamp.seconds * 1000;
-                      }
-                      
-                      // Si c'est un nombre (timestamp)
-                      if (typeof user.lastLogin === 'number') {
-                        return user.lastLogin;
-                      }
-                      
-                      // Si c'est une chaîne, essayer de la convertir en date
-                      if (typeof user.lastLogin === 'string') {
-                        const date = new Date(user.lastLogin);
-                        if (!isNaN(date.getTime())) {
-                          return date.getTime();
-                        }
-                      }
-                      
-                      // Si c'est une date
-                      if (user.lastLogin instanceof Date) {
-                        return user.lastLogin.getTime();
-                      }
-                      
-                      return 0; // Valeur par défaut
+                    const getLastLoginTs = (user: UserDoc): number => {
+                      if (!user.lastLogin) return 0;
+                      if (typeof user.lastLogin === 'object' && 'toDate' in user.lastLogin && typeof (user.lastLogin as FirestoreTimestamp).toDate === 'function')
+                        return (user.lastLogin as FirestoreTimestamp).toDate().getTime();
+                      if (typeof user.lastLogin === 'object' && 'seconds' in user.lastLogin)
+                        return (user.lastLogin as FirestoreTimestamp).seconds * 1000;
+                      if (typeof user.lastLogin === 'number') return user.lastLogin;
+                      if (typeof user.lastLogin === 'string') { const d = new Date(user.lastLogin); return isNaN(d.getTime()) ? 0 : d.getTime(); }
+                      if (user.lastLogin instanceof Date) return user.lastLogin.getTime();
+                      return 0;
                     };
-                    
-                    // Tri décroissant (du plus récent au plus ancien)
-                    return getTimestamp(b) - getTimestamp(a);
+                    const getLastActiveTs = (user: UserDoc): number => {
+                      if (!user.lastActive) return 0;
+                      if (typeof user.lastActive === 'object' && 'toDate' in user.lastActive && typeof (user.lastActive as FirestoreTimestamp).toDate === 'function')
+                        return (user.lastActive as FirestoreTimestamp).toDate().getTime();
+                      if (typeof user.lastActive === 'object' && 'seconds' in user.lastActive)
+                        return (user.lastActive as FirestoreTimestamp).seconds * 1000;
+                      if (user.lastActive instanceof Date) return user.lastActive.getTime();
+                      return 0;
+                    };
+                    // Tri par max(lastActive, lastLogin) décroissant
+                    const tsA = Math.max(getLastActiveTs(a), getLastLoginTs(a));
+                    const tsB = Math.max(getLastActiveTs(b), getLastLoginTs(b));
+                    return tsB - tsA;
                   })
                   .filter(user => {
                     if (!searchQuery) return true;
@@ -1051,6 +1029,29 @@ const AdminUserManager: React.FC = () => {
                           }
                         })()}
                       </span>
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {(() => {
+                        if (!user.lastActive) return <span className="text-xs text-gray-400 italic">Jamais</span>;
+                        let date: Date | null = null;
+                        if (typeof user.lastActive === 'object' && 'toDate' in user.lastActive && typeof (user.lastActive as FirestoreTimestamp).toDate === 'function') {
+                          date = (user.lastActive as FirestoreTimestamp).toDate();
+                        } else if (typeof user.lastActive === 'object' && 'seconds' in user.lastActive) {
+                          date = new Date((user.lastActive as FirestoreTimestamp).seconds * 1000);
+                        } else if (user.lastActive instanceof Date) {
+                          date = user.lastActive;
+                        }
+                        if (!date) return <span className="text-xs text-gray-400 italic">Jamais</span>;
+                        const now = new Date();
+                        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+                        const label = diffDays === 0 ? "Aujourd'hui" : diffDays === 1 ? "Hier" : `Il y a ${diffDays}j`;
+                        const color = diffDays <= 7 ? 'text-green-600' : diffDays <= 30 ? 'text-amber-600' : 'text-red-500';
+                        return (
+                          <span className={`text-xs font-medium ${color}`} title={date.toLocaleString('fr-FR')}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-2">
                       {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
