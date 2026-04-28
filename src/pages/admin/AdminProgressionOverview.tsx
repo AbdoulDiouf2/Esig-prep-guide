@@ -49,7 +49,8 @@ const AdminProgressionOverview: React.FC = () => {
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
   const [exporting, setExporting] = useState(false);
   const currentYear = new Date().getFullYear();
-  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear + 1);
+  // 0 = état initial avant chargement des users
+  const [selectedPromo, setSelectedPromo] = useState<number>(0);
   
   // Déterminer le statut visa selon les sections complétées
   // Défini avec useCallback pour éviter les re-rendus inutiles
@@ -88,9 +89,10 @@ const AdminProgressionOverview: React.FC = () => {
     setExporting(true);
     try {
       // Filtrer les utilisateurs selon leur statut visa et la promo sélectionnée
-      const filteredUsers = users.filter(user =>
-        (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo && getUserVisaStatus(user.uid, userProgressions) === visaStatus
-      );
+      const filteredUsers = users.filter(user => {
+        const matchPromo = selectedPromo === 0 ? !user.yearPromo : user.yearPromo === selectedPromo;
+        return (user.status === 'cps' || user.status === 'alumni') && matchPromo && getUserVisaStatus(user.uid, userProgressions) === visaStatus;
+      });
 
       if (filteredUsers.length === 0) {
         alert(`Aucun étudiant avec visa ${visaStatus === 'obtained' ? 'obtenu' : 'refusé'} à exporter.`);
@@ -192,7 +194,9 @@ const AdminProgressionOverview: React.FC = () => {
       doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
       
       // Filtrer uniquement les utilisateurs de la promo sélectionnée
-      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+      const cpsUsers = selectedPromo === 0
+        ? users.filter(u => (u.status === 'cps' || u.status === 'alumni') && !u.yearPromo)
+        : users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
       
       // Préparer les données du tableau principal
       const tableData = cpsUsers.map(user => {
@@ -590,8 +594,23 @@ const AdminProgressionOverview: React.FC = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [users]);
 
+  // Initialiser selectedPromo sur la première promo dispo dès le chargement
+  useEffect(() => {
+    if (promoYears.length > 0 && selectedPromo === 0) {
+      setSelectedPromo(promoYears[0]);
+    }
+  }, [promoYears, selectedPromo]);
+
+  // Nombre d'utilisateurs CPS/alumni sans yearPromo
+  const usersWithoutPromo = useMemo(() =>
+    users.filter(u => (u.status === 'cps' || u.status === 'alumni') && !u.yearPromo),
+  [users]);
+
   // Filtrer les utilisateurs de la promo sélectionnée (statut cps OU alumni car la synchro bascule en alumni après la rentrée)
-  const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+  // selectedPromo === 0 → utilisateurs sans promotion renseignée
+  const cpsUsers = selectedPromo === 0
+    ? users.filter(u => (u.status === 'cps' || u.status === 'alumni') && !u.yearPromo)
+    : users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
   
   // Note: La fonction getUserVisaStatus a été déplacée plus haut dans le composant avec useCallback
   
@@ -617,13 +636,16 @@ const AdminProgressionOverview: React.FC = () => {
       </div>
       
       {/* Sélecteur de promotion */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
         <label className="text-sm font-medium text-gray-700">Promotion :</label>
         <select
           value={selectedPromo}
           onChange={e => setSelectedPromo(Number(e.target.value))}
           className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
+          {usersWithoutPromo.length > 0 && (
+            <option value={0}>⚠ Sans promo renseignée ({usersWithoutPromo.length})</option>
+          )}
           {promoYears.length === 0 ? (
             <option value={currentYear}>Promo {currentYear}</option>
           ) : (
@@ -633,8 +655,13 @@ const AdminProgressionOverview: React.FC = () => {
           )}
         </select>
         <span className="text-sm text-gray-500">
-          {cpsUsers.length} étudiant{cpsUsers.length > 1 ? 's' : ''} — Promo {selectedPromo}
+          {cpsUsers.length} étudiant{cpsUsers.length > 1 ? 's' : ''}{selectedPromo !== 0 ? ` — Promo ${selectedPromo}` : ' sans promo renseignée'}
         </span>
+        {selectedPromo === 0 && (
+          <span className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1">
+            ⚠ Ces étudiants n'ont pas d'année de promotion — assigne-leur une promo dans Gestion des utilisateurs
+          </span>
+        )}
       </div>
 
       {/* Système d'onglets */}

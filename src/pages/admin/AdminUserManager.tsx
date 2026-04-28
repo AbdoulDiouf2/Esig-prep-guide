@@ -79,6 +79,10 @@ const AdminUserManager: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<'tous' | 'admin' | 'editor' | 'standard'>('tous');
   const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
   const [yearPromoFilter, setYearPromoFilter] = useState<string>('');
+
+  // Édition inline de l'année de promo
+  const [editingPromoUid, setEditingPromoUid] = useState<string | null>(null);
+  const [editingPromoValue, setEditingPromoValue] = useState<string>('');
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -160,6 +164,14 @@ const AdminUserManager: React.FC = () => {
     setModalOpen(true);
     setPendingUser({ uid, action: 'toggleAdmin' });
     setModalError(null);
+  };
+
+  const handleSaveYearPromo = async (uid: string) => {
+    const year = parseInt(editingPromoValue);
+    if (isNaN(year) || year < 2000 || year > 2050) return;
+    await updateDoc(doc(db, 'users', uid), { yearPromo: year, updatedAt: new Date() });
+    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, yearPromo: year } : u));
+    setEditingPromoUid(null);
   };
 
   const handleToggleEditor = async (uid: string) => {
@@ -721,12 +733,39 @@ const AdminUserManager: React.FC = () => {
                     </td>
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      {getEffectiveYearPromo(user) ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                          Prépa {getEffectiveYearPromo(user)}
-                        </span>
+                      {editingPromoUid === user.uid ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min={2000}
+                            max={2050}
+                            value={editingPromoValue}
+                            onChange={e => setEditingPromoValue(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleSaveYearPromo(user.uid);
+                              if (e.key === 'Escape') setEditingPromoUid(null);
+                            }}
+                            autoFocus
+                            className="w-20 border border-blue-400 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <button onClick={() => handleSaveYearPromo(user.uid)} className="text-green-600 hover:text-green-800 text-xs font-medium">✓</button>
+                          <button onClick={() => setEditingPromoUid(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                        </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">Non défini</span>
+                        <button
+                          onClick={() => { setEditingPromoUid(user.uid); setEditingPromoValue(getEffectiveYearPromo(user)?.toString() ?? ''); }}
+                          className="group flex items-center gap-1"
+                          title="Cliquer pour modifier l'année de promo"
+                        >
+                          {getEffectiveYearPromo(user) ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 group-hover:bg-indigo-200">
+                              Prépa {getEffectiveYearPromo(user)}
+                            </span>
+                          ) : (
+                            <span className="text-amber-600 text-xs font-medium group-hover:underline">⚠ Non défini</span>
+                          )}
+                          <Edit className="w-3 h-3 text-gray-300 group-hover:text-gray-500" />
+                        </button>
                       )}
                     </td>
                     <td className="px-4 py-2">

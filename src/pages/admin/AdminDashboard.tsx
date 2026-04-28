@@ -76,7 +76,7 @@ const AdminDashboard: React.FC = () => {
   // Tabs
   const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps'>('general');
   const currentYear = new Date().getFullYear();
-  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear + 1);
+  const [selectedPromo, setSelectedPromo] = useState<number>(0);
 
   // Liste dynamique des promos disponibles
   const promoYears = useMemo(() => {
@@ -85,6 +85,16 @@ const AdminDashboard: React.FC = () => {
     );
     return Array.from(years).sort((a, b) => b - a);
   }, [users]);
+
+  // Initialiser selectedPromo sur la première promo dispo dès le chargement
+  useEffect(() => {
+    if (promoYears.length > 0 && selectedPromo === 0) {
+      setSelectedPromo(promoYears[0]);
+    }
+  }, [promoYears, selectedPromo]);
+
+  // Helper : vérifie si un user correspond à la promo sélectionnée
+  const matchesPromo = (user: UserDoc) => user.yearPromo === selectedPromo;
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -296,7 +306,7 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-center gap-2">
             <span className="font-semibold">Filtre actif :</span>
-            Promotion {selectedPromo} — {users.filter(u => (u.status === 'cps' || u.status === 'alumni') && u.yearPromo === selectedPromo).length} étudiant{users.filter(u => (u.status === 'cps' || u.status === 'alumni') && u.yearPromo === selectedPromo).length > 1 ? 's' : ''} inscrit{users.filter(u => (u.status === 'cps' || u.status === 'alumni') && u.yearPromo === selectedPromo).length > 1 ? 's' : ''}
+            {`Promotion ${selectedPromo} — ${users.filter(u => (u.status === 'cps' || u.status === 'alumni') && matchesPromo(u)).length} étudiant${users.filter(u => (u.status === 'cps' || u.status === 'alumni') && matchesPromo(u)).length > 1 ? 's' : ''} inscrit${users.filter(u => (u.status === 'cps' || u.status === 'alumni') && matchesPromo(u)).length > 1 ? 's' : ''}`}
           </div>
           {loadingProgress ? (
             <div className="text-center text-gray-500">Chargement des statistiques...</div>
@@ -304,14 +314,14 @@ const AdminDashboard: React.FC = () => {
             <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
               <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-3xl font-bold text-blue-800 mb-1">{users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo).length}</div>
+                <div className="text-3xl font-bold text-blue-800 mb-1">{users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user)).length}</div>
                 <div className="text-sm text-gray-600">Étudiants inscrits (Promo {selectedPromo})</div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg">
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-green-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '0%';
                       
@@ -325,7 +335,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -344,7 +354,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-yellow-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '0%';
                       
@@ -358,7 +368,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -374,7 +384,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-purple-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '0';
                       
@@ -386,7 +396,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -407,7 +417,7 @@ const AdminDashboard: React.FC = () => {
                 const phaseSections = guideSections.filter(s => s.phase === phase);
                 const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
                 // Filtrer pour n'avoir que les utilisateurs CPS
-                const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                 const cpsUserIds = cpsUsers.map(user => user.uid);
                 const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
                 
@@ -460,7 +470,7 @@ const AdminDashboard: React.FC = () => {
                           {[...guideSections]
                             .filter(section => section.phase === phase)
                             .map(section => {
-                              const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
+                              const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                               const total = cpsUsers.length;
                               const completed = cpsUsers.filter(user => {
                                 const userProgression = userProgressions.find(p => p.userId === user.uid);
