@@ -5,7 +5,7 @@ import { DocumentData } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { getUserSubsectionData } from '../../services/subsectionDataService';
 import { useContent } from '../../contexts/ContentContext';
-import { Users, Plane, Check, X, Calendar, MapPin, Bus, Download } from 'lucide-react';
+import { Users, Plane, Check, X, Calendar, MapPin, Bus, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable, { UserOptions } from 'jspdf-autotable';
@@ -48,7 +48,16 @@ const AdminProgressionOverview: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'progressions' | 'visa'>('progressions');
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
   const [exporting, setExporting] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const currentYear = new Date().getFullYear();
+
+  const toggleRow = (uid: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(uid) ? next.delete(uid) : next.add(uid);
+      return next;
+    });
+  };
   // 0 = état initial avant chargement des users
   const [selectedPromo, setSelectedPromo] = useState<number>(0);
   
@@ -690,165 +699,174 @@ const AdminProgressionOverview: React.FC = () => {
         {loading ? (
           <div className="text-center text-gray-500">Chargement des progressions...</div>
         ) : activeTab === 'progressions' ? (
-          <div className="overflow-x-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Promo {selectedPromo} — {cpsUsers.filter(u => !u.isAdmin).length} étudiant{cpsUsers.filter(u => !u.isAdmin).length > 1 ? 's' : ''}</h3>
-              <button 
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* En-tête tableau */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">
+                  {selectedPromo === 0 ? 'Étudiants sans promotion renseignée' : `Promo ${selectedPromo}`}
+                </h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {cpsUsers.filter(u => !u.isAdmin).length} étudiant{cpsUsers.filter(u => !u.isAdmin).length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
                 onClick={exportToPDF}
                 disabled={exporting}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
               >
-                <Download size={16} />
-                {exporting ? 'Génération...' : 'Exporter en PDF'}
+                <Download size={15} />
+                {exporting ? 'Génération...' : 'Exporter PDF'}
               </button>
             </div>
-            <table className="w-full divide-y divide-gray-200 text-xs">
-              <thead>
-                <tr>
-                  <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase whitespace-nowrap">Nom</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase whitespace-nowrap">Email</th>
-                  <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase whitespace-nowrap">Progression globale</th>
-                  <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase whitespace-nowrap">Pré-arrivée</th>
-                  <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase whitespace-nowrap">Pendant le processus</th>
-                  <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase whitespace-nowrap">Post-CPS</th>
-                  <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase whitespace-nowrap">Sections validées</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {usersInProgress
-  .filter(user => !user.isAdmin && user.status === 'cps')
-  .sort((a, b) => {
-    const progressionA = userProgressions.find(p => p.userId === a.uid);
-    const progressionB = userProgressions.find(p => p.userId === b.uid);
-    const percentA = progressionA ? getUserGlobalProgress(progressionA.completedSections) : 0;
-    const percentB = progressionB ? getUserGlobalProgress(progressionB.completedSections) : 0;
-    return percentB - percentA;
-  })
-  .map(user => {
-                  const progression = userProgressions.find(p => p.userId === user.uid);
-                  // Assurons-nous que nous ne comptons que les sections qui existent encore
-                  const validCompletedSections = progression ? progression.completedSections.filter(sectionId => 
-                    guideSections.some(section => section.id === sectionId)
-                  ) : [];
-                  const completed = validCompletedSections.length;
-                  const percent = progression ? getUserGlobalProgress(progression.completedSections) : 0;
-                  const preArrivalPercent = progression ? getPhaseProgress(progression.completedSections, 'pre-arrival') : 0;
-                  const duringProcessPercent = progression ? getPhaseProgress(progression.completedSections, 'during-process') : 0;
-                  const postCpsPercent = progression ? getPhaseProgress(progression.completedSections, 'post-cps') : 0;
-                  return (
-                    <tr key={user.uid}>
-                      <td className="px-2 py-2 whitespace-nowrap text-gray-900">{user.displayName || '-'}</td>
-                      <td className="px-2 py-2 whitespace-nowrap text-gray-600">{user.email}</td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center">
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5 inline-block align-middle">
-                          <div className="bg-blue-700 h-2.5 rounded-full" style={{ width: `${percent}%` }}></div>
+
+            {/* Tableau */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Étudiant</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progression globale</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pré-arrivée</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pendant le processus</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Post-CPS</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {usersInProgress
+                    .filter(user => !user.isAdmin)
+                    .sort((a, b) => {
+                      const pA = userProgressions.find(p => p.userId === a.uid);
+                      const pB = userProgressions.find(p => p.userId === b.uid);
+                      return (pB ? getUserGlobalProgress(pB.completedSections) : 0) - (pA ? getUserGlobalProgress(pA.completedSections) : 0);
+                    })
+                    .flatMap(user => {
+                      const progression = userProgressions.find(p => p.userId === user.uid);
+                      const validCompleted = progression ? progression.completedSections.filter(id => guideSections.some(s => s.id === id)) : [];
+                      const percent = progression ? getUserGlobalProgress(progression.completedSections) : 0;
+                      const preArrival = progression ? getPhaseProgress(progression.completedSections, 'pre-arrival') : 0;
+                      const during = progression ? getPhaseProgress(progression.completedSections, 'during-process') : 0;
+                      const postCps = progression ? getPhaseProgress(progression.completedSections, 'post-cps') : 0;
+                      const isExpanded = expandedRows.has(user.uid);
+
+                      const barColor = (pct: number) =>
+                        pct >= 70 ? 'bg-green-500' : pct >= 30 ? 'bg-amber-400' : 'bg-red-400';
+
+                      const initials = (user.displayName || user.email || '?')
+                        .split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+
+                      const ProgressBar = ({ value }: { value: number }) => (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-2 rounded-full ${barColor(value)}`} style={{ width: `${value}%` }} />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-700 w-8 text-right">{value}%</span>
                         </div>
-                        <span className="ml-2 text-xs font-semibold text-blue-800">{percent}%</span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center align-top">
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5 inline-block align-middle mb-1">
-                          <div className="bg-blue-700 h-2.5 rounded-full" style={{ width: `${preArrivalPercent}%` }}></div>
-                        </div>
-                        <span className="ml-2 text-xs font-semibold text-blue-800">{preArrivalPercent}%</span>
-                        <ul className="mt-2 text-xs text-left">
-                          {guideSections.filter(s => s.phase === 'pre-arrival').map(section => (
-                            <li key={section.id} className="flex items-center gap-1">
-                              {progression && validCompletedSections.includes(section.id) ? (
-                                <span className="text-green-600 font-bold">✔</span>
-                              ) : (
-                                <span className="text-red-500 font-bold">✗</span>
-                              )}
-                              <span>{section.title}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center align-top">
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5 inline-block align-middle mb-1">
-                          <div className="bg-blue-700 h-2.5 rounded-full" style={{ width: `${duringProcessPercent}%` }}></div>
-                        </div>
-                        <span className="ml-2 text-xs font-semibold text-blue-800">{duringProcessPercent}%</span>
-                        <ul className="mt-2 text-xs text-left">
-                          {guideSections.filter(s => s.phase === 'during-process').map(section => (
-                            <li key={section.id} className="flex items-center gap-1">
-                              {progression && validCompletedSections.includes(section.id) ? (
-                                <span className="text-green-600 font-bold">✔</span>
-                              ) : (
-                                <span className="text-red-500 font-bold">✗</span>
-                              )}
-                              <span>{section.title}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center align-top">
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5 inline-block align-middle mb-1">
-                          <div className="bg-blue-700 h-2.5 rounded-full" style={{ width: `${postCpsPercent}%` }}></div>
-                        </div>
-                        <span className="ml-2 text-xs font-semibold text-blue-800">{postCpsPercent}%</span>
-                        <ul className="mt-2 text-xs text-left">
-                          {guideSections.filter(s => s.phase === 'post-cps').map(section => (
-                            <li key={section.id} className="flex items-center gap-1">
-                              {progression && validCompletedSections.includes(section.id) ? (
-                                <span className="text-green-600 font-bold">✔</span>
-                              ) : (
-                                <span className="text-red-500 font-bold">✗</span>
-                              )}
-                              <span>{section.title}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm">{completed} / {guideSections.length}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      );
+
+                      return [
+                        <tr key={user.uid} onClick={() => toggleRow(user.uid)} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                          {/* Étudiant */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                {initials}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{user.displayName || '—'}</div>
+                                <div className="text-xs text-gray-500">{user.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          {/* Progression globale */}
+                          <td className="px-4 py-4 min-w-[160px]">
+                            <ProgressBar value={percent} />
+                          </td>
+                          {/* Pré-arrivée */}
+                          <td className="px-4 py-4 min-w-[140px]">
+                            <ProgressBar value={preArrival} />
+                          </td>
+                          {/* Pendant le processus */}
+                          <td className="px-4 py-4 min-w-[140px]">
+                            <ProgressBar value={during} />
+                          </td>
+                          {/* Post-CPS */}
+                          <td className="px-4 py-4 min-w-[140px]">
+                            <ProgressBar value={postCps} />
+                          </td>
+                          {/* Toggle détail */}
+                          <td className="px-4 py-4 text-right">
+                            <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                              {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                            </span>
+                          </td>
+                        </tr>,
+                        isExpanded ? (
+                          <tr key={`${user.uid}-detail`}>
+                            <td colSpan={6} className="px-6 py-5 bg-gray-50 border-t border-gray-100">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[
+                                  { phase: 'pre-arrival', label: 'Pré-arrivée', color: 'blue' },
+                                  { phase: 'during-process', label: 'Pendant le processus', color: 'green' },
+                                  { phase: 'post-cps', label: 'Post-CPS', color: 'purple' },
+                                ].map(({ phase, label, color }) => (
+                                  <div key={phase}>
+                                    <h4 className={`text-xs font-semibold uppercase tracking-wider text-${color}-700 mb-2`}>{label}</h4>
+                                    <ul className="space-y-1">
+                                      {guideSections.filter(s => s.phase === phase).map(section => {
+                                        const done = validCompleted.includes(section.id);
+                                        return (
+                                          <li key={section.id} className="flex items-center gap-2 text-sm">
+                                            {done
+                                              ? <Check size={14} className="text-green-500 flex-shrink-0" />
+                                              : <X size={14} className="text-gray-300 flex-shrink-0" />}
+                                            <span className={done ? 'text-gray-800' : 'text-gray-400'}>{section.title}</span>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null,
+                      ];
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+            {cpsUsers.filter(u => !u.isAdmin).length === 0 && (
+              <div className="px-6 py-12 text-center text-gray-400 text-sm">
+                Aucun étudiant pour cette promotion.
+              </div>
+            )}
           </div>
         ) : (
           // Onglet Statut visa & Arrivée
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 flex items-center justify-between shadow-sm">
-              <h3 className="text-lg font-semibold text-blue-800 flex items-center">
-                <Plane className="w-5 h-5 mr-2" /> Statut visa & Informations d'arrivée
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Plane className="w-4 h-4 text-blue-600" /> Statut visa & Informations d'arrivée
               </h3>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => exportToExcel('obtained')}
                   disabled={exporting}
-                  className="group relative inline-flex items-center px-4 py-2 border border-green-500 text-sm font-medium rounded-md shadow-md bg-gradient-to-r from-green-400 to-green-600 text-white transition-all duration-200 transform hover:scale-102 hover:shadow-lg hover:translate-y-[-1px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-60 overflow-hidden"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
                 >
-                  <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
-                  <Download className="h-4 w-4 mr-1.5 group-hover:animate-bounce" />
-                  {exporting ? 
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Exportation en cours...
-                    </span> : 
-                    'Visas obtenus'
-                  }
+                  <Download className="h-4 w-4" />
+                  {exporting ? 'Export...' : 'Visas obtenus'}
                 </button>
                 <button
                   onClick={() => exportToExcel('refused')}
                   disabled={exporting}
-                  className="group relative inline-flex items-center px-4 py-2 border border-red-500 text-sm font-medium rounded-md shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white transition-all duration-200 transform hover:scale-102 hover:shadow-lg hover:translate-y-[-1px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-60 overflow-hidden"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
                 >
-                  <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
-                  <Download className="h-4 w-4 mr-1.5 group-hover:animate-bounce" />
-                  {exporting ? 
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Exportation en cours...
-                    </span> : 
-                    'Visas refusés'
-                  }
+                  <Download className="h-4 w-4" />
+                  {exporting ? 'Export...' : 'Visas refusés'}
                 </button>
               </div>
             </div>
@@ -859,115 +877,96 @@ const AdminProgressionOverview: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-
-                <table className="w-full divide-y divide-gray-200">
+                <table className="w-full divide-y divide-gray-100">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut visa</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date d'arrivée</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aéroport</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Transport groupé</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Étudiant</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut visa</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Arrivée</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Transport</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {usersWithVisaStatus.map(user => (
-                      <tr key={user.uid}>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {usersWithVisaStatus.map(user => {
+                      const visaStatus = getUserVisaStatus(user.uid, userProgressions);
+                      const arrival = arrivalData[user.uid];
+                      const initials = (user.displayName || user.email || '?')
+                        .split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+                      return (
+                      <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                        {/* Étudiant */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
                             {user.photoURL ? (
-                              <img className="h-8 w-8 rounded-full mr-2" src={user.photoURL} alt="" />
+                              <img className="h-9 w-9 rounded-full flex-shrink-0" src={user.photoURL} alt="" />
                             ) : (
-                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                                <Users className="h-4 w-4 text-blue-500" />
+                              <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                {initials}
                               </div>
                             )}
-                            <div className="text-sm font-medium text-gray-900">{user.displayName || 'Sans nom'}</div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{user.displayName || 'Sans nom'}</div>
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-center">
-                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              <Check className="h-4 w-4 mr-1" /> Obtenu
+                        {/* Statut visa */}
+                        <td className="px-4 py-4 text-center">
+                          {visaStatus === 'obtained' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                              <Check size={12} /> Obtenu
                             </span>
                           ) : (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                              <X className="h-4 w-4 mr-1" /> Refusé
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                              <X size={12} /> Refusé
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
-                            arrivalData[user.uid]?.hasTicket ? (
-                              <div>
-                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 mb-1">Billet acheté</span>
-                                {arrivalData[user.uid]?.arrivalDate ? (
-                                  <div className="flex items-center mt-1">
-                                    <Calendar className="h-4 w-4 mr-1 text-blue-500" /> 
-                                    {arrivalData[user.uid].arrivalDate}
-                                    {arrivalData[user.uid].arrivalTime && (
-                                      <span className="ml-2 text-gray-700">à {arrivalData[user.uid].arrivalTime}</span>
-                                    )}
+                        {/* Arrivée */}
+                        <td className="px-4 py-4 text-sm text-gray-600">
+                          {visaStatus === 'obtained' ? (
+                            arrival?.hasTicket ? (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Billet acheté</span>
+                                {arrival.arrivalDate && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <Calendar size={12} className="text-blue-500" />
+                                    {arrival.arrivalDate}{arrival.arrivalTime && ` à ${arrival.arrivalTime}`}
+                                    {arrival.airport && <><MapPin size={12} className="text-blue-500 ml-2" />{arrival.airport}</>}
                                   </div>
-                                ) : 'Date non renseignée'}
-                              </div>
-                            ) : (
-                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pas encore de billet</span>
-                            )
-                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Visa refusé - Voyage annulé</span>
-                          ) : (
-                            <span className="text-gray-500">Statut visa indéterminé</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
-                            arrivalData[user.uid]?.airport ? (
-                              <div className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-1 text-blue-500" /> 
-                                {arrivalData[user.uid].airport}
-                              </div>
-                            ) : (
-                              'Non renseigné'
-                            )
-                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
-                            <span className="text-gray-500">Non applicable</span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-center">
-                          {getUserVisaStatus(user.uid, userProgressions) === 'obtained' ? (
-                            <div className="flex flex-col space-y-2">
-                              <div>
-                                {arrivalData[user.uid]?.hasOwnTransportation ? (
-                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Transport personnel</span>
-                                ) : (
-                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Sans transport</span>
                                 )}
                               </div>
-                              
-                              <div>
-                                {arrivalData[user.uid]?.wantGroupTransport ? (
-                                  <div className="flex items-center justify-center">
-                                    <Bus className="h-4 w-4 mr-1 text-green-600" /> 
-                                    <span className="text-xs font-medium text-green-600">Prise en charge commune</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-500">Pas de prise en charge</span>
-                                )}
-                              </div>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pas encore de billet</span>
+                            )
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Voyage annulé</span>
+                          )}
+                        </td>
+                        {/* Transport (fusionné) */}
+                        <td className="px-4 py-4 text-sm text-gray-600">
+                          {visaStatus === 'obtained' ? (
+                            <div className="space-y-1">
+                              {arrival?.hasOwnTransportation ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Transport personnel</span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Sans transport propre</span>
+                              )}
+                              {arrival?.wantGroupTransport ? (
+                                <div className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                                  <Bus size={12} /> Prise en charge commune
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-400">Pas de prise en charge</div>
+                              )}
                             </div>
-                          ) : getUserVisaStatus(user.uid, userProgressions) === 'refused' ? (
-                            <span className="text-gray-500 italic">Voyage annulé</span>
                           ) : (
-                            <span className="text-gray-500">-</span>
+                            <span className="text-xs text-gray-400 italic">—</span>
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

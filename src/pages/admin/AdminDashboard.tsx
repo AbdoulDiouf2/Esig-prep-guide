@@ -155,10 +155,12 @@ const AdminDashboard: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Calcul progression globale
+  // Calcul progression globale — on ne compte que les sections qui existent encore dans guideSections
   const getUserGlobalProgress = (completedSections: string[]) => {
     if (!guideSections || guideSections.length === 0) return 0;
-    return Math.round((completedSections.length / guideSections.length) * 100);
+    const validIds = new Set(guideSections.map(s => s.id));
+    const validCompleted = completedSections.filter(id => validIds.has(id));
+    return Math.round((validCompleted.length / guideSections.length) * 100);
   };
 
   return (
@@ -300,7 +302,7 @@ const AdminDashboard: React.FC = () => {
                 )}
               </select>
               <span className="text-sm text-gray-500">
-                {users.filter(u => u.status === 'cps' && u.yearPromo === selectedPromo).length} étudiant{users.filter(u => u.status === 'cps' && u.yearPromo === selectedPromo).length > 1 ? 's' : ''}
+                {users.filter(u => (u.status === 'cps' || u.status === 'alumni') && u.yearPromo === selectedPromo).length} étudiant{users.filter(u => (u.status === 'cps' || u.status === 'alumni') && u.yearPromo === selectedPromo).length > 1 ? 's' : ''}
               </span>
             </div>
           </div>
@@ -360,10 +362,10 @@ const AdminDashboard: React.FC = () => {
                       
                       const cpsUserIds = cpsUsers.map(user => user.uid);
                       const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
-                      if (cpsProgressions.length === 0) return '0%';
-                      
+                      if (total === 0) return '0%';
+
                       const sum = cpsProgressions.reduce((acc, p) => acc + getUserGlobalProgress(p.completedSections), 0);
-                      return `${Math.round(sum / cpsProgressions.length)}%`;
+                      return `${Math.round(sum / total)}%`;
                     })()}
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
@@ -371,7 +373,7 @@ const AdminDashboard: React.FC = () => {
                       const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && matchesPromo(user));
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
-                      
+
                       const cpsUserIds = cpsUsers.map(user => user.uid);
                       const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
                       return `(${cpsProgressions.length}/${total})`;
@@ -421,9 +423,9 @@ const AdminDashboard: React.FC = () => {
                 const cpsUserIds = cpsUsers.map(user => user.uid);
                 const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
                 
-                // Moyenne progression phase pour les étudiants CPS
-                const avg = cpsProgressions.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
-                  cpsProgressions.reduce((acc, p) => acc + Math.round((p.completedSections.filter(id => phaseSections.some(s => s.id === id)).length / phaseSections.length) * 100), 0) / cpsProgressions.length
+                // Moyenne progression phase sur TOUS les étudiants de la promo (ceux sans progression comptent 0%)
+                const avg = cpsUsers.length === 0 || phaseSections.length === 0 ? 0 : Math.round(
+                  cpsProgressions.reduce((acc, p) => acc + Math.round((p.completedSections.filter(id => phaseSections.some(s => s.id === id)).length / phaseSections.length) * 100), 0) / cpsUsers.length
                 );
                 
                 // % étudiants CPS ayant validé toute la phase
@@ -438,7 +440,7 @@ const AdminDashboard: React.FC = () => {
                 return (
                   <div className={`p-4 rounded-lg ${phase === 'pre-arrival' ? 'bg-blue-50' : phase === 'during-process' ? 'bg-green-50' : 'bg-purple-50'}`} key={phase}>
                     <div className={`text-3xl font-bold ${phase === 'pre-arrival' ? 'text-blue-800' : phase === 'during-process' ? 'text-green-800' : 'text-purple-800'} mb-1`}>
-                      {avg}% <span className="text-lg">({cpsProgressions.length}/{cpsUsers.length})</span>
+                      {avg}% <span className="text-lg">({cpsUsers.length} étudiants)</span>
                     </div>
                     <div className="text-sm text-gray-600 mb-1">Progression moyenne {phaseLabel}</div>
                     <div className={`text-lg font-bold ${phase === 'pre-arrival' ? 'text-blue-800' : phase === 'during-process' ? 'text-green-800' : 'text-purple-800'} mb-1`}>
