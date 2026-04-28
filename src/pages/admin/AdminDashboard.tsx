@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
 import { DocumentData, collection, query, where, getCountFromServer } from 'firebase/firestore';
@@ -75,6 +75,16 @@ const AdminDashboard: React.FC = () => {
   const [newFeedbacksCount, setNewFeedbacksCount] = useState(0);
   // Tabs
   const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps'>('general');
+  const currentYear = new Date().getFullYear();
+  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear);
+
+  // Liste dynamique des promos disponibles
+  const promoYears = useMemo(() => {
+    const years = new Set(
+      users.map(u => u.yearPromo).filter((y): y is number => typeof y === 'number')
+    );
+    return Array.from(years).sort((a, b) => b - a);
+  }, [users]);
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -260,23 +270,44 @@ const AdminDashboard: React.FC = () => {
         {/* KPI Progression (affiché uniquement onglet CPS) */}
         {activeTab === 'cps' && (
         <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-blue-700" /> Statistiques de progression des étudiants CPS
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center">
+              <Users className="w-5 h-5 mr-2 text-blue-700" /> Statistiques de progression des étudiants CPS
+            </h2>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Promotion :</label>
+              <select
+                value={selectedPromo}
+                onChange={e => setSelectedPromo(Number(e.target.value))}
+                className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {promoYears.length === 0 ? (
+                  <option value={currentYear}>Promo {currentYear}</option>
+                ) : (
+                  promoYears.map(year => (
+                    <option key={year} value={year}>Promo {year}</option>
+                  ))
+                )}
+              </select>
+              <span className="text-sm text-gray-500">
+                {users.filter(u => u.status === 'cps' && u.yearPromo === selectedPromo).length} étudiant{users.filter(u => u.status === 'cps' && u.yearPromo === selectedPromo).length > 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
           {loadingProgress ? (
             <div className="text-center text-gray-500">Chargement des statistiques...</div>
           ) : (
             <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
               <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-3xl font-bold text-blue-800 mb-1">{users.filter(user => user.status === 'cps').length}</div>
+                <div className="text-3xl font-bold text-blue-800 mb-1">{users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo).length}</div>
                 <div className="text-sm text-gray-600">Étudiants CPS inscrits</div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg">
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-green-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '0%';
                       
@@ -290,7 +321,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -309,7 +340,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-yellow-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '0%';
                       
@@ -323,7 +354,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -339,7 +370,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-purple-800">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '0';
                       
@@ -351,7 +382,7 @@ const AdminDashboard: React.FC = () => {
                   </span>
                   <span className="ml-2 text-lg text-gray-600">
                     {(() => {
-                      const cpsUsers = users.filter(user => user.status === 'cps');
+                      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                       const total = cpsUsers.length;
                       if (total === 0) return '(0/0)';
                       
@@ -372,7 +403,7 @@ const AdminDashboard: React.FC = () => {
                 const phaseSections = guideSections.filter(s => s.phase === phase);
                 const phaseLabel = phase === 'pre-arrival' ? 'Pré-arrivée' : phase === 'during-process' ? 'Pendant le processus' : 'Post-CPS';
                 // Filtrer pour n'avoir que les utilisateurs CPS
-                const cpsUsers = users.filter(user => user.status === 'cps');
+                const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                 const cpsUserIds = cpsUsers.map(user => user.uid);
                 const cpsProgressions = userProgressions.filter(p => cpsUserIds.includes(p.userId));
                 
@@ -425,7 +456,7 @@ const AdminDashboard: React.FC = () => {
                           {[...guideSections]
                             .filter(section => section.phase === phase)
                             .map(section => {
-                              const cpsUsers = users.filter(user => user.status === 'cps');
+                              const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
                               const total = cpsUsers.length;
                               const completed = cpsUsers.filter(user => {
                                 const userProgression = userProgressions.find(p => p.userId === user.uid);

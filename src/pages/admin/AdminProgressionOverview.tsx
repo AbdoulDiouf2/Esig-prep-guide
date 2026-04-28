@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
 import { DocumentData } from 'firebase/firestore';
@@ -19,6 +19,7 @@ interface UserDoc {
   emailVerified: boolean;
   photoURL?: string;
   status?: string;
+  yearPromo?: number;
 }
 
 // Interface pour les données d'arrivée récupérées des sous-sections
@@ -47,6 +48,8 @@ const AdminProgressionOverview: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'progressions' | 'visa'>('progressions');
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
   const [exporting, setExporting] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear);
   
   // Déterminer le statut visa selon les sections complétées
   // Défini avec useCallback pour éviter les re-rendus inutiles
@@ -84,9 +87,9 @@ const AdminProgressionOverview: React.FC = () => {
   const exportToExcel = useCallback((visaStatus: 'obtained' | 'refused') => {
     setExporting(true);
     try {
-      // Filtrer les utilisateurs selon leur statut visa
-      const filteredUsers = users.filter(user => 
-        user.status === 'cps' && getUserVisaStatus(user.uid, userProgressions) === visaStatus
+      // Filtrer les utilisateurs selon leur statut visa et la promo sélectionnée
+      const filteredUsers = users.filter(user =>
+        user.status === 'cps' && user.yearPromo === selectedPromo && getUserVisaStatus(user.uid, userProgressions) === visaStatus
       );
 
       if (filteredUsers.length === 0) {
@@ -143,7 +146,7 @@ const AdminProgressionOverview: React.FC = () => {
     } finally {
       setExporting(false);
     }
-  }, [users, userProgressions, arrivalData, getUserVisaStatus]);
+  }, [users, userProgressions, arrivalData, getUserVisaStatus, selectedPromo]);
 
   // Fonction pour obtenir le nom de la phase
   const getPhaseName = (phase: string) => {
@@ -188,8 +191,8 @@ const AdminProgressionOverview: React.FC = () => {
       doc.setFontSize(10);
       doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
       
-      // Filtrer uniquement les utilisateurs avec le statut 'cps'
-      const cpsUsers = users.filter(user => user.status === 'cps');
+      // Filtrer uniquement les utilisateurs de la promo sélectionnée
+      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
       
       // Préparer les données du tableau principal
       const tableData = cpsUsers.map(user => {
@@ -308,7 +311,7 @@ const AdminProgressionOverview: React.FC = () => {
     } finally {
       setExporting(false);
     }
-  }, [users, userProgressions, getUserVisaStatus, getUserGlobalProgress, getPhaseProgress]);
+  }, [users, userProgressions, getUserVisaStatus, getUserGlobalProgress, getPhaseProgress, selectedPromo]);
 
   useEffect(() => {
     const fetchProgressions = async () => {
@@ -577,8 +580,18 @@ const AdminProgressionOverview: React.FC = () => {
     fetchProgressions();
   }, [guideSections, getUserVisaStatus]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
 
-  // Filtrer les utilisateurs CPS 
-  const cpsUsers = users.filter(user => user.status === 'cps');
+  // Liste dynamique des années de promo disponibles
+  const promoYears = useMemo(() => {
+    const years = new Set(
+      users.filter(u => u.status === 'cps' || u.status === 'alumni')
+        .map(u => u.yearPromo)
+        .filter((y): y is number => typeof y === 'number')
+    );
+    return Array.from(years).sort((a, b) => b - a);
+  }, [users]);
+
+  // Filtrer les utilisateurs CPS selon la promo sélectionnée
+  const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
   
   // Note: La fonction getUserVisaStatus a été déplacée plus haut dans le composant avec useCallback
   
@@ -603,6 +616,27 @@ const AdminProgressionOverview: React.FC = () => {
         </div>
       </div>
       
+      {/* Sélecteur de promotion */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4">
+        <label className="text-sm font-medium text-gray-700">Promotion :</label>
+        <select
+          value={selectedPromo}
+          onChange={e => setSelectedPromo(Number(e.target.value))}
+          className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {promoYears.length === 0 ? (
+            <option value={currentYear}>Promo {currentYear}</option>
+          ) : (
+            promoYears.map(year => (
+              <option key={year} value={year}>Promo {year}</option>
+            ))
+          )}
+        </select>
+        <span className="text-sm text-gray-500">
+          {cpsUsers.length} étudiant{cpsUsers.length > 1 ? 's' : ''} inscrit{cpsUsers.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* Système d'onglets */}
       <div className="flex border-b border-gray-200 mb-4 bg-white shadow-sm">
         <button
