@@ -49,7 +49,7 @@ const AdminProgressionOverview: React.FC = () => {
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
   const [exporting, setExporting] = useState(false);
   const currentYear = new Date().getFullYear();
-  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear);
+  const [selectedPromo, setSelectedPromo] = useState<number>(currentYear + 1);
   
   // Déterminer le statut visa selon les sections complétées
   // Défini avec useCallback pour éviter les re-rendus inutiles
@@ -89,7 +89,7 @@ const AdminProgressionOverview: React.FC = () => {
     try {
       // Filtrer les utilisateurs selon leur statut visa et la promo sélectionnée
       const filteredUsers = users.filter(user =>
-        user.status === 'cps' && user.yearPromo === selectedPromo && getUserVisaStatus(user.uid, userProgressions) === visaStatus
+        (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo && getUserVisaStatus(user.uid, userProgressions) === visaStatus
       );
 
       if (filteredUsers.length === 0) {
@@ -192,7 +192,7 @@ const AdminProgressionOverview: React.FC = () => {
       doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
       
       // Filtrer uniquement les utilisateurs de la promo sélectionnée
-      const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
+      const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
       
       // Préparer les données du tableau principal
       const tableData = cpsUsers.map(user => {
@@ -346,8 +346,8 @@ const AdminProgressionOverview: React.FC = () => {
       const arrivalInfo: Record<string, ArrivalInfo> = {};
       
       // Récupérer les données d'arrivée pour les utilisateurs CPS ayant un statut visa (obtenu ou refusé)
-      const usersWithVisaStatus = usersList.filter(user => 
-        user.status === 'cps' && 
+      const usersWithVisaStatus = usersList.filter(user =>
+        (user.status === 'cps' || user.status === 'alumni') &&
         (getUserVisaStatus(user.uid, progressions) === 'obtained' || getUserVisaStatus(user.uid, progressions) === 'refused')
       );
       
@@ -590,8 +590,8 @@ const AdminProgressionOverview: React.FC = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [users]);
 
-  // Filtrer les utilisateurs CPS selon la promo sélectionnée
-  const cpsUsers = users.filter(user => user.status === 'cps' && user.yearPromo === selectedPromo);
+  // Filtrer les utilisateurs de la promo sélectionnée (statut cps OU alumni car la synchro bascule en alumni après la rentrée)
+  const cpsUsers = users.filter(user => (user.status === 'cps' || user.status === 'alumni') && user.yearPromo === selectedPromo);
   
   // Note: La fonction getUserVisaStatus a été déplacée plus haut dans le composant avec useCallback
   
@@ -633,7 +633,7 @@ const AdminProgressionOverview: React.FC = () => {
           )}
         </select>
         <span className="text-sm text-gray-500">
-          {cpsUsers.length} étudiant{cpsUsers.length > 1 ? 's' : ''} inscrit{cpsUsers.length > 1 ? 's' : ''}
+          {cpsUsers.length} étudiant{cpsUsers.length > 1 ? 's' : ''} — Promo {selectedPromo}
         </span>
       </div>
 
@@ -665,7 +665,7 @@ const AdminProgressionOverview: React.FC = () => {
         ) : activeTab === 'progressions' ? (
           <div className="overflow-x-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Liste des étudiants CPS</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Promo {selectedPromo} — {cpsUsers.filter(u => !u.isAdmin).length} étudiant{cpsUsers.filter(u => !u.isAdmin).length > 1 ? 's' : ''}</h3>
               <button 
                 onClick={exportToPDF}
                 disabled={exporting}
