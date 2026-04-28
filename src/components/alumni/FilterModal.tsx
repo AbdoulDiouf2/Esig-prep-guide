@@ -324,27 +324,25 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center pt-6 border-t border-gray-200 bg-gray-50 rounded-b-lg px-6 pb-6 -mx-4">
+        <div className="flex flex-wrap gap-3 pt-6 border-t border-gray-200 bg-gray-50 rounded-b-lg px-6 pb-6 -mx-4">
           <button
             onClick={handleReset}
-            className="px-6 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all transform hover:scale-105"
+            className="flex-1 min-w-[120px] px-4 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
           >
             Réinitialiser tout
           </button>
-          <div className="flex space-x-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all transform hover:scale-105"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={handleApply}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              Appliquer les filtres
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="flex-1 min-w-[100px] px-4 py-3 text-gray-700 hover:text-gray-900 font-semibold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex-1 min-w-[140px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+          >
+            Appliquer les filtres
+          </button>
         </div>
       </div>
     </Modal>

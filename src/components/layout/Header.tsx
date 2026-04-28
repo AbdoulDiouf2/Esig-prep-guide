@@ -261,8 +261,9 @@ const Header: React.FC = () => {
             <div className="container mx-auto px-4 py-2">
               {currentUser ? (
                 <>
-                  <div className="py-3 px-2 mb-3 flex items-center border-b border-blue-700">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                  {/* En-tête profil */}
+                  <div className="py-3 px-2 mb-2 flex items-center border-b border-blue-700">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2 flex-shrink-0">
                       <span className="text-blue-800 font-medium text-sm">
                         {getFirstName(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}
                       </span>
@@ -271,121 +272,119 @@ const Header: React.FC = () => {
                       {getFirstName(currentUser.displayName || currentUser.email)}
                     </span>
                   </div>
-                  <Link 
-                    to="/profile" 
-                    className="flex items-center py-2 text-white"
+
+                  {/* Navigation principale */}
+                  <nav className="mb-2">
+                    <Link
+                      to="/applications"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Home className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Accueil</span>
+                    </Link>
+                    <Link
+                      to="/alumni"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Users className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Annuaire Alumni</span>
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Grid className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>CPS</span>
+                    </Link>
+                    <Link
+                      to="/all-resources"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FileText className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Ressources</span>
+                    </Link>
+                    <Link
+                      to="/faq"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>FAQ</span>
+                    </Link>
+                    <Link
+                      to="/news"
+                      className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Newspaper className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Actualités</span>
+                    </Link>
+                    <SuperAdminCheck>
+                      <Link
+                        to="/chat-ai"
+                        className="flex items-center py-2.5 text-white hover:text-blue-200 transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Bot className="w-4 h-4 mr-3 flex-shrink-0" />
+                        <span>Assistant IA</span>
+                      </Link>
+                    </SuperAdminCheck>
+                  </nav>
+
+                  {/* Séparateur */}
+                  <div className="border-t border-blue-700 my-2" />
+
+                  {/* Section compte */}
+                  <Link
+                    to="/profile"
+                    className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <User className="w-4 h-4 mr-2" />
+                    <User className="w-4 h-4 mr-3 flex-shrink-0" />
                     <span>Mon compte</span>
                   </Link>
-                  <Link 
-                    to="/my-alumni-profile" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Mon profil alumni
-                  </Link>
-                  <Link 
-                    to="/applications" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Home className="w-4 h-4 mr-2" />
-                    <span>Accueil</span>
-                  </Link>
-                  <Link 
-                    to="/alumni" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>Annuaire Alumni</span>
-                  </Link>
-                  <Link 
-                    to="/dashboard" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Grid className="w-4 h-4 mr-2" />
-                    <span>CPS</span>
-                  </Link>
-                  <Link 
-                    to="/all-resources" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    <span>Ressources</span>
-                  </Link>
                   <Link
-                    to="/faq"
-                    className="flex items-center py-2 text-white"
+                    to="/my-alumni-profile"
+                    className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    <span>FAQ</span>
+                    <Users className="w-4 h-4 mr-3 flex-shrink-0" />
+                    <span>Mon profil alumni</span>
                   </Link>
-                  <Link
-                    to="/news"
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Newspaper className="w-4 h-4 mr-2" />
-                    <span>Actualités</span>
-                  </Link>
-                  {/* <Link
-                    to="/tutorial" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Book className="w-4 h-4 mr-2" />
-                    <span>Tutoriel</span>
-                  </Link>
-                  <Link 
-                    to="/help" 
-                    className="flex items-center py-2 text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    <span>Aide</span>
-                  </Link> */}
-                  <SuperAdminCheck>
-                    <Link 
-                      to="/chat-ai" 
-                      className="flex items-center py-2 text-white"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Bot className="w-4 h-4 mr-2" />
-                      <span>Assistant IA</span>
-                    </Link>
-                  </SuperAdminCheck>
+
                   {isAdmin() && (
-                    <Link 
-                      to="/admin" 
-                      className="flex items-center px-3 py-1.5 my-2 rounded-full bg-blue-700 hover:bg-blue-600 text-white transition-colors shadow-md"
+                    <Link
+                      to="/admin"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <Shield className="w-4 h-4 mr-1.5" />
+                      <Shield className="w-4 h-4 mr-3 flex-shrink-0" />
                       <span>Administration</span>
                     </Link>
                   )}
                   {isEditor() && !isAdmin() && (
-                    <Link 
-                      to="/editor" 
-                      className="flex items-center px-3 py-1.5 my-2 rounded-full bg-green-700 hover:bg-green-600 text-white transition-colors shadow-md"
+                    <Link
+                      to="/editor"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <Edit className="w-4 h-4 mr-1.5" />
+                      <Edit className="w-4 h-4 mr-3 flex-shrink-0" />
                       <span>Edition</span>
                     </Link>
                   )}
-                  <button 
+
+                  {/* Séparateur */}
+                  <div className="border-t border-blue-700 my-2" />
+
+                  <button
                     onClick={handleLogout}
-                    className="flex items-center py-2 text-white"
+                    className="flex items-center py-2.5 text-red-300 hover:text-red-100 transition-colors w-full"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
+                    <LogOut className="w-4 h-4 mr-3 flex-shrink-0" />
                     <span>Déconnexion</span>
                   </button>
                 </>

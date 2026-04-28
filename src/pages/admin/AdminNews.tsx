@@ -213,7 +213,7 @@ const AdminNews: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Retour au dashboard
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Newspaper className="w-7 h-7 text-amber-400" />
               <div>
@@ -223,7 +223,7 @@ const AdminNews: React.FC = () => {
             </div>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shrink-0"
             >
               <Plus className="w-4 h-4" />
               Nouvel article
@@ -278,87 +278,145 @@ const AdminNews: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium">Titre</th>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden md:table-cell">Type</th>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Auteur</th>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium">Statut</th>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Date</th>
-                  <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden md:table-cell">Stats</th>
-                  <th className="text-right px-4 py-3 text-zinc-600 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filtered.map((article) => (
-                  <tr key={article.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-zinc-800 line-clamp-1">{article.title}</p>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <TypeBadge type={article.type} />
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{article.authorName}</td>
-                    <td className="px-4 py-3">
-                      {article.status === 'published' ? (
-                        <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium">
-                          <CheckCircle className="w-3 h-3" /> Publié
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full text-xs font-medium">
-                          <Eye className="w-3 h-3" /> Brouillon
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell whitespace-nowrap">
-                      {formatDate(article.publishedAt ?? article.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
+          <>
+            {/* Cards mobile */}
+            <div className="md:hidden flex flex-col gap-3">
+              {filtered.map((article) => (
+                <div key={article.id} className="bg-white border border-zinc-200 rounded-xl shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <p className="font-semibold text-zinc-800 text-sm leading-snug flex-1">{article.title}</p>
+                    {article.status === 'published' ? (
+                      <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
+                        <CheckCircle className="w-3 h-3" /> Publié
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
+                        <Eye className="w-3 h-3" /> Brouillon
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <TypeBadge type={article.type} />
+                    <span className="text-xs text-zinc-400">{article.authorName}</span>
+                    <span className="text-xs text-zinc-400">·</span>
+                    <span className="text-xs text-zinc-400">{formatDate(article.publishedAt ?? article.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => openStats(article)}
+                      className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-700 transition-colors bg-zinc-50 border border-zinc-200 rounded-full px-2.5 py-1"
+                    >
+                      <Eye className="w-3 h-3" /> {article.viewedBy.length}
+                      <span className="w-px h-3 bg-zinc-200" />
+                      <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}
+                    </button>
+                    <div className="flex items-center gap-3">
                       <button
-                        onClick={() => openStats(article)}
-                        className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-700 transition-colors bg-zinc-50 border border-zinc-200 rounded-full px-2.5 py-1"
+                        onClick={() => handlePublish(article)}
+                        title={article.status === 'published' ? 'Dépublier' : 'Publier'}
+                        className="text-zinc-400 hover:text-blue-600 transition-colors"
                       >
-                        <Eye className="w-3 h-3" /> {article.viewedBy.length}
-                        <span className="w-px h-3 bg-zinc-200" />
-                        <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}
+                        {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handlePublish(article)}
-                          title={article.status === 'published' ? 'Dépublier' : 'Publier'}
-                          className="text-zinc-400 hover:text-blue-600 transition-colors"
-                        >
-                          {article.status === 'published' ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => openEdit(article)}
-                          title="Modifier"
-                          className="text-zinc-400 hover:text-amber-600 transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(article)}
-                          title="Supprimer"
-                          className="text-zinc-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                      <button
+                        onClick={() => openEdit(article)}
+                        title="Modifier"
+                        className="text-zinc-400 hover:text-amber-600 transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(article)}
+                        title="Supprimer"
+                        className="text-zinc-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tableau desktop */}
+            <div className="hidden md:block bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium">Titre</th>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium">Type</th>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Auteur</th>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium">Statut</th>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium hidden lg:table-cell">Date</th>
+                    <th className="text-left px-4 py-3 text-zinc-600 font-medium">Stats</th>
+                    <th className="text-right px-4 py-3 text-zinc-600 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {filtered.map((article) => (
+                    <tr key={article.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-zinc-800 line-clamp-1">{article.title}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <TypeBadge type={article.type} />
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{article.authorName}</td>
+                      <td className="px-4 py-3">
+                        {article.status === 'published' ? (
+                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium">
+                            <CheckCircle className="w-3 h-3" /> Publié
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full text-xs font-medium">
+                            <Eye className="w-3 h-3" /> Brouillon
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell whitespace-nowrap">
+                        {formatDate(article.publishedAt ?? article.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => openStats(article)}
+                          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-700 transition-colors bg-zinc-50 border border-zinc-200 rounded-full px-2.5 py-1"
+                        >
+                          <Eye className="w-3 h-3" /> {article.viewedBy.length}
+                          <span className="w-px h-3 bg-zinc-200" />
+                          <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handlePublish(article)}
+                            title={article.status === 'published' ? 'Dépublier' : 'Publier'}
+                            className="text-zinc-400 hover:text-blue-600 transition-colors"
+                          >
+                            {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => openEdit(article)}
+                            title="Modifier"
+                            className="text-zinc-400 hover:text-amber-600 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(article)}
+                            title="Supprimer"
+                            className="text-zinc-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
