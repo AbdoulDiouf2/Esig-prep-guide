@@ -3,7 +3,7 @@ import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X } from 'lucide-react';
+import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
 import { logAdminActivity } from './adminActivityLog';
@@ -61,6 +61,12 @@ export interface UserDoc {
 }
 
 const AdminUserManager: React.FC = () => {
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  useEffect(() => {
+    const close = () => setOpenActionMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -1156,82 +1162,58 @@ const AdminUserManager: React.FC = () => {
                       })()}
                     </td>
                     <td className="px-4 py-2">
-                      {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        {canManageUsers && user.uid !== currentUser?.uid && (
-                          ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
-                            <button
-                              onClick={() => handleToggleAdmin(user.uid)}
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-                            >
-                              {user.isAdmin ? (
+                      {user.uid === currentUser?.uid ? (
+                        <span className="text-xs text-gray-400 italic">Vous</span>
+                      ) : user.isSuperAdmin && !currentUserIsSuperAdmin ? (
+                        <span className="text-xs text-gray-400 italic">Non modifiable</span>
+                      ) : canManageUsers ? (
+                        <div className="relative inline-block text-left" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => setOpenActionMenu(openActionMenu === user.uid ? null : user.uid)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-sm"
+                          >
+                            Rôle <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {openActionMenu === user.uid && (
+                            <div className="absolute right-0 mt-1 w-48 bg-white border border-zinc-200 rounded-lg shadow-lg z-20 py-1">
+                              <button
+                                onClick={() => { handleToggleAdmin(user.uid); setOpenActionMenu(null); }}
+                                className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-zinc-50 ${user.isAdmin ? 'text-red-600' : 'text-blue-700'}`}
+                              >
+                                {user.isAdmin ? <UserMinus className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+                                {user.isAdmin ? 'Retirer admin' : 'Rendre admin'}
+                              </button>
+                              <button
+                                onClick={() => { handleToggleEditor(user.uid); setOpenActionMenu(null); }}
+                                className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-zinc-50 ${user.isEditor ? 'text-red-600' : 'text-green-700'}`}
+                              >
+                                {user.isEditor ? <X className="w-3.5 h-3.5" /> : <Edit className="w-3.5 h-3.5" />}
+                                {user.isEditor ? 'Retirer éditeur' : 'Rendre éditeur'}
+                              </button>
+                              {!user.isAdmin && !user.isEditor && !user.isSuperAdmin && (
                                 <>
-                                  <UserMinus className="w-4 h-4 mr-1" /> Retirer admin
-                                </>
-                              ) : (
-                                <>
-                                  <UserPlus className="w-4 h-4 mr-1" /> Rendre admin
+                                  <div className="border-t border-zinc-100 my-1" />
+                                  <button
+                                    onClick={() => { handleToggleDirector(user.uid); setOpenActionMenu(null); }}
+                                    className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-zinc-50 ${user.isDirector ? 'text-red-600' : 'text-purple-700'}`}
+                                  >
+                                    {user.isDirector ? <UserMinus className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+                                    {user.isDirector ? 'Retirer directeur' : 'Rendre directeur'}
+                                  </button>
+                                  <button
+                                    onClick={() => { handleToggleStaff(user.uid); setOpenActionMenu(null); }}
+                                    className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-zinc-50 ${user.isStaff ? 'text-red-600' : 'text-amber-700'}`}
+                                  >
+                                    {user.isStaff ? <UserMinus className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+                                    {user.isStaff ? 'Retirer staff' : 'Rendre staff'}
+                                  </button>
                                 </>
                               )}
-                            </button>
-                          )
-                        )}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
 
-                        {canManageUsers && user.uid !== currentUser?.uid && (
-                          ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
-                            <button
-                              onClick={() => handleToggleEditor(user.uid)}
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isEditor ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                            >
-                              {user.isEditor ? (
-                                <>
-                                  <X className="w-4 h-4 mr-1" /> Retirer éditeur
-                                </>
-                              ) : (
-                                <>
-                                  <Edit className="w-4 h-4 mr-1" /> Rendre éditeur
-                                </>
-                              )}
-                            </button>
-                          )
-                        )}
-                        
-                        {canManageUsers && user.uid !== currentUser?.uid && !user.isAdmin && !user.isEditor && !user.isSuperAdmin && (
-                          <button
-                            onClick={() => handleToggleDirector(user.uid)}
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isDirector ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
-                          >
-                            {user.isDirector ? (
-                              <><UserMinus className="w-4 h-4 mr-1" /> Retirer directeur</>
-                            ) : (
-                              <><Shield className="w-4 h-4 mr-1" /> Rendre directeur</>
-                            )}
-                          </button>
-                        )}
-
-                        {canManageUsers && user.uid !== currentUser?.uid && !user.isAdmin && !user.isEditor && !user.isSuperAdmin && (
-                          <button
-                            onClick={() => handleToggleStaff(user.uid)}
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isStaff ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
-                          >
-                            {user.isStaff ? (
-                              <><UserMinus className="w-4 h-4 mr-1" /> Retirer staff</>
-                            ) : (
-                              <><UserPlus className="w-4 h-4 mr-1" /> Rendre staff</>
-                            )}
-                          </button>
-                        )}
-
-                        {user.uid !== currentUser?.uid && user.isSuperAdmin && !currentUserIsSuperAdmin && (
-                          <button
-                            className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
-                            disabled={true}
-                            title="Impossible de modifier le rôle d'un SuperAdmin"
-                          >
-                            Impossible de modifier
-                          </button>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))}
