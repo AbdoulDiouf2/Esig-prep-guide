@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Calendar, User, Mail, Briefcase, MapPin, Trash2, Edit, Clock } from 'lucide-react';
 import { getDraftAlumniProfiles, getPendingAlumniProfiles, getApprovedAlumniProfiles, getRejectedAlumniProfiles, updateAlumniStatus, deleteAlumniProfile } from '../../services/alumniService';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import type { AlumniProfile } from '../../types/alumni';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const AdminAlumniValidation: React.FC = () => {
   const { currentUser } = useAuth();
+  const canValidateAlumni = usePermission('alumni.validate');
   const [profiles, setProfiles] = useState<AlumniProfile[]>([]);
   const [allProfiles, setAllProfiles] = useState<AlumniProfile[]>([]); // Pour les compteurs
   const [loading, setLoading] = useState(true);
@@ -114,8 +116,7 @@ const AdminAlumniValidation: React.FC = () => {
   };
 
   const handleDelete = (profile: AlumniProfile) => {
-    // Vérifier si l'utilisateur est superadmin
-    if (!currentUser?.isSuperAdmin) {
+    if (!canValidateAlumni) {
       setShowAccessDeniedModal(true);
       return;
     }
@@ -507,21 +508,21 @@ const AdminAlumniValidation: React.FC = () => {
                   <div className="border-t border-gray-200 pt-4 mt-4">
                     <button
                       onClick={() => handleDelete(selectedProfile)}
-                      disabled={actionLoading || !currentUser?.isSuperAdmin}
+                      disabled={actionLoading || !canValidateAlumni}
                       className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium ${
-                        currentUser?.isSuperAdmin
+                        canValidateAlumni
                           ? 'bg-red-600 text-white hover:bg-red-700'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       } disabled:opacity-50`}
-                      title={!currentUser?.isSuperAdmin ? 'Réservé aux super-administrateurs' : ''}
+                      title={!canValidateAlumni ? 'Permission insuffisante' : ''}
                     >
                       <Trash2 className="w-5 h-5" />
                       {actionLoading ? 'Suppression...' : 'Supprimer définitivement ce profil'}
                     </button>
                     <p className="text-xs text-gray-500 text-center mt-2">
-                      {currentUser?.isSuperAdmin 
-                        ? '⚠️ Cette action est irréversible' 
-                        : '🔒 Réservé aux super-administrateurs'}
+                      {canValidateAlumni
+                        ? '⚠️ Cette action est irréversible'
+                        : '🔒 Permission insuffisante'}
                     </p>
                   </div>
                 </div>

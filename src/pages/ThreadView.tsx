@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getForumThread, getForumPosts, addForumPost, deleteForumPost, deleteForumThread, updateThreadRepliesCount } from '../services/forumService';
 import { ForumThread, ForumPost } from '../types/forum';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermission';
 import { ArrowLeft, MessageSquare, Clock, User, Send, Trash2, AlertCircle, X, Loader } from 'lucide-react';
 
 const ThreadView: React.FC = () => {
   const { threadId } = useParams<{ threadId: string }>();
   const { currentUser } = useAuth();
+  const perms = usePermissions(['forum.write', 'forum.delete']);
   const navigate = useNavigate();
   
   const [thread, setThread] = useState<ForumThread | null>(null);
@@ -250,9 +252,9 @@ const ThreadView: React.FC = () => {
           </div>
         </div>
         
-        {/* Bouton de suppression de la discussion (visible uniquement par l'auteur) */}
-        {isAuthor(thread.authorId) && (
-          <button 
+        {/* Bouton de suppression de la discussion (visible uniquement par l'auteur avec permission) */}
+        {isAuthor(thread.authorId) && perms['forum.delete'] && (
+          <button
             className="flex items-center px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
             onClick={() => confirmDelete(thread.id, 'thread')}
           >
@@ -301,8 +303,8 @@ const ThreadView: React.FC = () => {
                       {post.isEdited && <span className="ml-2 text-xs">(modifié)</span>}
                     </div>
                     
-                    {/* Bouton de suppression pour les messages (visible uniquement par l'auteur) */}
-                    {isAuthor(post.authorId) && (
+                    {/* Bouton de suppression pour les messages (visible uniquement par l'auteur avec permission) */}
+                    {isAuthor(post.authorId) && perms['forum.delete'] && (
                       <button
                         className="flex items-center text-red-500 hover:text-red-700 text-sm"
                         onClick={() => confirmDelete(post.id, 'post')}
@@ -334,7 +336,7 @@ const ThreadView: React.FC = () => {
       
       {/* Formulaire de réponse */}
       {!thread.isLocked ? (
-        currentUser ? (
+        currentUser && perms['forum.write'] ? (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="p-4 bg-gray-50 border-b">
               <h3 className="font-medium text-gray-800">Votre réponse</h3>

@@ -246,7 +246,7 @@ const UserProfile: React.FC = () => {
               <span className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full px-2 py-1 text-xs font-semibold shadow">Vérifié</span>
             )}
             {currentUser?.isAdmin && (
-              <span className="absolute top-2 left-2 flex items-center gap-1 bg-blue-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> Admin</span>
+              <span className="absolute top-2 left-2 flex items-center gap-1 bg-blue-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> {currentUser?.isSuperAdmin ? 'Super Admin' : 'Admin'}</span>
             )}
           </div>
           <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">{displayName || email}</h1>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { db } from '../../firebase';
 import { collection, query, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, where } from 'firebase/firestore';
 import NotificationService from '../../services/NotificationService';
@@ -70,6 +71,7 @@ interface WebinarRegistration {
 const AdminWebinarManager: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const canManageWebinars = usePermission('webinars.manage');
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -707,13 +709,15 @@ const AdminWebinarManager: React.FC = () => {
           </div>
           
           <div className="mt-4 md:mt-0 flex items-center space-x-3">
-            <button
-              onClick={handleCreateWebinar}
-              className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Créer un webinaire
-            </button>
+            {canManageWebinars && (
+              <button
+                onClick={handleCreateWebinar}
+                className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer un webinaire
+              </button>
+            )}
             <Link
               to={currentUser?.isAdmin ? "/admin/workshop-proposals" : "/editor/workshop-proposals"}
               className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -761,13 +765,15 @@ const AdminWebinarManager: React.FC = () => {
           <p className="text-gray-500 mb-4">
             Commencez par créer votre premier webinaire pour le proposer aux étudiants.
           </p>
-          <button
-            onClick={handleCreateWebinar}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors inline-flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Créer un webinaire
-          </button>
+          {canManageWebinars && (
+            <button
+              onClick={handleCreateWebinar}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors inline-flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Créer un webinaire
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-12">
@@ -796,8 +802,8 @@ const AdminWebinarManager: React.FC = () => {
                       <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
                       <div className="flex border-t pt-3 mt-2">
                         <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
-                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
-                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        {canManageWebinars && <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>}
+                        {canManageWebinars && <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>}
                         <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
                       </div>
                     </div>
@@ -834,8 +840,8 @@ const AdminWebinarManager: React.FC = () => {
                       <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
                       <div className="flex border-t pt-3 mt-2">
                         <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
-                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
-                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        {canManageWebinars && <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>}
+                        {canManageWebinars && <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>}
                         <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
                       </div>
                     </div>
@@ -872,8 +878,8 @@ const AdminWebinarManager: React.FC = () => {
                       <div className="flex items-start mb-4"><Tag className="w-4 h-4 text-gray-500 mt-0.5 mr-2 flex-shrink-0" /><div className="flex flex-wrap gap-1">{webinar.tags.slice(0, 3).map((tag, index) => <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{tag}</span>)}{webinar.tags.length > 3 && <span className="text-xs text-gray-500">+{webinar.tags.length - 3}</span>}</div></div>
                       <div className="flex border-t pt-3 mt-2">
                         <button onClick={() => handleViewDetails(webinar.id)} className="flex-1 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"><Eye className="w-4 h-4 mr-1" />Voir</button>
-                        <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>
-                        <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>
+                        {canManageWebinars && <button onClick={() => handleEditWebinar(webinar)} className="flex-1 flex items-center justify-center text-yellow-600 hover:text-yellow-800 transition-colors"><Edit className="w-4 h-4 mr-1" />Modifier</button>}
+                        {canManageWebinars && <button onClick={() => handleDeleteWebinar(webinar.id)} className="flex-1 flex items-center justify-center text-red-600 hover:text-red-800 transition-colors"><Trash2 className="w-4 h-4 mr-1" />Supprimer</button>}
                         <button onClick={() => handleViewRegistrations(webinar.id, webinar.title)} className="flex-1 flex items-center justify-center text-green-600 hover:text-green-800 transition-colors"><UserCheck className="w-4 h-4 mr-1" />Voir les inscriptions</button>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 import chatService, { ChatMessage as ChatMessageType } from '../services/chatService';
 import ChatMessage from '../components/chat/ChatMessage';
 import { Paperclip, Send, ArrowLeft } from 'lucide-react';
@@ -9,6 +10,7 @@ import { storage } from '../firebase';
 
 const AdminChat: React.FC = () => {
   const { currentUser } = useAuth();
+  const canBroadcast = usePermission('broadcast.send');
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -238,16 +240,16 @@ const AdminChat: React.FC = () => {
                 type="text"
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Tapez votre message ici..."
+                placeholder={canBroadcast ? "Tapez votre message ici..." : "Accès non autorisé"}
                 className="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={sending}
+                disabled={sending || !canBroadcast}
               />
               <button
                 type="submit"
                 className={`ml-3 bg-blue-600 text-white rounded-full p-2 ${
-                  ((!messageText.trim() && !file) || sending) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+                  ((!messageText.trim() && !file) || sending || !canBroadcast) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
                 }`}
-                disabled={(!messageText.trim() && !file) || sending}
+                disabled={(!messageText.trim() && !file) || sending || !canBroadcast}
               >
                 <Send size={20} />
               </button>

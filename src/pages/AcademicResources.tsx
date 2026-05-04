@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -58,7 +59,8 @@ interface ResourceFormData {
 }
 
 const AcademicResources: React.FC = () => {
-  const { currentUser, isAdmin, isEditor } = useAuth();
+  const { currentUser } = useAuth();
+  const canManageResources = usePermission('resources.manage');
   const [resources, setResources] = useState<AcademicResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +95,7 @@ const AcademicResources: React.FC = () => {
     links: [{ id: '1', title: 'Lien principal', url: '' }]
   });
 
-  const canEdit = isAdmin() || isEditor();
+  const canEdit = canManageResources;
 
   // Données de structure académique
   const parcoursS7 = [

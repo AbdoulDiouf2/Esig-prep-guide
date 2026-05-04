@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { 
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
   User as FirebaseUser,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -8,11 +8,13 @@ import {
   updateProfile,
   sendEmailVerification
 } from 'firebase/auth';
-import { updateDoc } from 'firebase/firestore'; // Ajout de l'import manquant
+import { updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase';
 import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import type { Permission, RoleDoc, UserOverrideDoc } from '../types/permissions';
+import { DEFAULT_ROLE_PERMISSIONS } from '../types/permissions';
 
 // Type pour l'utilisateur dans l'application
 export type AppUser = {
@@ -42,6 +44,9 @@ export type AppUser = {
 type AuthContextType = {
   currentUser: AppUser | null;
   loading: boolean;
+  permissionsReady: boolean;
+  permissions: Set<Permission>;
+  hasPermission: (permission: Permission) => boolean;
   register: (email: string, password: string, name: string, yearPromo: number) => Promise<FirebaseUser>;
   login: (email: string, password: string) => Promise<AppUser | null>;
   loginWithGoogle: () => Promise<AppUser | null>;
@@ -99,6 +104,90 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [permissionsReady, setPermissionsReady] = useState(false);
+  const [permissions, setPermissions] = useState<Set<Permission>>(new Set());
+  const permUnsubscribers = useRef<(() => void)[]>([]);
+  const setupGeneration = useRef(0);
+
+  const cleanupPermListeners = () => {
+    permUnsubscribers.current.forEach(fn => fn());
+    permUnsubscribers.current = [];
+  };
+
+  const setupPermissionListeners = (user: AppUser) => {
+    cleanupPermListeners();
+    setupGeneration.current += 1;
+    const generation = setupGeneration.current;
+
+    const getRoleId = (u: AppUser) =>
+      u.isSuperAdmin ? 'superAdmin'
+      : u.isAdmin ? 'admin'
+      : u.isEditor ? 'editor'
+      : 'user';
+
+    let roleId = getRoleId(user);
+    let rolePerms: Permission[] = [];
+    let extraPerms: Permission[] = [];
+    let blockedPerms: Permission[] = [];
+
+    let roleReady = false;
+    let overrideReady = false;
+    const recalculate = () => {
+      if (generation !== setupGeneration.current) return;
+      const merged = new Set<Permission>([...rolePerms, ...extraPerms]);
+      blockedPerms.forEach(p => merged.delete(p));
+      setPermissions(merged);
+      if (roleReady && overrideReady) setPermissionsReady(true);
+    };
+
+    // Wrapper stable pour le listener de rôle — permet de le remplacer sans perdre la ref dans permUnsubscribers
+    let currentRoleUnsub: (() => void) = () => undefined;
+    const roleUnsubWrapper = () => currentRoleUnsub();
+
+    const subscribeToRole = (rid: string) => {
+      currentRoleUnsub();
+      currentRoleUnsub = onSnapshot(doc(db, 'roles', rid), (snap) => {
+        if (generation !== setupGeneration.current) return;
+        const data = snap.data() as RoleDoc | undefined;
+        rolePerms = data?.permissions ?? DEFAULT_ROLE_PERMISSIONS[rid] ?? [];
+        roleReady = true;
+        recalculate();
+      });
+    };
+
+    subscribeToRole(roleId);
+
+    // Écouter les changements de rôle sur le doc user (isAdmin/isEditor/isSuperAdmin)
+    const userSnapUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (generation !== setupGeneration.current) return;
+      const data = snap.data();
+      if (!data) return;
+      const updatedUser: AppUser = {
+        ...user,
+        isAdmin: data.isAdmin ?? false,
+        isEditor: data.isEditor ?? false,
+        isSuperAdmin: data.isSuperAdmin ?? false,
+      };
+      const newRoleId = getRoleId(updatedUser);
+      if (newRoleId !== roleId) {
+        roleId = newRoleId;
+        roleReady = false;
+        subscribeToRole(roleId);
+      }
+      setCurrentUser(updatedUser);
+    });
+
+    const unsubOverride = onSnapshot(doc(db, 'userOverrides', user.uid), (snap) => {
+      if (generation !== setupGeneration.current) return;
+      const data = snap.data() as UserOverrideDoc | undefined;
+      extraPerms = data?.extraPermissions ?? [];
+      blockedPerms = data?.blockedPermissions ?? [];
+      overrideReady = true;
+      recalculate();
+    });
+
+    permUnsubscribers.current = [roleUnsubWrapper, unsubOverride, userSnapUnsub];
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -122,6 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const appUser = await mapFirebaseUser(firebaseUser);
         setCurrentUser(appUser);
+        if (appUser) setupPermissionListeners(appUser);
 
         // Mettre à jour lastActive à chaque visite (session persistante ou nouvelle connexion)
         if (userSnapshot.exists()) {
@@ -129,12 +219,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setCurrentUser(null);
+        setPermissions(new Set());
+        setPermissionsReady(false);
+        cleanupPermListeners();
       }
       setLoading(false);
     });
 
-    // Nettoyer l'abonnement lors du démontage du composant
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      cleanupPermListeners();
+    };
   }, []);
 
   // Enregistrer un nouvel utilisateur
@@ -251,12 +346,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Déconnexion de l'utilisateur
   const logout = async () => {
     try {
+      cleanupPermListeners();
+      setPermissions(new Set());
+      setPermissionsReady(false);
       await firebaseSignOut(auth);
       setCurrentUser(null);
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
       throw error;
     }
+  };
+
+  const hasPermission = (permission: Permission): boolean => {
+    return permissions.has(permission);
   };
 
   // Vérifier si l'utilisateur est administrateur
@@ -448,6 +550,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 const value = {
   currentUser,
   loading,
+  permissionsReady,
+  permissions,
+  hasPermission,
   register,
   login,
   loginWithGoogle,

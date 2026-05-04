@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getForumCategories, getForumThreads, initializeDefaultCategories, getThreadsCountByCategory } from '../services/forumService';
 import { ForumCategory, ForumThread } from '../types/forum';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 import { MessageSquare, Plus, ChevronRight, ArrowLeft } from 'lucide-react';
 
 const Forum: React.FC = () => {
   const { currentUser } = useAuth();
+  const canWrite = usePermission('forum.write');
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
   
@@ -188,14 +190,16 @@ const Forum: React.FC = () => {
                 {activeCategory ? activeCategory.name : 'Toutes les discussions'}
               </h2>
               
-              <button
-                onClick={handleNewThread}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
-                disabled={!activeCategory}
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nouvelle discussion</span>
-              </button>
+              {canWrite && (
+                <button
+                  onClick={handleNewThread}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
+                  disabled={!activeCategory}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nouvelle discussion</span>
+                </button>
+              )}
             </div>
             
             {/* Description de la catégorie */}
@@ -257,13 +261,15 @@ const Forum: React.FC = () => {
                 <div className="p-8 text-center text-gray-500">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="mb-4">Aucune discussion dans cette catégorie pour le moment.</p>
-                  <button
-                    onClick={handleNewThread}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 mx-auto transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Créer la première discussion</span>
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={handleNewThread}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 mx-auto transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Créer la première discussion</span>
+                    </button>
+                  )}
                 </div>
               )
             ) : (

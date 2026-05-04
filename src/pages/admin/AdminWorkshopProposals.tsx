@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { db } from '../../firebase';
 import { collection, query, orderBy, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ArrowLeft, Calendar, Clock, User, Mail, Check, X, MessageSquare, Download, ExternalLink, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
@@ -24,6 +25,7 @@ interface WorkshopProposal {
 
 const AdminWorkshopProposals: React.FC = () => {
   const { currentUser } = useAuth();
+  const canManageWorkshops = usePermission('workshops.manage');
   const navigate = useNavigate();
   const [proposals, setProposals] = useState<WorkshopProposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<WorkshopProposal[]>([]);
@@ -406,65 +408,67 @@ const AdminWorkshopProposals: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      {proposal.status !== 'approved' && (
+                    {canManageWorkshops && (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {proposal.status !== 'approved' && (
+                          <button
+                            onClick={() => confirmStatusChange(proposal.id, 'approved')}
+                            disabled={!!processing}
+                            className={`px-2 py-1 rounded text-xs flex items-center ${
+                              processing === proposal.id
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-green-100 text-green-800 hover:bg-green-200'
+                            }`}
+                          >
+                            <Check className="w-3 h-3 mr-1" />
+                            Approuver
+                          </button>
+                        )}
+
+                        {proposal.status !== 'rejected' && (
+                          <button
+                            onClick={() => confirmStatusChange(proposal.id, 'rejected')}
+                            disabled={!!processing}
+                            className={`px-2 py-1 rounded text-xs flex items-center ${
+                              processing === proposal.id
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Rejeter
+                          </button>
+                        )}
+
+                        {proposal.status !== 'pending' && (
+                          <button
+                            onClick={() => confirmStatusChange(proposal.id, 'pending')}
+                            disabled={!!processing}
+                            className={`px-2 py-1 rounded text-xs flex items-center ${
+                              processing === proposal.id
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                            }`}
+                          >
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            En attente
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => confirmStatusChange(proposal.id, 'approved')}
+                          onClick={() => confirmDelete(proposal.id)}
                           disabled={!!processing}
                           className={`px-2 py-1 rounded text-xs flex items-center ${
                             processing === proposal.id
                               ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'bg-green-100 text-green-800 hover:bg-green-200'
-                          }`}
-                        >
-                          <Check className="w-3 h-3 mr-1" />
-                          Approuver
-                        </button>
-                      )}
-                      
-                      {proposal.status !== 'rejected' && (
-                        <button
-                          onClick={() => confirmStatusChange(proposal.id, 'rejected')}
-                          disabled={!!processing}
-                          className={`px-2 py-1 rounded text-xs flex items-center ${
-                            processing === proposal.id
-                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                           }`}
                         >
                           <X className="w-3 h-3 mr-1" />
-                          Rejeter
+                          Supprimer
                         </button>
-                      )}
-                      
-                      {proposal.status !== 'pending' && (
-                        <button
-                          onClick={() => confirmStatusChange(proposal.id, 'pending')}
-                          disabled={!!processing}
-                          className={`px-2 py-1 rounded text-xs flex items-center ${
-                            processing === proposal.id
-                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                          }`}
-                        >
-                          <AlertTriangle className="w-3 h-3 mr-1" />
-                          En attente
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => confirmDelete(proposal.id)}
-                        disabled={!!processing}
-                        className={`px-2 py-1 rounded text-xs flex items-center ${
-                          processing === proposal.id
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                        }`}
-                      >
-                        <X className="w-3 h-3 mr-1" />
-                        Supprimer
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Bouton pour afficher/masquer les détails */}

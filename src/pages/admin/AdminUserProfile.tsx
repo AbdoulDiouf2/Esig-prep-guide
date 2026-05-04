@@ -5,6 +5,7 @@ import { db, auth } from '../../firebase';
 import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft } from 'lucide-react';
 import { getIdToken } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import PasswordModal from '../../components/PasswordModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -29,6 +30,7 @@ const AdminUserProfile: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const canManageUsers = usePermission('users.manage');
   const [user, setUser] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,7 +256,7 @@ const AdminUserProfile: React.FC = () => {
           </div>
           {/* Actions */}
           <div className="flex flex-col md:flex-row gap-3 w-full mt-2">
-            {user.uid !== currentUser?.uid && (
+            {canManageUsers && user.uid !== currentUser?.uid && (
               <button
                 onClick={handleToggleAdmin}
                 className={`flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow transition-colors duration-200 ${user.isAdmin ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
@@ -271,7 +273,7 @@ const AdminUserProfile: React.FC = () => {
                 )}
               </button>
             )}
-            {user.uid !== currentUser?.uid && (
+            {canManageUsers && user.uid !== currentUser?.uid && (
               <button
                 onClick={handleDeleteClick}
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-base font-medium shadow bg-red-600 text-white hover:bg-red-700"
@@ -280,6 +282,7 @@ const AdminUserProfile: React.FC = () => {
                 <Trash2 className="w-5 h-5 mr-2" /> Supprimer utilisateur
               </button>
             )}
+            {canManageUsers && (
             <button
               className="mt-4 bg-blue-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-blue-700 transition disabled:opacity-50"
               onClick={handleSave}
@@ -288,6 +291,7 @@ const AdminUserProfile: React.FC = () => {
             >
               Enregistrer les modifications
             </button>
+            )}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar, User, Tag, Edit, Share2, Check, Eye, Heart } from 
 import { getNewsArticle, getNewsArticles, toggleLike, recordView } from '../services/newsService';
 import { NewsArticle, NewsArticleType, NEWS_TYPE_LABELS } from '../types/news';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 
 const TYPE_BADGE_STYLES: Record<NewsArticleType, string> = {
   annonce: 'bg-blue-100 text-blue-800',
@@ -16,7 +17,8 @@ const TYPE_BADGE_STYLES: Record<NewsArticleType, string> = {
 const NewsDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin, isEditor, currentUser } = useAuth();
+  const { currentUser } = useAuth();
+  const canEdit = usePermission('admin.news');
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [related, setRelated] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,6 @@ const NewsDetail: React.FC = () => {
   const formatDate = (ms: number) =>
     new Date(ms).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const canEdit = isAdmin() || isEditor();
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -152,7 +153,7 @@ const NewsDetail: React.FC = () => {
             </button>
             {canEdit && (
               <Link
-                to={isAdmin() ? '/admin/news' : '/editor/news'}
+                to="/admin/news"
                 className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors"
               >
                 <Edit className="w-4 h-4" />

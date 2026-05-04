@@ -8,30 +8,26 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermission';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import useNotifications from '../../hooks/useNotifications';
 
 const AdminContentEditor: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentUser, isAdmin, isEditor } = useAuth();
-  
-  // Déterminer si l'utilisateur est en mode admin ou éditeur en fonction de l'URL et des droits
-  // Protection contre les accès non autorisés en fonction du rôle
+  const { currentUser } = useAuth();
+  const contentPerms = usePermissions(['admin.news', 'broadcast.send', 'admin.dashboard', 'resources.manage']);
+
   const urlIndicatesAdmin = window.location.href.includes('/admin/');
-  
-  // Si l'URL est de type admin mais que l'utilisateur n'est qu'un éditeur, force le mode éditeur
-  // Cela ajoute une couche de sécurité supplémentaire
-  const isAdminMode = urlIndicatesAdmin ? isAdmin() : false;
-  
-  // Rediriger les éditeurs qui tentent d'accéder à l'interface admin
+  const isAdminMode = urlIndicatesAdmin ? contentPerms['admin.dashboard'] : false;
+
+  // Rediriger vers l'interface éditeur si accès admin sans la permission admin.dashboard
   useEffect(() => {
-    if (urlIndicatesAdmin && !isAdmin() && isEditor()) {
-      // Rediriger vers l'interface éditeur avec les mêmes paramètres
+    if (urlIndicatesAdmin && !contentPerms['admin.dashboard'] && contentPerms['resources.manage']) {
       const currentParams = window.location.search;
       navigate(`/editor/content${currentParams}`);
     }
-  }, [urlIndicatesAdmin, isAdmin, isEditor, navigate]);
+  }, [urlIndicatesAdmin, contentPerms, navigate]);
   
   const { sendFaqAnswerNotification } = useNotifications();
   
@@ -756,13 +752,15 @@ const AdminContentEditor: React.FC = () => {
                           >
                             Annuler
                           </button>
-                          <button
-                            type="submit"
-                            className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
-                          >
-                            <Save className="mr-2 h-4 w-4" />
-                            {isNewFaq ? 'Ajouter' : 'Enregistrer'}
-                          </button>
+                          {contentPerms['admin.news'] && (
+                            <button
+                              type="submit"
+                              className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                            >
+                              <Save className="mr-2 h-4 w-4" />
+                              {isNewFaq ? 'Ajouter' : 'Enregistrer'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -993,13 +991,15 @@ const AdminContentEditor: React.FC = () => {
                         Annuler
                       </button>
                       
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        {isNewSection ? 'Ajouter' : 'Enregistrer'}
-                      </button>
+                      {contentPerms['admin.news'] && (
+                        <button
+                          type="submit"
+                          className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {isNewSection ? 'Ajouter' : 'Enregistrer'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

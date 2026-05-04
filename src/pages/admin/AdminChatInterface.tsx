@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import adminChatService, { ChatConversation } from '../../services/adminChatService';
 import chatService, { ChatMessage as ChatMessageType } from '../../services/chatService';
 import ChatMessage from '../../components/chat/ChatMessage';
@@ -141,6 +142,7 @@ interface UserData {
 
 const AdminChatInterface: React.FC = () => {
   const { currentUser } = useAuth();
+  const canBroadcast = usePermission('broadcast.send');
   const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
 
   // Fonction pour activer/désactiver les notifications
@@ -388,6 +390,7 @@ const AdminChatInterface: React.FC = () => {
 
   // Fonction pour ouvrir la modale de suppression
   const confirmDeleteMessage = (messageId: string) => {
+    if (!canBroadcast) return;
     setMessageToDelete(messageId);
     setIsDeleteModalOpen(true);
   };
@@ -434,6 +437,7 @@ const AdminChatInterface: React.FC = () => {
 
   // Fonction pour confirmer la suppression d'une conversation
   const confirmDeleteConversation = (e: React.MouseEvent, userId: string, userName: string) => {
+    if (!canBroadcast) return;
     e.stopPropagation();
     setConversationToDelete({ userId, userName });
     setIsDeleteConversationModalOpen(true);
@@ -644,13 +648,13 @@ const AdminChatInterface: React.FC = () => {
                         type="text"
                         value={messageText}
                         onChange={(e) => setMessageText(e.target.value)}
-                        placeholder="Tapez votre message..."
+                        placeholder={canBroadcast ? "Tapez votre message..." : "Accès non autorisé"}
                         className="flex-1 p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={sending || !selectedUserId}
+                        disabled={sending || !selectedUserId || !canBroadcast}
                       />
                       <button
                         type="submit"
-                        disabled={!messageText.trim() || sending || !selectedUserId}
+                        disabled={!messageText.trim() || sending || !selectedUserId || !canBroadcast}
                         className="bg-blue-600 text-white p-3 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         <Send size={20} />

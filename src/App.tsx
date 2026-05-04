@@ -3,9 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ContentProvider } from './contexts/ContentContext';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
-import AdminRoute from './components/auth/AdminRoute';
-import SuperAdminRoute from './components/routes/SuperAdminRoute';
-import EditorRoute from './components/routes/EditorRoute';
+import { AdminRoute, SuperAdminRoute, EditorRoute, PermissionRoute } from './components/routes/PermissionRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
 import React, { useEffect, useState } from 'react';
@@ -72,6 +70,8 @@ import ImportAlumni from './pages/admin/ImportAlumni';
 import News from './pages/News';
 import NewsDetail from './pages/NewsDetail';
 import AdminNews from './pages/admin/AdminNews';
+import AdminRoleManager from './pages/admin/AdminRoleManager';
+import AdminUserOverrides from './pages/admin/AdminUserOverrides';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -454,7 +454,21 @@ function App() {
                     </SuperAdminRoute>
                   </AuthWrapper>
                 } />
-                
+                <Route path="/admin/roles" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="admin.roles">
+                      <AdminRoleManager />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/user-overrides" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="admin.overrides">
+                      <AdminUserOverrides />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+
                 {/* Editor Routes */}
                 <Route path="/editor" element={
                   <AuthWrapper>

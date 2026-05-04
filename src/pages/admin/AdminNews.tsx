@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import {
   ArrowLeft,
   Plus,
@@ -48,6 +49,7 @@ const EMPTY_FORM = {
 
 const AdminNews: React.FC = () => {
   const { currentUser } = useAuth();
+  const canManageNews = usePermission('admin.news');
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -221,13 +223,15 @@ const AdminNews: React.FC = () => {
                 <p className="text-blue-200 text-sm mt-1">{articles.length} article(s) au total</p>
               </div>
             </div>
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              Nouvel article
-            </button>
+            {canManageNews && (
+              <button
+                onClick={openCreate}
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg font-medium transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Nouvel article
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -273,9 +277,11 @@ const AdminNews: React.FC = () => {
           <div className="bg-white border border-zinc-200 rounded-xl p-12 text-center">
             <Newspaper className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
             <p className="text-zinc-500">Aucun article trouvé.</p>
-            <button onClick={openCreate} className="mt-4 text-blue-700 hover:underline text-sm font-medium">
-              Créer le premier article
-            </button>
+            {canManageNews && (
+              <button onClick={openCreate} className="mt-4 text-blue-700 hover:underline text-sm font-medium">
+                Créer le premier article
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -310,29 +316,31 @@ const AdminNews: React.FC = () => {
                       <span className="w-px h-3 bg-zinc-200" />
                       <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {article.likedBy.length}
                     </button>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handlePublish(article)}
-                        title={article.status === 'published' ? 'Dépublier' : 'Publier'}
-                        className="text-zinc-400 hover:text-blue-600 transition-colors"
-                      >
-                        {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => openEdit(article)}
-                        title="Modifier"
-                        className="text-zinc-400 hover:text-amber-600 transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(article)}
-                        title="Supprimer"
-                        className="text-zinc-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {canManageNews && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handlePublish(article)}
+                          title={article.status === 'published' ? 'Dépublier' : 'Publier'}
+                          className="text-zinc-400 hover:text-blue-600 transition-colors"
+                        >
+                          {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => openEdit(article)}
+                          title="Modifier"
+                          className="text-zinc-400 hover:text-amber-600 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(article)}
+                          title="Supprimer"
+                          className="text-zinc-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -387,29 +395,31 @@ const AdminNews: React.FC = () => {
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handlePublish(article)}
-                            title={article.status === 'published' ? 'Dépublier' : 'Publier'}
-                            className="text-zinc-400 hover:text-blue-600 transition-colors"
-                          >
-                            {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => openEdit(article)}
-                            title="Modifier"
-                            className="text-zinc-400 hover:text-amber-600 transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(article)}
-                            title="Supprimer"
-                            className="text-zinc-400 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {canManageNews && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handlePublish(article)}
+                              title={article.status === 'published' ? 'Dépublier' : 'Publier'}
+                              className="text-zinc-400 hover:text-blue-600 transition-colors"
+                            >
+                              {article.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => openEdit(article)}
+                              title="Modifier"
+                              className="text-zinc-400 hover:text-amber-600 transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(article)}
+                              title="Supprimer"
+                              className="text-zinc-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

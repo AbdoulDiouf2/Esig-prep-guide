@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getAllUserProgressions } from '../../services/adminProgressionService';
 import { db } from '../../firebase';
-import { DocumentData, collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { DocumentData, collection, query, where, getCountFromServer, doc, setDoc } from 'firebase/firestore';
+import { DEFAULT_ROLE_PERMISSIONS } from '../../types/permissions';
 import SuperAdminCheck from '../../components/routes/SuperAdminCheck';
 import { UserDoc } from './AdminUserManager';
 
@@ -27,7 +28,9 @@ import {
   BarChart,
   Wrench,
   Upload,
-  Newspaper
+  Newspaper,
+  Shield,
+  UserCog
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 import AlumniStats from './AlumniStats';
@@ -820,6 +823,36 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </Link>
+
+              {/* Carte Gestion des rôles */}
+              <SuperAdminCheck>
+                <Link to="/admin/roles" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                  <div className="flex items-start">
+                    <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                      <Shield className="w-6 h-6 text-blue-900" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900">Gestion des rôles</h3>
+                      <p className="text-sm text-gray-600 mt-1">Configurer les permissions pour chaque rôle</p>
+                    </div>
+                  </div>
+                </Link>
+              </SuperAdminCheck>
+
+              {/* Carte Exceptions utilisateurs */}
+              <SuperAdminCheck>
+                <Link to="/admin/user-overrides" className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200">
+                  <div className="flex items-start">
+                    <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                      <UserCog className="w-6 h-6 text-blue-900" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900">Exceptions utilisateurs</h3>
+                      <p className="text-sm text-gray-600 mt-1">Ajouter ou bloquer des permissions par utilisateur</p>
+                    </div>
+                  </div>
+                </Link>
+              </SuperAdminCheck>
 
               {/* Carte Cours en ligne - Désactivée */}
               <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">

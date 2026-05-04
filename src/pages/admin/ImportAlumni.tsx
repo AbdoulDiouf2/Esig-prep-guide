@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { ArrowLeft, Info, Upload, AlertTriangle, FileText } from 'lucide-react';
 import FileUploader from '../../components/admin/FileUploader';
 import ImportProgress from '../../components/admin/ImportProgress';
@@ -10,6 +12,8 @@ import { parseCSV, parseXLSX, ParsedAlumniData, cleanEmail, extractYearPromo, va
 import { importAlumniFromFile, ImportAlumniData, ImportResult } from '../../services/alumniService';
 
 const ImportAlumni: React.FC = () => {
+  useAuth();
+  const canImport = usePermission('alumni.validate');
   const [parsedData, setParsedData] = useState<ParsedAlumniData[]>([]);
   const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
@@ -123,6 +127,7 @@ const ImportAlumni: React.FC = () => {
   };
 
   const handleConfirmImport = () => {
+    if (!canImport) return;
     setShowPreviewModal(false);
     handleStartImport();
   };

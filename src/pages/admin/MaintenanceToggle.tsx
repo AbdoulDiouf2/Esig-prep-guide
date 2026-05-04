@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Wrench, Power, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { Link } from 'react-router-dom';
 import { getMaintenanceStatus, setMaintenanceStatus } from '../../services/maintenanceService';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const MaintenanceToggle: React.FC = () => {
   const { currentUser } = useAuth();
+  const canToggleMaintenance = usePermission('maintenance.toggle');
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -160,27 +162,31 @@ const MaintenanceToggle: React.FC = () => {
         </div>
 
         {/* Boutons d'action */}
-        <div className="flex gap-3">
-          {!maintenanceEnabled ? (
-            <button
-              onClick={() => handleToggleClick(true)}
-              disabled={updating}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Power className="w-5 h-5" />
-              {updating ? 'Activation...' : 'Activer la maintenance'}
-            </button>
-          ) : (
-            <button
-              onClick={() => handleToggleClick(false)}
-              disabled={updating}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Power className="w-5 h-5" />
-              {updating ? 'Désactivation...' : 'Désactiver la maintenance'}
-            </button>
-          )}
-        </div>
+        {canToggleMaintenance ? (
+          <div className="flex gap-3">
+            {!maintenanceEnabled ? (
+              <button
+                onClick={() => handleToggleClick(true)}
+                disabled={updating}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Power className="w-5 h-5" />
+                {updating ? 'Activation...' : 'Activer la maintenance'}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleToggleClick(false)}
+                disabled={updating}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Power className="w-5 h-5" />
+                {updating ? 'Désactivation...' : 'Désactiver la maintenance'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-red-500">Permission insuffisante pour modifier le mode maintenance.</p>
+        )}
 
         {/* Avertissement */}
         <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">

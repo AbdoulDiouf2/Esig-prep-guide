@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 
 const Header: React.FC = () => {
-  const { currentUser, logout, isAdmin, isEditor } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const canAdmin = usePermission('admin.dashboard');
+  const canEdit = usePermission('resources.manage');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -133,17 +136,17 @@ const Header: React.FC = () => {
                   </Link>
                 </SuperAdminCheck>
                 
-                {isAdmin() && (
+                {canAdmin && (
                   <Link to="/admin" className={`flex items-center text-white bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
                     location.pathname.startsWith('/admin') ? 'bg-blue-600' : ''
                   }`}>
                     <Shield className="w-4 h-4 mr-1" />
-                    <span>Admin</span>
+                    <span>{currentUser?.isSuperAdmin ? 'Super Admin' : 'Admin'}</span>
                   </Link>
                 )}
 
                 {/* Bouton Édition pour les éditeurs dans le header principal */}
-                {isEditor() && !isAdmin() && (
+                {canEdit && !canAdmin && (
                   <Link to="/editor" className={`flex items-center text-white bg-green-700 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
                     location.pathname.startsWith('/editor') ? 'bg-green-600' : ''
                   }`}>
@@ -190,7 +193,7 @@ const Header: React.FC = () => {
                       <Users className="w-4 h-4 mr-2" />
                       <span>Mon profil alumni</span>
                     </Link>
-                    {isAdmin() && (
+                    {canAdmin && (
                       <Link 
                         to="/admin" 
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -199,7 +202,7 @@ const Header: React.FC = () => {
                         <span>Administration</span>
                       </Link>
                     )}
-                    {isEditor() && !isAdmin() && (
+                    {canEdit && !canAdmin && (
                       <Link 
                         to="/editor" 
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -356,7 +359,7 @@ const Header: React.FC = () => {
                     <span>Mon profil alumni</span>
                   </Link>
 
-                  {isAdmin() && (
+                  {canAdmin && (
                     <Link
                       to="/admin"
                       className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
@@ -366,7 +369,7 @@ const Header: React.FC = () => {
                       <span>Administration</span>
                     </Link>
                   )}
-                  {isEditor() && !isAdmin() && (
+                  {canEdit && !canAdmin && (
                     <Link
                       to="/editor"
                       className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import DropboxUploader from '../../components/dropbox';
 import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -45,6 +46,7 @@ const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentUser, isAdmin, isEditor } = useAuth();
+  const canManageResources = usePermission('resources.manage');
   
   // Déterminer si l'utilisateur est en mode admin ou éditeur en fonction de l'URL et des droits
   const urlIndicatesAdmin = window.location.href.includes('/admin/');
@@ -718,7 +720,7 @@ const AdminResourceManager: React.FC = () => {
                   
                   <div className="flex justify-between">
                     <div>
-                      {editResourceId && (
+                      {editResourceId && canManageResources && (
                         <button
                           type="button"
                           onClick={handleDeleteClick}
@@ -729,7 +731,7 @@ const AdminResourceManager: React.FC = () => {
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="flex space-x-3">
                       <button
                         type="button"
@@ -738,14 +740,16 @@ const AdminResourceManager: React.FC = () => {
                       >
                         Annuler
                       </button>
-                      
-                      <button
-                        type="submit"
-                        className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        {isNewResource ? 'Ajouter' : 'Enregistrer'}
-                      </button>
+
+                      {canManageResources && (
+                        <button
+                          type="submit"
+                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {isNewResource ? 'Ajouter' : 'Enregistrer'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

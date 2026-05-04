@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 import { 
   Send, 
   Bot, 
@@ -23,6 +24,7 @@ interface Message {
 
 const ChatAI: React.FC = () => {
   const { currentUser } = useAuth();
+  const canChat = usePermission('ai.chat');
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -295,15 +297,15 @@ const ChatAI: React.FC = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleInputKeyDown}
-            placeholder="Posez votre question..."
+            placeholder={canChat ? "Posez votre question..." : "Accès non autorisé"}
             className="flex-1 px-4 py-3 focus:outline-none"
-            disabled={isTyping}
+            disabled={isTyping || !canChat}
           />
           <button
             onClick={handleSendMessage}
-            disabled={inputMessage.trim() === '' || isTyping}
+            disabled={inputMessage.trim() === '' || isTyping || !canChat}
             className={`p-3 ${
-              inputMessage.trim() === '' || isTyping
+              inputMessage.trim() === '' || isTyping || !canChat
                 ? 'text-gray-400 bg-gray-100'
                 : 'text-white bg-blue-600 hover:bg-blue-700'
             } transition-colors`}

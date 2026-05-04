@@ -3,10 +3,12 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { getForumCategories, addForumThread } from '../services/forumService';
 import { ForumCategory } from '../types/forum';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 import { ArrowLeft, Send } from 'lucide-react';
 
 const NewThread: React.FC = () => {
   const { currentUser } = useAuth();
+  const canWrite = usePermission('forum.write');
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -56,7 +58,7 @@ const NewThread: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!currentUser || !title.trim() || !content.trim() || !categoryId) {
+    if (!currentUser || !canWrite || !title.trim() || !content.trim() || !categoryId) {
       return;
     }
     
@@ -171,18 +173,22 @@ const NewThread: React.FC = () => {
           
           {/* Bouton de soumission */}
           <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={submitting || !title.trim() || !content.trim() || !categoryId}
-            >
-              {submitting ? 'Création en cours...' : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>Créer la discussion</span>
-                </>
-              )}
-            </button>
+            {canWrite ? (
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting || !title.trim() || !content.trim() || !categoryId}
+              >
+                {submitting ? 'Création en cours...' : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Créer la discussion</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <p className="text-sm text-red-500">Vous n'avez pas la permission de créer une discussion.</p>
+            )}
           </div>
         </form>
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
@@ -70,6 +71,7 @@ const AdminUserManager: React.FC = () => {
   const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
   const [missingProfiles, setMissingProfiles] = useState<FirebaseAuthUser[]>([]);
   const { currentUser } = useAuth();
+  const canManageUsers = usePermission('users.manage');
   const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
   const navigate = useNavigate();
   const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || '';
@@ -101,21 +103,26 @@ const AdminUserManager: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [usersSnap, alumniSnap] = await Promise.all([
-        getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'alumni')),
-      ]);
+      const usersSnap = await getDocs(collection(db, 'users'));
       const userList: UserDoc[] = [];
       usersSnap.forEach((docSnap) => {
         userList.push(docSnap.data() as UserDoc);
       });
-      const map: Record<string, number> = {};
-      alumniSnap.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.uid && data.yearPromo) map[data.uid] = data.yearPromo;
-      });
       setUsers(userList);
-      setAlumniYearPromoMap(map);
+
+      // alumni optionnel — peut échouer si pas la permission alumni.validate
+      setAlumniYearPromoMap({});
+      try {
+        const alumniSnap = await getDocs(collection(db, 'alumni'));
+        const map: Record<string, number> = {};
+        alumniSnap.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.uid && data.yearPromo) map[data.uid] = data.yearPromo;
+        });
+        setAlumniYearPromoMap(map);
+      } catch {
+        // pas la permission alumni — on ignore, la colonne promo sera vide
+      }
     } catch {
       setError('Erreur lors du chargement des utilisateurs.');
     } finally {
@@ -560,15 +567,17 @@ const AdminUserManager: React.FC = () => {
           </div>
           
           <div className="lg:col-span-2 flex flex-col sm:flex-row gap-2 justify-end">
-            <button
-              onClick={syncUserStatuses}
-              className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-            >
-              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Synchro Statuts
-            </button>
+            {canManageUsers && (
+              <button
+                onClick={syncUserStatuses}
+                className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              >
+                <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Synchro Statuts
+              </button>
+            )}
             <button
               onClick={exportCpsUsersToCsv}
               className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
@@ -592,7 +601,7 @@ const AdminUserManager: React.FC = () => {
                 {missingProfiles.map(u => (
                   <li key={u.localId} className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-gray-700">{u.email}</span>
-                    <button onClick={() => handleCreateFirestoreProfile(u)} className="ml-2 px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700">Créer le profil Firestore</button>
+                    {canManageUsers && <button onClick={() => handleCreateFirestoreProfile(u)} className="ml-2 px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700">Créer le profil Firestore</button>}
                   </li>
                 ))}
               </ul>
@@ -1095,7 +1104,7 @@ const AdminUserManager: React.FC = () => {
                     <td className="px-4 py-2">
                       {/* Permettre à un super admin de modifier n'importe quel utilisateur sauf lui-même */}
                       <div className="flex flex-col sm:flex-row gap-2">
-                        {user.uid !== currentUser?.uid && (
+                        {canManageUsers && user.uid !== currentUser?.uid && (
                           ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
                             <button
                               onClick={() => handleToggleAdmin(user.uid)}
@@ -1114,7 +1123,7 @@ const AdminUserManager: React.FC = () => {
                           )
                         )}
 
-                        {user.uid !== currentUser?.uid && (
+                        {canManageUsers && user.uid !== currentUser?.uid && (
                           ((!user.isSuperAdmin) || (user.isSuperAdmin && currentUserIsSuperAdmin)) && (
                             <button
                               onClick={() => handleToggleEditor(user.uid)}
