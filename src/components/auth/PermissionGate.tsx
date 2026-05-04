@@ -13,7 +13,7 @@ interface PermissionGateProps {
 export const PermissionGate: React.FC<PermissionGateProps> = ({
   permission,
   children,
-  redirectTo = '/dashboard',
+  redirectTo = '/applications',
   silent = false,
 }) => {
   const { hasPermission, loading } = useAuth();

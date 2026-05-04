@@ -80,6 +80,31 @@ import LegalNotice from './pages/legal/LegalNotice';
 import ModerationCharter from './pages/legal/ModerationCharter';
 import RGPDRegistry from './pages/legal/RGPDRegistry';
 
+// Toast affiché lors d'un accès refusé (permission insuffisante)
+const PermissionDeniedToast = () => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handler = () => {
+      setVisible(true);
+      setTimeout(() => setVisible(false), 4000);
+    };
+    window.addEventListener('permission-denied', handler);
+    return () => window.removeEventListener('permission-denied', handler);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[9999] animate-fade-in">
+      <div className="bg-red-600 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-sm">
+        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+        <p className="text-sm font-medium">Accès refusé. Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
+      </div>
+    </div>
+  );
+};
+
 // Composant pour la bannière de rappel
 const DisclaimerBanner = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -196,6 +221,7 @@ function App() {
       <AuthProvider>
         <ContentProvider>
           <ScrollToTop />
+          <PermissionDeniedToast />
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-grow">
