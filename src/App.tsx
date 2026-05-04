@@ -178,8 +178,11 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Rediriger vers la page de complétion de profil si nécessaire
-  // Ne pas rediriger si on est déjà sur la page de complétion
+  // Ne pas rediriger si on est déjà sur la page de complétion ou si l'utilisateur est un directeur/staff
+  const isSpecialRole = currentUser.isDirector || currentUser.isStaff || currentUser.isSuperAdmin;
+  
   if (location.pathname !== '/complete-profile' && 
+      !isSpecialRole &&
       (currentUser.profileComplete === false || !currentUser.yearPromo)) {
     return <Navigate to="/complete-profile" replace />;
   }

@@ -47,6 +47,7 @@ async function fetchAllFirebaseAuthUsers(apiKey: string): Promise<FirebaseAuthUs
 interface FirestoreTimestamp {
   seconds: number;
   nanoseconds: number;
+  toDate?: () => Date;
 }
 
 export interface UserDoc {
@@ -93,7 +94,7 @@ const AdminUserManager: React.FC = () => {
   
   // Filtres
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [roleFilter, setRoleFilter] = useState<'tous' | 'admin' | 'editor' | 'standard'>('tous');
+  const [roleFilter, setRoleFilter] = useState<string>('tous');
   const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
   const [yearPromoFilter, setYearPromoFilter] = useState<string>('');
 
@@ -114,6 +115,42 @@ const AdminUserManager: React.FC = () => {
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
+
+  // Extraction dynamique des rôles
+  const getUserRoles = (user: UserDoc) => {
+    const badges: Array<{label: string, color: string, icon?: any, isBold?: boolean}> = [];
+    
+    if (user.isSuperAdmin) badges.push({ label: 'SuperAdmin', color: 'bg-yellow-100 text-yellow-800 border-yellow-300', isBold: true });
+    if (user.isAdmin) badges.push({ label: 'Admin', color: 'bg-blue-100 text-blue-800', icon: Shield });
+    if (user.isEditor) badges.push({ label: 'Éditeur', color: 'bg-green-100 text-green-800', icon: Edit });
+    if (user.isDirector) badges.push({ label: 'Directeur', color: 'bg-purple-100 text-purple-800', icon: Shield });
+    if (user.isStaff) badges.push({ label: 'Staff', color: 'bg-amber-100 text-amber-800', icon: UserPlus });
+    
+    // Détection automatique des rôles personnalisés (champs commençant par 'is' à true)
+    const standardRoleKeys = ['isAdmin', 'isSuperAdmin', 'isEditor', 'isDirector', 'isStaff', 'isOwner'];
+    Object.entries(user).forEach(([key, value]) => {
+      if (key.startsWith('is') && value === true && !standardRoleKeys.includes(key)) {
+        // Formater le label : isTestRole -> TestRole
+        const roleLabel = key.slice(2);
+        badges.push({ label: roleLabel, color: 'bg-gray-100 text-gray-800' });
+      }
+    });
+    
+    return badges;
+  };
+
+  // Liste unique de tous les rôles présents dans la base pour le filtre
+  const availableRoles = useMemo(() => {
+    const rolesSet = new Set<string>(['admin', 'editor', 'director', 'staff', 'standard']);
+    users.forEach(user => {
+      Object.entries(user).forEach(([key, value]) => {
+        if (key.startsWith('is') && value === true && !['isOwner', 'uid', 'emailVerified'].includes(key)) {
+          rolesSet.add(key.slice(2).toLowerCase());
+        }
+      });
+    });
+    return Array.from(rolesSet).sort();
+  }, [users]);
 
   const getEffectiveYearPromo = (user: UserDoc): number | undefined =>
     alumniYearPromoMap[user.uid] ?? user.yearPromo;
@@ -655,14 +692,22 @@ L'équipe CPS Connect`;
               className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={roleFilter}
               onChange={e => {
-                setRoleFilter(e.target.value as 'tous' | 'admin' | 'editor' | 'standard');
+                setRoleFilter(e.target.value);
                 setCurrentPage(1); // Réinitialiser la pagination
               }}
             >
               <option value="tous">Tous les rôles</option>
-              <option value="admin">Admin</option>
+              <option value="admin">Administrateur</option>
               <option value="editor">Éditeur</option>
-              <option value="standard">Standard</option>
+              <option value="director">Directeur</option>
+              <option value="staff">Staff</option>
+              <option value="standard">Standard (Aucun rôle)</option>
+              {availableRoles
+                .filter(r => !['admin', 'editor', 'director', 'staff', 'standard', 'superadmin'].includes(r))
+                .map(role => (
+                  <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
+                ))
+              }
             </select>
           </div>
           
@@ -775,12 +820,21 @@ L'équipe CPS Connect`;
                     );
                   })
                   .filter(user => {
-                    // Filtrage par rôle
+                    // Filtrage par rôle dynamique
                     if (roleFilter === 'tous') return true;
-                    if (roleFilter === 'admin') return user.isAdmin;
-                    if (roleFilter === 'editor') return user.isEditor;
-                    if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
-                    return true;
+                    if (roleFilter === 'standard') {
+                      const roles = getUserRoles(user);
+                      return roles.length === 0;
+                    }
+                    
+                    // Vérifier si l'utilisateur possède le rôle filtré
+                    const roleKey = `is${roleFilter.charAt(0).toUpperCase()}${roleFilter.slice(1)}`;
+                    return (user as any)[roleKey] === true || 
+                           (roleFilter === 'admin' && user.isAdmin) ||
+                           (roleFilter === 'editor' && user.isEditor) ||
+                           (roleFilter === 'director' && user.isDirector) ||
+                           (roleFilter === 'staff' && user.isStaff) ||
+                           (roleFilter === 'superadmin' && user.isSuperAdmin);
                   })
                   .filter(user => {
                     // Filtrage par statut
@@ -816,8 +870,8 @@ L'équipe CPS Connect`;
                   .sort((a, b) => {
                     const getLastLoginTs = (user: UserDoc): number => {
                       if (!user.lastLogin) return 0;
-                      if (typeof user.lastLogin === 'object' && 'toDate' in user.lastLogin && typeof (user.lastLogin as FirestoreTimestamp).toDate === 'function')
-                        return (user.lastLogin as FirestoreTimestamp).toDate().getTime();
+                      if (user.lastLogin && typeof user.lastLogin === 'object' && 'toDate' in user.lastLogin && typeof (user.lastLogin as any).toDate === 'function')
+                        return (user.lastLogin as any).toDate().getTime();
                       if (typeof user.lastLogin === 'object' && 'seconds' in user.lastLogin)
                         return (user.lastLogin as FirestoreTimestamp).seconds * 1000;
                       if (typeof user.lastLogin === 'number') return user.lastLogin;
@@ -827,8 +881,8 @@ L'équipe CPS Connect`;
                     };
                     const getLastActiveTs = (user: UserDoc): number => {
                       if (!user.lastActive) return 0;
-                      if (typeof user.lastActive === 'object' && 'toDate' in user.lastActive && typeof (user.lastActive as FirestoreTimestamp).toDate === 'function')
-                        return (user.lastActive as FirestoreTimestamp).toDate().getTime();
+                      if (user.lastActive && typeof user.lastActive === 'object' && 'toDate' in user.lastActive && typeof (user.lastActive as any).toDate === 'function')
+                        return (user.lastActive as any).toDate().getTime();
                       if (typeof user.lastActive === 'object' && 'seconds' in user.lastActive)
                         return (user.lastActive as FirestoreTimestamp).seconds * 1000;
                       if (user.lastActive instanceof Date) return user.lastActive.getTime();
@@ -849,12 +903,21 @@ L'équipe CPS Connect`;
                     );
                   })
                   .filter(user => {
-                    // Filtrage par rôle
+                    // Filtrage par rôle dynamique
                     if (roleFilter === 'tous') return true;
-                    if (roleFilter === 'admin') return user.isAdmin;
-                    if (roleFilter === 'editor') return user.isEditor;
-                    if (roleFilter === 'standard') return !user.isAdmin && !user.isEditor;
-                    return true;
+                    if (roleFilter === 'standard') {
+                      const roles = getUserRoles(user);
+                      return roles.length === 0;
+                    }
+                    
+                    // Vérifier si l'utilisateur possède le rôle filtré
+                    const roleKey = `is${roleFilter.charAt(0).toUpperCase()}${roleFilter.slice(1)}`;
+                    return (user as any)[roleKey] === true || 
+                           (roleFilter === 'admin' && user.isAdmin) ||
+                           (roleFilter === 'editor' && user.isEditor) ||
+                           (roleFilter === 'director' && user.isDirector) ||
+                           (roleFilter === 'staff' && user.isStaff) ||
+                           (roleFilter === 'superadmin' && user.isSuperAdmin);
                   })
                   .filter(user => {
                     // Filtrage par statut
@@ -943,22 +1006,15 @@ L'équipe CPS Connect`;
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-col space-y-1">
-                        {user.isAdmin ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            <Shield className="w-4 h-4 mr-1" /> Admin
-                          </span>
+                        {getUserRoles(user).length > 0 ? (
+                          getUserRoles(user).map((badge, idx) => (
+                            <span key={idx} className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${badge.color} ${badge.isBold ? 'font-bold' : ''}`}>
+                              {badge.icon && <badge.icon className="w-3.5 h-3.5 mr-1" />}
+                              {badge.label}
+                            </span>
+                          ))
                         ) : (
-                          <span className="text-gray-500 text-xs">Standard</span>
-                        )}
-                        
-                        {user.isEditor && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            <Edit className="w-4 h-4 mr-1" /> Éditeur
-                          </span>
-                        )}
-                        
-                        {user.isSuperAdmin && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">SuperAdmin</span>
+                          <span className="text-gray-500 text-xs italic">Standard</span>
                         )}
                       </div>
                     </td>
@@ -971,12 +1027,7 @@ L'équipe CPS Connect`;
                           }
                           
                           try {
-                            // Afficher le type et la valeur pour déboguer
-                            // (Vous pouvez supprimer cette ligne une fois les problèmes corrigés)
-                            console.log(`createdAt pour ${user.email}:`, 
-                              typeof user.createdAt, 
-                              JSON.stringify(user.createdAt)
-                            );
+                            
                             
                             // Pour les objets Firestore Timestamp
                             if (user.createdAt && 
@@ -984,7 +1035,7 @@ L'équipe CPS Connect`;
                                 'toDate' in user.createdAt && 
                                 typeof user.createdAt.toDate === 'function') {
                               // Conversion du timestamp Firestore en date
-                              const date = user.createdAt.toDate();
+                              const date = (user.createdAt as any).toDate();
                               
                               return (
                                 <>
@@ -1102,12 +1153,7 @@ L'équipe CPS Connect`;
                           }
                           
                           try {
-                            // Afficher le type et la valeur pour déboguer
-                            // (Vous pouvez supprimer cette ligne une fois les problèmes corrigés)
-                            console.log(`lastLogin pour ${user.email}:`, 
-                              typeof user.lastLogin, 
-                              JSON.stringify(user.lastLogin)
-                            );
+                            
                             
                             // Pour les objets Firestore Timestamp
                             if (user.lastLogin && 
@@ -1115,7 +1161,7 @@ L'équipe CPS Connect`;
                                 'toDate' in user.lastLogin && 
                                 typeof user.lastLogin.toDate === 'function') {
                               // Conversion du timestamp Firestore en date
-                              const date = user.lastLogin.toDate();
+                              const date = (user.lastLogin as any).toDate();
                               
                               return (
                                 <>
@@ -1229,7 +1275,7 @@ L'équipe CPS Connect`;
                         if (!user.lastActive) return <span className="text-xs text-gray-400 italic">Jamais</span>;
                         let date: Date | null = null;
                         if (typeof user.lastActive === 'object' && 'toDate' in user.lastActive && typeof (user.lastActive as FirestoreTimestamp).toDate === 'function') {
-                          date = (user.lastActive as FirestoreTimestamp).toDate();
+                          date = (user.lastActive as any).toDate();
                         } else if (typeof user.lastActive === 'object' && 'seconds' in user.lastActive) {
                           date = new Date((user.lastActive as FirestoreTimestamp).seconds * 1000);
                         } else if (user.lastActive instanceof Date) {
