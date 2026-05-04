@@ -20,7 +20,9 @@ export type Permission =
   | 'admin.news'
   | 'broadcast.send'
   | 'ai.chat'
-  | 'maintenance.toggle';
+  | 'maintenance.toggle'
+  | 'director.dashboard'
+  | 'staff.dashboard';
 
 export interface RoleDoc {
   permissions: Permission[];
@@ -40,6 +42,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'users.view', 'users.manage',
   'admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news',
   'broadcast.send', 'ai.chat', 'maintenance.toggle',
+  'director.dashboard', 'staff.dashboard',
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -65,6 +68,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'broadcast.send': 'Email broadcast',
   'ai.chat': 'Chat IA',
   'maintenance.toggle': 'Maintenance',
+  'director.dashboard': 'Portail directeur',
+  'staff.dashboard': 'Portail staff',
 };
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
@@ -76,6 +81,7 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Utilisateurs: ['users.view', 'users.manage'],
   Administration: ['admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news'],
   'Super Admin': ['broadcast.send', 'ai.chat', 'maintenance.toggle'],
+  'Portails spéciaux': ['director.dashboard', 'staff.dashboard'],
 };
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -102,6 +108,22 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'workshops.view', 'workshops.manage',
     'users.view', 'users.manage',
     'admin.dashboard', 'admin.news',
+  ],
+  director: [
+    'forum.read',
+    'users.view',
+    'webinars.view',
+    'workshops.view',
+    'admin.news',
+    'director.dashboard',
+  ],
+  staff: [
+    'forum.read', 'forum.write', 'forum.moderate',
+    'resources.read', 'resources.upload', 'resources.manage',
+    'webinars.view', 'webinars.manage',
+    'workshops.view',
+    'admin.news',
+    'staff.dashboard',
   ],
   superAdmin: [...ALL_PERMISSIONS],
 };

@@ -9,6 +9,8 @@ const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const canAdmin = usePermission('admin.dashboard');
   const canEdit = usePermission('resources.manage');
+  const canDirector = usePermission('director.dashboard');
+  const canStaff = usePermission('staff.dashboard');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -154,6 +156,24 @@ const Header: React.FC = () => {
                     <span>Édition</span>
                   </Link>
                 )}
+
+                {canDirector && (
+                  <Link to="/director" className={`flex items-center text-white bg-purple-700 hover:bg-purple-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
+                    location.pathname.startsWith('/director') ? 'bg-purple-600' : ''
+                  }`}>
+                    <Shield className="w-4 h-4 mr-1" />
+                    <span>Directeur</span>
+                  </Link>
+                )}
+
+                {canStaff && (
+                  <Link to="/staff" className={`flex items-center text-white bg-amber-600 hover:bg-amber-500 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
+                    location.pathname.startsWith('/staff') ? 'bg-amber-500' : ''
+                  }`}>
+                    <Users className="w-4 h-4 mr-1" />
+                    <span>Staff</span>
+                  </Link>
+                )}
               </>
             )}
           </nav>
@@ -203,15 +223,33 @@ const Header: React.FC = () => {
                       </Link>
                     )}
                     {canEdit && !canAdmin && (
-                      <Link 
-                        to="/editor" 
+                      <Link
+                        to="/editor"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         <span>Edition</span>
                       </Link>
                     )}
-                    <button 
+                    {canDirector && (
+                      <Link
+                        to="/director"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        <span>Portail directeur</span>
+                      </Link>
+                    )}
+                    {canStaff && (
+                      <Link
+                        to="/staff"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        <span>Portail staff</span>
+                      </Link>
+                    )}
+                    <button
                       onClick={handleLogout}
                       className="flex items-center w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                     >
@@ -377,6 +415,26 @@ const Header: React.FC = () => {
                     >
                       <Edit className="w-4 h-4 mr-3 flex-shrink-0" />
                       <span>Edition</span>
+                    </Link>
+                  )}
+                  {canDirector && (
+                    <Link
+                      to="/director"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Shield className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Portail directeur</span>
+                    </Link>
+                  )}
+                  {canStaff && (
+                    <Link
+                      to="/staff"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Users className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Portail staff</span>
                     </Link>
                   )}
 

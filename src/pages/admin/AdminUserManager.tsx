@@ -47,8 +47,10 @@ export interface UserDoc {
   email: string;
   displayName: string;
   isAdmin: boolean;
-  isSuperAdmin?: boolean; // Ajouté pour la gestion du super admin
-  isEditor?: boolean;     // Ajouté pour la gestion des éditeurs
+  isSuperAdmin?: boolean;
+  isEditor?: boolean;
+  isDirector?: boolean;
+  isStaff?: boolean;
   emailVerified: boolean;
   photoURL?: string;
   yearPromo?: number;     // Année de promotion (année de sortie de prépa)
@@ -62,7 +64,7 @@ const AdminUserManager: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-  const [pendingUser, setPendingUser] = useState<{uid: string, action: 'toggleAdmin' | 'toggleEditor'} | null>(null);
+  const [pendingUser, setPendingUser] = useState<{uid: string, action: 'toggleAdmin' | 'toggleEditor' | 'toggleDirector' | 'toggleStaff'} | null>(null);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [alumniYearPromoMap, setAlumniYearPromoMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -187,6 +189,18 @@ const AdminUserManager: React.FC = () => {
     setModalError(null);
   };
 
+  const handleToggleDirector = async (uid: string) => {
+    setModalOpen(true);
+    setPendingUser({ uid, action: 'toggleDirector' });
+    setModalError(null);
+  };
+
+  const handleToggleStaff = async (uid: string) => {
+    setModalOpen(true);
+    setPendingUser({ uid, action: 'toggleStaff' });
+    setModalError(null);
+  };
+
   const handlePasswordSubmit = async (password: string) => {
     if (!pendingUser) return;
     setModalLoading(true);
@@ -242,10 +256,50 @@ const AdminUserManager: React.FC = () => {
           target: 'Utilisateur',
           targetId: pendingUser.uid,
           user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
-          details: { 
+          details: {
             action: 'Changement de rôle éditeur',
             userId: pendingUser.uid,
             newStatus: newEditorStatus ? 'Éditeur' : 'Utilisateur standard'
+          }
+        });
+
+      } else if (pendingUser.action === 'toggleDirector') {
+        const newStatus = !targetUser?.isDirector;
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isDirector: newStatus, isStaff: false });
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.uid === pendingUser.uid ? { ...user, isDirector: newStatus, isStaff: false } : user
+          )
+        );
+        await logAdminActivity({
+          type: newStatus ? 'Ajout' : 'Suppression',
+          target: 'Utilisateur',
+          targetId: pendingUser.uid,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: {
+            action: 'Changement de rôle directeur',
+            userId: pendingUser.uid,
+            newStatus: newStatus ? 'Directeur' : 'Utilisateur standard'
+          }
+        });
+
+      } else if (pendingUser.action === 'toggleStaff') {
+        const newStatus = !targetUser?.isStaff;
+        await updateDoc(doc(db, 'users', pendingUser.uid), { isStaff: newStatus, isDirector: false });
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.uid === pendingUser.uid ? { ...user, isStaff: newStatus, isDirector: false } : user
+          )
+        );
+        await logAdminActivity({
+          type: newStatus ? 'Ajout' : 'Suppression',
+          target: 'Utilisateur',
+          targetId: pendingUser.uid,
+          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
+          details: {
+            action: 'Changement de rôle staff',
+            userId: pendingUser.uid,
+            newStatus: newStatus ? 'Staff' : 'Utilisateur standard'
           }
         });
       }
@@ -1142,6 +1196,32 @@ const AdminUserManager: React.FC = () => {
                           )
                         )}
                         
+                        {canManageUsers && user.uid !== currentUser?.uid && !user.isAdmin && !user.isEditor && !user.isSuperAdmin && (
+                          <button
+                            onClick={() => handleToggleDirector(user.uid)}
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isDirector ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+                          >
+                            {user.isDirector ? (
+                              <><UserMinus className="w-4 h-4 mr-1" /> Retirer directeur</>
+                            ) : (
+                              <><Shield className="w-4 h-4 mr-1" /> Rendre directeur</>
+                            )}
+                          </button>
+                        )}
+
+                        {canManageUsers && user.uid !== currentUser?.uid && !user.isAdmin && !user.isEditor && !user.isSuperAdmin && (
+                          <button
+                            onClick={() => handleToggleStaff(user.uid)}
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${user.isStaff ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+                          >
+                            {user.isStaff ? (
+                              <><UserMinus className="w-4 h-4 mr-1" /> Retirer staff</>
+                            ) : (
+                              <><UserPlus className="w-4 h-4 mr-1" /> Rendre staff</>
+                            )}
+                          </button>
+                        )}
+
                         {user.uid !== currentUser?.uid && user.isSuperAdmin && !currentUserIsSuperAdmin && (
                           <button
                             className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"

@@ -37,6 +37,7 @@ import AlumniStats from './AlumniStats';
 
 import type { LogActivityParams } from './adminActivityLog';
 
+
 function formatAdminActivity(activity: LogActivityParams, usersList: UserDoc[] = []) {
   const actionMap: Record<string, string> = {
     'Ajout': 'a ajouté',

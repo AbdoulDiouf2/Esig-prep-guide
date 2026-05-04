@@ -25,6 +25,8 @@ export type AppUser = {
   isAdmin: boolean;
   isSuperAdmin?: boolean;
   isEditor?: boolean;
+  isDirector?: boolean;
+  isStaff?: boolean;
   yearPromo?: number; // Année de promotion (année de sortie de prépa)
   status?: 'alumni' | 'cps' | 'future'; // Statut déterminé automatiquement
   profileComplete?: boolean; // Indique si le profil est complet (pour migration)
@@ -54,6 +56,8 @@ type AuthContextType = {
   logout: () => Promise<void>;
   isAdmin: () => boolean;
   isEditor: () => boolean;
+  isDirector: () => boolean;
+  isStaff: () => boolean;
   isSuperAdmin: () => Promise<boolean>;
   sendVerificationEmail: () => Promise<void>;
   updateCurrentUser: (data: Partial<AppUser>) => void;
@@ -85,6 +89,8 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<AppUs
     isAdmin: userData?.isAdmin || false,
     isSuperAdmin: userData?.isSuperAdmin || false,
     isEditor: userData?.isEditor || false,
+    isDirector: userData?.isDirector || false,
+    isStaff: userData?.isStaff || false,
     yearPromo: userData?.yearPromo,
     status: userData?.status,
     profileComplete: userData?.profileComplete,
@@ -121,8 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const getRoleId = (u: AppUser) =>
       u.isSuperAdmin ? 'superAdmin'
-      : u.isAdmin ? 'admin'
-      : u.isEditor ? 'editor'
+      : u.isAdmin    ? 'admin'
+      : u.isEditor   ? 'editor'
+      : u.isDirector ? 'director'
+      : u.isStaff    ? 'staff'
       : 'user';
 
     let roleId = getRoleId(user);
@@ -167,6 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: data.isAdmin ?? false,
         isEditor: data.isEditor ?? false,
         isSuperAdmin: data.isSuperAdmin ?? false,
+        isDirector: data.isDirector ?? false,
+        isStaff: data.isStaff ?? false,
       };
       const newRoleId = getRoleId(updatedUser);
       if (newRoleId !== roleId) {
@@ -333,6 +343,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: user.displayName || '',
         emailVerified: user.emailVerified,
         isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
+        isDirector: userSnapshot.exists() ? userSnapshot.data()?.isDirector ?? false : false,
+        isStaff: userSnapshot.exists() ? userSnapshot.data()?.isStaff ?? false : false,
         lastLogin: loginTimestamp
       };
       setCurrentUser(updatedUser);
@@ -370,6 +382,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isEditor = () => {
     return Boolean(currentUser && currentUser.isEditor);
   };
+
+  const isDirector = () => Boolean(currentUser?.isDirector);
+  const isStaff = () => Boolean(currentUser?.isStaff);
 
   // Vérifier si l'utilisateur est superadmin
   const isSuperAdmin = async () => {
@@ -450,6 +465,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       emailVerified: user.emailVerified,
       isAdmin: userSnapshot.exists() ? userSnapshot.data()?.isAdmin ?? false : false,
       isEditor: userSnapshot.exists() ? userSnapshot.data()?.isEditor ?? false : false,
+      isDirector: userSnapshot.exists() ? userSnapshot.data()?.isDirector ?? false : false,
+      isStaff: userSnapshot.exists() ? userSnapshot.data()?.isStaff ?? false : false,
       createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
       photoURL: user.photoURL ?? undefined,
     };
@@ -535,6 +552,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: userData?.isAdmin ?? false,
       isEditor: userData?.isEditor ?? false,
       isSuperAdmin: userData?.isSuperAdmin ?? false,
+      isDirector: userData?.isDirector ?? false,
+      isStaff: userData?.isStaff ?? false,
       createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
       lastLogin: loginTimestamp,
       photoURL: user.photoURL ?? undefined,
@@ -560,6 +579,8 @@ const value = {
   logout,
   isAdmin,
   isEditor,
+  isDirector,
+  isStaff,
   isSuperAdmin,
   sendVerificationEmail,
   updateCurrentUser: (data: Partial<AppUser>) => {

@@ -5,6 +5,7 @@ import { DocumentData } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { getUserSubsectionData } from '../../services/subsectionDataService';
 import { useContent } from '../../contexts/ContentContext';
+import { usePermission } from '../../hooks/usePermission';
 import { Users, Plane, Check, X, Calendar, MapPin, Bus, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -42,6 +43,9 @@ interface JsPDFWithAutoTable extends jsPDF {
 
 const AdminProgressionOverview: React.FC = () => {
   const { guideSections } = useContent();
+  const canDirector = usePermission('director.dashboard');
+  const canAdmin = usePermission('admin.dashboard');
+  const backPath = canDirector && !canAdmin ? '/director' : '/admin';
   const [userProgressions, setUserProgressions] = useState<{ userId: string, completedSections: string[] }[]>([]);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -636,7 +640,7 @@ const AdminProgressionOverview: React.FC = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8 px-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/admin" className="inline-flex items-center px-3 py-2 rounded-md bg-blue-700 hover:bg-blue-600 text-white font-medium text-sm focus:outline-none">
+          <Link to={backPath} className="inline-flex items-center px-3 py-2 rounded-md bg-blue-700 hover:bg-blue-600 text-white font-medium text-sm focus:outline-none">
             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             Retour au dashboard
           </Link>

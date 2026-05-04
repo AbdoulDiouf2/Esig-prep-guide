@@ -56,6 +56,8 @@ import ChatAI from './pages/ChatAI';
 import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
 import EditorDashboard from './pages/editor/EditorDashboard';
+import DirectorDashboard from './pages/director/DirectorDashboard';
+import StaffDashboard from './pages/staff/StaffDashboard';
 import ApplicationsDashboard from './pages/ApplicationsDashboard';
 import Webinars from './pages/Webinars';
 import WebinarDetail from './pages/WebinarDetail';
@@ -573,7 +575,41 @@ function App() {
                     </EditorRoute>
                   </AuthWrapper>
                 } />
-                
+
+                {/* Éditeur actualités — accessible director + staff + editor + admin */}
+                <Route path="/news-editor" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="admin.news">
+                      <AdminNews />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+
+                {/* Portail Directeur */}
+                <Route path="/director" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="director.dashboard">
+                      <DirectorDashboard />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/director/progressions" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="director.dashboard">
+                      <AdminProgressionOverview />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+
+                {/* Portail Staff */}
+                <Route path="/staff" element={
+                  <AuthWrapper>
+                    <PermissionRoute permission="staff.dashboard">
+                      <StaffDashboard />
+                    </PermissionRoute>
+                  </AuthWrapper>
+                } />
+
                 {/* Webinars */}
                 <Route path="/webinars" element={
                   <AuthWrapper>
