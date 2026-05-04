@@ -11,6 +11,7 @@ import {
   createInvitation,
   getInvitations,
   revokeInvitation,
+  resendInvitation,
   Invitation,
 } from '../../services/invitationService';
 import { NotificationService } from '../../services/NotificationService';
@@ -254,6 +255,53 @@ L'équipe CPS Connect`;
   const handleRevokeInvitation = async (id: string) => {
     await revokeInvitation(id);
     fetchInvitations();
+  };
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const handleResendInvitation = async (inv: Invitation) => {
+    if (!currentUser) return;
+    setResendingId(inv.id);
+    try {
+      const token = await resendInvitation(inv.id, inv.email, inv.role, currentUser.uid);
+      const inviteUrl = `${window.location.origin}/#/accept-invitation/${token}`;
+      const message = `Bonjour,\n\nVotre invitation à rejoindre CPS Connect a été renouvelée.\n\nPour créer votre compte, cliquez sur le lien ci-dessous :\n\n${inviteUrl}\n\nCe lien est valable pendant 7 jours.`;
+      await NotificationService.sendCustomEmail(inv.email, "Invitation renouvelée — CPS Connect", message, undefined, false);
+      fetchInvitations();
+    } catch {
+      // ignore
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatCountdown = (expiresAt: Invitation['expiresAt'] | undefined): string => {
+    if (!expiresAt?.toDate) return '-';
+    const diff = expiresAt.toDate().getTime() - now;
+    if (diff <= 0) return 'Expiré';
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    if (d > 0) return `${d}j ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  };
+
+  const RESEND_COOLDOWN_MS = 30 * 60 * 1000;
+  const getCooldownRemaining = (inv: Invitation): number => {
+    if (!inv.lastSentAt?.toDate) return 0;
+    return Math.max(0, inv.lastSentAt.toDate().getTime() + RESEND_COOLDOWN_MS - now);
+  };
+  const formatCooldown = (ms: number): string => {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${m}m ${s}s`;
   };
 
   // Récupère les utilisateurs Auth qui n'ont pas de profil Firestore
@@ -1536,7 +1584,9 @@ L'équipe CPS Connect`;
                 <tbody className="bg-white divide-y divide-zinc-100">
                   {invitations.map((inv) => {
                     const createdDate = inv.createdAt?.toDate ? inv.createdAt.toDate() : null;
-                    const expiresDate = inv.expiresAt?.toDate ? inv.expiresAt.toDate() : null;
+                    const isPending = inv.status === 'pending';
+                    const countdown = isPending ? formatCountdown(inv.expiresAt) : null;
+                    const isExpiredCountdown = countdown === 'Expiré';
                     return (
                       <tr key={inv.id} className="hover:bg-zinc-50">
                         <td className="px-4 py-2 text-sm text-gray-700">{inv.email}</td>
@@ -1548,26 +1598,52 @@ L'équipe CPS Connect`;
                         <td className="px-4 py-2 text-xs text-gray-500">
                           {createdDate ? createdDate.toLocaleDateString('fr-FR') : '-'}
                         </td>
-                        <td className="px-4 py-2 text-xs text-gray-500">
-                          {expiresDate ? expiresDate.toLocaleDateString('fr-FR') : '-'}
+                        <td className="px-4 py-2 text-xs font-mono font-semibold">
+                          {isPending ? (
+                            <span className={isExpiredCountdown ? 'text-red-600' : 'text-amber-600'}>
+                              {countdown}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            inv.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                            isPending ? 'bg-amber-100 text-amber-800' :
                             inv.status === 'accepted' ? 'bg-green-100 text-green-800' :
                             'bg-red-100 text-red-700'
                           }`}>
-                            {inv.status === 'pending' ? 'En attente' : inv.status === 'accepted' ? 'Acceptée' : 'Révoquée'}
+                            {isPending ? 'En attente' : inv.status === 'accepted' ? 'Acceptée' : 'Révoquée'}
                           </span>
                         </td>
                         <td className="px-4 py-2">
-                          {inv.status === 'pending' && canManageUsers && (
-                            <button
-                              onClick={() => handleRevokeInvitation(inv.id)}
-                              className="text-xs text-red-600 hover:text-red-800 hover:underline"
-                            >
-                              Révoquer
-                            </button>
+                          {isPending && canManageUsers && (
+                            <div className="flex items-center gap-3">
+                              {(() => {
+                                const cooldown = getCooldownRemaining(inv);
+                                const onCooldown = cooldown > 0;
+                                return (
+                                  <button
+                                    onClick={() => !onCooldown && handleResendInvitation(inv)}
+                                    disabled={resendingId === inv.id || onCooldown}
+                                    title={onCooldown ? `Disponible dans ${formatCooldown(cooldown)}` : 'Renvoyer l\'invitation'}
+                                    className="text-xs disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 hover:text-blue-900 hover:underline"
+                                  >
+                                    {resendingId === inv.id
+                                      ? 'Envoi…'
+                                      : onCooldown
+                                        ? `Renvoyer (${formatCooldown(cooldown)})`
+                                        : 'Renvoyer'}
+                                  </button>
+                                );
+                              })()}
+                              <button
+                                onClick={() => handleRevokeInvitation(inv.id)}
+                                className="text-xs text-red-600 hover:text-red-800 hover:underline"
+                              >
+                                Révoquer
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

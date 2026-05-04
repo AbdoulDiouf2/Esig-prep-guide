@@ -21,6 +21,7 @@ export interface Invitation {
   createdBy: string;
   createdAt: Timestamp;
   expiresAt: Timestamp;
+  lastSentAt?: Timestamp;
 }
 
 /**
@@ -45,6 +46,7 @@ export async function createInvitation(
     createdBy,
     createdAt: serverTimestamp(),
     expiresAt,
+    lastSentAt: Timestamp.now(),
   });
 
   return token;
@@ -88,6 +90,27 @@ export async function acceptInvitation(token: string): Promise<void> {
  */
 export async function revokeInvitation(invitationId: string): Promise<void> {
   await updateDoc(doc(db, 'invitations', invitationId), { status: 'expired' });
+}
+
+/**
+ * Revokes the old invitation and creates a fresh one for the same email/role.
+ * Returns the new token.
+ */
+export async function resendInvitation(
+  oldInvitationId: string,
+  email: string,
+  role: string,
+  createdBy: string
+): Promise<string> {
+  await updateDoc(doc(db, 'invitations', oldInvitationId), { status: 'expired' });
+  const token = await createInvitation(email, role, createdBy);
+  // Mark lastSentAt on the new invitation (find it by token)
+  const q = query(collection(db, 'invitations'), where('token', '==', token));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    await updateDoc(doc(db, 'invitations', snap.docs[0].id), { lastSentAt: Timestamp.now() });
+  }
+  return token;
 }
 
 /**
