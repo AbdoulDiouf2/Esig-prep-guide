@@ -51,6 +51,8 @@ const UserProfile: React.FC = () => {
             const userData = userDoc.data();
             if (userData.status) {
               setUserStatus(userData.status);
+            } else if (userData.isDirector || userData.isStaff) {
+              setUserStatus('administration');
             }
           }
         } catch (error) {
@@ -248,6 +250,12 @@ const UserProfile: React.FC = () => {
             {currentUser?.isAdmin && (
               <span className="absolute top-2 left-2 flex items-center gap-1 bg-blue-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> {currentUser?.isSuperAdmin ? 'Super Admin' : 'Admin'}</span>
             )}
+            {currentUser?.isDirector && !currentUser?.isAdmin && (
+              <span className="absolute top-2 left-2 flex items-center gap-1 bg-purple-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> Directeur</span>
+            )}
+            {currentUser?.isStaff && !currentUser?.isAdmin && !currentUser?.isDirector && (
+              <span className="absolute top-2 left-2 flex items-center gap-1 bg-amber-600 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> Staff</span>
+            )}
           </div>
           <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">{displayName || email}</h1>
           <div className="text-gray-500 text-sm mb-4 text-center">{email}</div>
@@ -300,6 +308,7 @@ const UserProfile: React.FC = () => {
                       {userStatus === 'cps' && <MapPin className="w-4 h-4 text-blue-500" />}
                       {userStatus === 'esigelec' && <GraduationCap className="w-4 h-4 text-green-500" />}
                       {userStatus === 'alumni' && <User className="w-4 h-4 text-purple-500" />}
+                      {userStatus === 'administration' && <Shield className="w-4 h-4 text-slate-700" />}
                       {userStatus === 'other' && <User className="w-4 h-4 text-gray-500" />}
                       {getStatusLabel(userStatus)}
                     </span>

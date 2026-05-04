@@ -95,7 +95,7 @@ const AdminUserManager: React.FC = () => {
   // Filtres
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('tous');
-  const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres'>('tous');
+  const [statusFilter, setStatusFilter] = useState<'tous' | 'esigelec' | 'cps' | 'alumni' | 'administration' | 'autres'>('tous');
   const [yearPromoFilter, setYearPromoFilter] = useState<string>('');
 
   // Édition inline de l'année de promo
@@ -649,7 +649,15 @@ L'équipe CPS Connect`;
             <div className="flex justify-between items-center p-2 bg-gray-100 rounded border border-gray-200">
               <span className="text-sm font-medium">Autres</span>
               <span className="bg-gray-600 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
-                {loading ? '...' : users.filter(user => !user.status || user.status === 'autres').length}
+                {loading ? '...' : users.filter(user => (!user.status || user.status === 'autres') && !user.isDirector && !user.isStaff).length}
+              </span>
+            </div>
+
+            {/* Administration */}
+            <div className="flex justify-between items-center p-2 bg-slate-100 rounded border border-slate-200">
+              <span className="text-sm font-medium">Admin / Staff</span>
+              <span className="bg-slate-700 text-white px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                {loading ? '...' : users.filter(user => user.isDirector || user.isStaff).length}
               </span>
             </div>
           </div>
@@ -718,7 +726,7 @@ L'équipe CPS Connect`;
               className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={statusFilter}
               onChange={e => {
-                setStatusFilter(e.target.value as 'tous' | 'esigelec' | 'cps' | 'alumni' | 'autres');
+                setStatusFilter(e.target.value as any);
                 setCurrentPage(1); // Réinitialiser la pagination
               }}
             >
@@ -726,6 +734,7 @@ L'équipe CPS Connect`;
               <option value="esigelec">ESIGELEC</option>
               <option value="cps">CPS</option>
               <option value="alumni">Alumni</option>
+              <option value="administration">Administration</option>
               <option value="autres">Autres</option>
             </select>
           </div>
@@ -839,7 +848,8 @@ L'équipe CPS Connect`;
                   .filter(user => {
                     // Filtrage par statut
                     if (statusFilter === 'tous') return true;
-                    if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                    if (statusFilter === 'administration') return !!(user.isDirector || user.isStaff);
+                    if (statusFilter === 'autres') return (!user.status || user.status === 'autres') && !user.isDirector && !user.isStaff;
                     return user.status === statusFilter;
                   })
                   .filter(user => {
@@ -922,7 +932,8 @@ L'équipe CPS Connect`;
                   .filter(user => {
                     // Filtrage par statut
                     if (statusFilter === 'tous') return true;
-                    if (statusFilter === 'autres') return !user.status || user.status === 'autres';
+                    if (statusFilter === 'administration') return !!(user.isDirector || user.isStaff);
+                    if (statusFilter === 'autres') return (!user.status || user.status === 'autres') && !user.isDirector && !user.isStaff;
                     return user.status === statusFilter;
                   })
                   .filter(user => {
@@ -970,24 +981,34 @@ L'équipe CPS Connect`;
                           <button onClick={() => setEditingPromoUid(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => { setEditingPromoUid(user.uid); setEditingPromoValue(getEffectiveYearPromo(user)?.toString() ?? ''); }}
-                          className="group flex items-center gap-1"
-                          title="Cliquer pour modifier l'année de promo"
-                        >
-                          {getEffectiveYearPromo(user) ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 group-hover:bg-indigo-200">
-                              Prépa {getEffectiveYearPromo(user)}
-                            </span>
+                        <div className="flex items-center gap-1">
+                          {(user.isDirector || user.isStaff) ? (
+                            <span className="text-gray-400 text-xs font-medium italic">N/A (Personnel)</span>
                           ) : (
-                            <span className="text-amber-600 text-xs font-medium group-hover:underline">⚠ Non défini</span>
+                            <button
+                              onClick={() => { setEditingPromoUid(user.uid); setEditingPromoValue(getEffectiveYearPromo(user)?.toString() ?? ''); }}
+                              className="group flex items-center gap-1"
+                              title="Cliquer pour modifier l'année de promo"
+                            >
+                              {getEffectiveYearPromo(user) ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 group-hover:bg-indigo-200">
+                                  Prépa {getEffectiveYearPromo(user)}
+                                </span>
+                              ) : (
+                                <span className="text-amber-600 text-xs font-medium group-hover:underline">⚠ Non défini</span>
+                              )}
+                              <Edit className="w-3 h-3 text-gray-300 group-hover:text-gray-500" />
+                            </button>
                           )}
-                          <Edit className="w-3 h-3 text-gray-300 group-hover:text-gray-500" />
-                        </button>
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {user.status ? (
+                      { (user.isDirector || user.isStaff) ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-100">
+                          Administration
+                        </span>
+                      ) : user.status ? (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
                           user.status === 'esigelec' ? 'bg-blue-100 text-blue-800' : 
                           user.status === 'cps' ? 'bg-purple-100 text-purple-800' : 

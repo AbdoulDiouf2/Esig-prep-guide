@@ -29,6 +29,13 @@ export const STATUS_OPTIONS: StatusOption[] = [
     iconColor: 'text-purple-500'
   },
   {
+    value: 'administration',
+    label: 'Administration / Personnel',
+    description: 'Directeur ou Staff de l\'établissement',
+    iconName: 'Shield',
+    iconColor: 'text-slate-700'
+  },
+  {
     value: 'other',
     label: 'Autre',
     description: 'Autre statut',

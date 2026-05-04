@@ -6,6 +6,7 @@ import { NotificationService } from '../services/NotificationService';
 import { ArrowLeft, Send, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmailBadgeInput from './inputs/EmailBadgeInput';
+import { STATUS_OPTIONS } from '../constants/statusOptions';
 
 // Interface pour les données d'email
 interface EmailData {
@@ -33,6 +34,7 @@ const AdminEmailBroadcast: React.FC = () => {
   const [errors, setErrors] = useState<Array<{email: string, error: string}>>([]);
   const [recipientsPreview, setRecipientsPreview] = useState<UserEmail[]>([]);
   const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
+  const [availablePromos, setAvailablePromos] = useState<string[]>([]);
   
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -44,31 +46,81 @@ const AdminEmailBroadcast: React.FC = () => {
     bcc: [] as string[], // Tableau pour les BCC
     useCC: false,
     useBCC: false,
-    sendTest: false
+    sendTest: false,
+    yearPromo: '' // Nouvelle option de filtrage
   });
 
+  // Récupérer les promotions disponibles en base
+  useEffect(() => {
+    const fetchAvailablePromos = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const querySnapshot = await getDocs(usersRef);
+        const promos = new Set<string>();
+        
+        querySnapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.yearPromo) {
+            promos.add(data.yearPromo.toString());
+          }
+        });
+        
+        // Trier par année décroissante
+        setAvailablePromos(Array.from(promos).sort((a, b) => b.localeCompare(a)));
+      } catch (error) {
+        console.error('Erreur lors de la récupération des promos:', error);
+      }
+    };
+
+    fetchAvailablePromos();
+  }, []);
+
   // Récupérer les utilisateurs pour le CCI
-  const fetchRecipients = useCallback(async (status: string): Promise<UserEmail[]> => {
+  const fetchRecipients = useCallback(async (status: string, yearPromo?: string): Promise<UserEmail[]> => {
     try {
       const usersRef = collection(db, 'users');
-      let q;
       
-      if (status === 'all') {
-        // Récupérer tous les utilisateurs sans distinction de statut
-        q = usersRef;
-      } else {
-        // Filtrer par statut spécifique
-        q = query(usersRef, where('status', '==', status));
-      }
+      // On récupère tout et on filtre côté client pour gérer les cas complexes (promo + admin)
+      // C'est plus simple car la collection n'est pas censée être massive pour les emails groupés
+      const querySnapshot = await getDocs(usersRef);
       
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          email: data.email || '',
-          displayName: data.displayName || data.email?.split('@')[0] || ''
-        };
-      }).filter(user => user.email); // Filtrer les utilisateurs sans email
+      return querySnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            email: data.email || '',
+            displayName: data.displayName || data.email?.split('@')[0] || '',
+            status: data.status,
+            yearPromo: data.yearPromo,
+            isDirector: data.isDirector,
+            isStaff: data.isStaff
+          };
+        })
+        .filter(user => {
+          if (!user.email) return false;
+
+          // Filtre par statut / groupe
+          let matchStatus = false;
+          if (status === 'all') {
+            matchStatus = true;
+          } else if (status === 'administration') {
+            matchStatus = !!(user.isDirector || user.isStaff || user.status === 'administration');
+          } else {
+            matchStatus = user.status === status;
+          }
+
+          if (!matchStatus) return false;
+
+          // Filtre par promo (si applicable et sélectionné)
+          // On n'applique pas le filtre promo pour l'administration
+          if (yearPromo && status !== 'administration') {
+            if (user.yearPromo?.toString() !== yearPromo) {
+              return false;
+            }
+          }
+
+          return true;
+        });
     } catch (error) {
       console.error('Erreur lors de la récupération des destinataires CCI:', error);
       return [];
@@ -76,10 +128,10 @@ const AdminEmailBroadcast: React.FC = () => {
   }, []);
 
   // Mettre à jour l'aperçu des destinataires
-  const updateRecipientsPreview = useCallback(async (status: string) => {
+  const updateRecipientsPreview = useCallback(async (status: string, yearPromo?: string) => {
     setIsLoadingRecipients(true);
     try {
-      const users = await fetchRecipients(status);
+      const users = await fetchRecipients(status, yearPromo);
       setRecipientsPreview(users);
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'aperçu des destinataires:', error);
@@ -89,12 +141,12 @@ const AdminEmailBroadcast: React.FC = () => {
     }
   }, [fetchRecipients]);
 
-  // Mettre à jour l'aperçu quand le statut change
+  // Mettre à jour l'aperçu quand le statut ou la promo change
   useEffect(() => {
-    if (formData.status) {
-      updateRecipientsPreview(formData.status);
+    if (formData.status !== undefined) {
+      updateRecipientsPreview(formData.status, formData.yearPromo);
     }
-  }, [formData.status, updateRecipientsPreview]);
+  }, [formData.status, formData.yearPromo, updateRecipientsPreview]);
 
   // Gestion du changement des champs du formulaire
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -107,9 +159,11 @@ const AdminEmailBroadcast: React.FC = () => {
       [name]: newValue
     }));
 
-    // Si le statut change, mettre à jour l'aperçu
-    if (name === 'status' && typeof newValue === 'string') {
-      await updateRecipientsPreview(newValue);
+    // Si le statut ou la promo change, mettre à jour l'aperçu
+    if ((name === 'status' || name === 'yearPromo') && typeof newValue === 'string') {
+      const newStatus = name === 'status' ? newValue : formData.status;
+      const newPromo = name === 'yearPromo' ? newValue : formData.yearPromo;
+      await updateRecipientsPreview(newStatus, newPromo);
     }
   };
 
@@ -192,7 +246,7 @@ const AdminEmailBroadcast: React.FC = () => {
       // Récupérer les utilisateurs pour le CCI si activé
       let bccUsers: UserEmail[] = [];
       if (formData.useBCC) {
-        bccUsers = await fetchRecipients(formData.status);
+        bccUsers = await fetchRecipients(formData.status, formData.yearPromo);
         
         if (bccUsers.length === 0) {
           alert('Aucun utilisateur trouvé pour le statut sélectionné en CCI.');
@@ -486,33 +540,62 @@ const AdminEmailBroadcast: React.FC = () => {
                 </div>
                 {formData.useBCC && (
                   <div className="ml-6 space-y-4">
-                    <div>
-                      <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                        Sélectionner un groupe
-                      </label>
-                      <select
-                        id="status"
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        disabled={sending}
-                        className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="all">Tous les utilisateurs</option>
-                        <option value="esigelec">Étudiants ESIGELEC</option>
-                        <option value="alumni">Alumni</option>
-                        <option value="cps">Étudiants CPS</option>
-                        <option value="autres">Autres statuts</option>
-                      </select>
-                      <div className="mt-2">
+                    <div className={`grid gap-4 ${formData.status !== 'administration' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                      <div>
+                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                          Sélectionner un groupe
+                        </label>
+                        <select
+                          id="status"
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          disabled={sending}
+                          className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="all">Tous les utilisateurs</option>
+                          {STATUS_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Filtre Promotion (Masqué pour l'administration) */}
+                      {formData.status !== 'administration' && (
+                        <div>
+                          <label htmlFor="yearPromo" className="block text-sm font-medium text-gray-700 mb-1">
+                            Filtrer par promotion (optionnel)
+                          </label>
+                          <select
+                            id="yearPromo"
+                            name="yearPromo"
+                            value={formData.yearPromo}
+                            onChange={handleChange}
+                            disabled={sending}
+                            className="w-full p-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Toutes les promotions</option>
+                            {availablePromos.map(year => (
+                              <option key={year} value={year}>
+                                Prépa {year}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-2">
                         <p className="text-xs text-gray-500 mb-2">
                           {isLoadingRecipients ? (
                             <span>Chargement des destinataires...</span>
                           ) : (
                             <span>
                               {formData.status === 'all' 
-                                ? `${recipientsPreview.length} destinataire(s) trouvé(s) pour tous les utilisateurs`
-                                : `${recipientsPreview.length} destinataire(s) trouvé(s) pour le statut "${formData.status}"`
+                                ? `${recipientsPreview.length} destinataire(s) trouvé(s) pour tous les utilisateurs${formData.yearPromo ? ` (Promo ${formData.yearPromo})` : ''}`
+                                : `${recipientsPreview.length} destinataire(s) trouvé(s) pour le groupe "${STATUS_OPTIONS.find(opt => opt.value === formData.status)?.label || formData.status}"${formData.yearPromo ? ` (Promo ${formData.yearPromo})` : ''}`
                               }
                             </span>
                           )}
@@ -534,7 +617,6 @@ const AdminEmailBroadcast: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    </div>
                     <div>
                       <label htmlFor="bcc" className="block text-sm font-medium text-gray-700 mb-1">
                         Ou saisir des adresses manuellement

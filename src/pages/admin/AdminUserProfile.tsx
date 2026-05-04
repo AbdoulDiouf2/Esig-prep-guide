@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft } from 'lucide-react';
+import { Shield, UserMinus, UserPlus, Trash2, ArrowLeft, GraduationCap, MapPin, User, Users } from 'lucide-react';
 import { getIdToken } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
@@ -14,9 +14,13 @@ interface UserDoc {
   email: string;
   displayName: string;
   isAdmin: boolean;
-  isSuperAdmin?: boolean; // Ajouté pour la gestion du super admin
+  isSuperAdmin?: boolean;
+  isDirector?: boolean;
+  isStaff?: boolean;
   emailVerified: boolean;
   photoURL?: string;
+  status?: string;
+  yearPromo?: number;
 }
 
 const AdminUserProfile: React.FC = () => {
@@ -225,6 +229,12 @@ const AdminUserProfile: React.FC = () => {
           {user?.isSuperAdmin && (
             <div className="mb-2 text-yellow-800 font-bold text-xs inline-flex items-center px-2 py-0.5 rounded bg-yellow-100 border border-yellow-300">Admin principal</div>
           )}
+          {user?.isDirector && (
+            <div className="mb-2 text-purple-800 font-bold text-xs inline-flex items-center px-2 py-0.5 rounded bg-purple-100 border border-purple-300 ml-1">Directeur</div>
+          )}
+          {user?.isStaff && (
+            <div className="mb-2 text-amber-800 font-bold text-xs inline-flex items-center px-2 py-0.5 rounded bg-amber-100 border border-amber-300 ml-1">Staff</div>
+          )}
           {/* URL photo */}
           <input
             type="text"
@@ -242,9 +252,51 @@ const AdminUserProfile: React.FC = () => {
           <div className="mb-1 w-full text-center text-gray-600">
             <span className="font-semibold text-gray-800">Vérifié :</span> {user.emailVerified ? 'Oui' : 'Non'}
           </div>
-          {/* Statut admin */}
+          {/* Statut utilisateur */}
+          <div className="mb-2 w-full text-center">
+            <span className="font-semibold text-gray-800">Statut :</span> 
+            { (user.isDirector || user.isStaff) ? (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-700 text-slate-100 ml-2">
+                <Shield className="w-4 h-4 mr-1" /> Administration
+              </span>
+            ) : user.status ? (
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ml-2 ${
+                user.status === 'esigelec' ? 'bg-blue-100 text-blue-800' : 
+                user.status === 'cps' ? 'bg-purple-100 text-purple-800' : 
+                user.status === 'alumni' ? 'bg-green-100 text-green-800' : 
+                'bg-gray-100 text-gray-800'}`}>
+                {user.status === 'esigelec' && <GraduationCap className="w-4 h-4 mr-1" />}
+                {user.status === 'cps' && <MapPin className="w-4 h-4 mr-1" />}
+                {user.status === 'alumni' && <User className="w-4 h-4 mr-1" />}
+                {user.status === 'esigelec' ? 'ESIGELEC' : 
+                 user.status === 'cps' ? 'CPS' : 
+                 user.status === 'alumni' ? 'Alumni' : 
+                 user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 ml-2">
+                Non défini
+              </span>
+            )}
+          </div>
+          
+          {/* Année de promo (si applicable) */}
+          {!(user.isDirector || user.isStaff) && (
+            <div className="mb-4 w-full text-center text-gray-600">
+              <span className="font-semibold text-gray-800">Promo :</span> 
+              {user.yearPromo ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 ml-2">
+                  <Users className="w-4 h-4 mr-1" /> Prépa {user.yearPromo}
+                </span>
+              ) : (
+                <span className="text-amber-600 ml-2">⚠ Non défini</span>
+              )}
+            </div>
+          )}
+
+          {/* Rôle administratif */}
           <div className="mb-6 w-full text-center">
-            <span className="font-semibold text-gray-800">Statut :</span> {user.isAdmin ? (
+            <span className="font-semibold text-gray-800">Rôle Admin :</span> {user.isAdmin ? (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 ml-2">
                 <Shield className="w-5 h-5 mr-1" /> Admin
               </span>
