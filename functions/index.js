@@ -97,7 +97,7 @@ exports.checkAndUpdateWebinarStatus = onSchedule(
  * Fonction pour supprimer un utilisateur à la fois de l'authentification Firebase et de Firestore
  * Cette fonction ne peut être appelée que par un administrateur authentifié
  */
-exports.deleteUser = onRequest(async (req, res) => {
+exports.deleteUser = onRequest({ invoker: 'public' }, async (req, res) => {
   // Gestion CORS
   return cors(req, res, async () => {
     // Vérifier la méthode HTTP

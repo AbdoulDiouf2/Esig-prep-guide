@@ -74,6 +74,7 @@ import NewsDetail from './pages/NewsDetail';
 import AdminNews from './pages/admin/AdminNews';
 import AdminRoleManager from './pages/admin/AdminRoleManager';
 import AdminUserOverrides from './pages/admin/AdminUserOverrides';
+import AcceptInvitation from './pages/AcceptInvitation';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -239,6 +240,7 @@ function App() {
                 <Route path="/alumni/:uid" element={<AuthWrapper><AlumniDetail /></AuthWrapper>} />
                 <Route path="/reset-password" element={<RedirectIfAuthenticated><ResetPassword /></RedirectIfAuthenticated>} />
                 <Route path="/test-firebase" element={<TestFirebase />} />
+                <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
                 
                 {/* Pages légales */}
                 <Route path="/legal/cgu" element={<CGU />} />

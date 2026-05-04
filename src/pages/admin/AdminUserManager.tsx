@@ -3,10 +3,17 @@ import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Shield, UserMinus, UserPlus, AlertTriangle, Edit, X, ChevronDown, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordModal from '../../components/PasswordModal';
 import { logAdminActivity } from './adminActivityLog';
+import {
+  createInvitation,
+  getInvitations,
+  revokeInvitation,
+  Invitation,
+} from '../../services/invitationService';
+import { NotificationService } from '../../services/NotificationService';
 
 // Typage strict de la réponse REST Firebase Auth
 export interface FirebaseAuthUser {
@@ -98,6 +105,16 @@ const AdminUserManager: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 15;
 
+  // Invitation state
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'user' | 'editor' | 'director' | 'staff' | 'admin'>('user');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+
   const getEffectiveYearPromo = (user: UserDoc): number | undefined =>
     alumniYearPromoMap[user.uid] ?? user.yearPromo;
 
@@ -141,6 +158,66 @@ const AdminUserManager: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const fetchInvitations = async () => {
+    setInvitationsLoading(true);
+    try {
+      const list = await getInvitations();
+      setInvitations(list);
+    } catch {
+      // ignore
+    } finally {
+      setInvitationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvitations();
+  }, []);
+
+  const handleSendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setInviteError(null);
+    setInviteSuccess(null);
+    setInviteLoading(true);
+    try {
+      const token = await createInvitation(inviteEmail, inviteRole, currentUser.uid);
+      const inviteUrl = `${window.location.origin}/#/accept-invitation/${token}`;
+      const message = `Bonjour,
+
+Vous avez été invité(e) à rejoindre la plateforme CPS Connect.
+
+Pour créer votre compte, cliquez sur le lien ci-dessous ou copiez-le dans votre navigateur :
+
+${inviteUrl}
+
+Ce lien est valable pendant 7 jours. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
+
+L'équipe CPS Connect`;
+
+      await NotificationService.sendCustomEmail(
+        inviteEmail,
+        "Vous êtes invité(e) à rejoindre CPS Connect",
+        message,
+        undefined,
+        false
+      );
+      setInviteSuccess(`Invitation envoyée à ${inviteEmail}`);
+      setInviteEmail('');
+      setInviteRole('user');
+      fetchInvitations();
+    } catch (err: unknown) {
+      setInviteError((err as Error).message || "Erreur lors de l'envoi de l'invitation.");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleRevokeInvitation = async (id: string) => {
+    await revokeInvitation(id);
+    fetchInvitations();
+  };
 
   // Récupère les utilisateurs Auth qui n'ont pas de profil Firestore
   useEffect(() => {
@@ -627,6 +704,15 @@ const AdminUserManager: React.FC = () => {
           </div>
           
           <div className="lg:col-span-2 flex flex-col sm:flex-row gap-2 justify-end">
+            {canManageUsers && (
+              <button
+                onClick={() => { setInviteModalOpen(true); setInviteError(null); setInviteSuccess(null); }}
+                className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                <Mail className="mr-1.5 h-4 w-4" />
+                Inviter un utilisateur
+              </button>
+            )}
             {canManageUsers && (
               <button
                 onClick={syncUserStatuses}
@@ -1348,6 +1434,160 @@ const AdminUserManager: React.FC = () => {
         loading={modalLoading}
         error={modalError}
       />
+
+      {/* Pending invitations section */}
+      <div className="container mx-auto px-4 pb-10">
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-200 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+              <Mail className="w-4 h-4" /> Invitations envoyées
+            </h2>
+            <button
+              onClick={fetchInvitations}
+              className="text-xs text-blue-700 hover:underline"
+            >
+              Actualiser
+            </button>
+          </div>
+          {invitationsLoading ? (
+            <div className="px-5 py-6 text-sm text-gray-500">Chargement...</div>
+          ) : invitations.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-gray-400 italic">Aucune invitation envoyée.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-zinc-100">
+                <thead className="bg-zinc-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date d'envoi</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expiration</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-zinc-100">
+                  {invitations.map((inv) => {
+                    const createdDate = inv.createdAt?.toDate ? inv.createdAt.toDate() : null;
+                    const expiresDate = inv.expiresAt?.toDate ? inv.expiresAt.toDate() : null;
+                    return (
+                      <tr key={inv.id} className="hover:bg-zinc-50">
+                        <td className="px-4 py-2 text-sm text-gray-700">{inv.email}</td>
+                        <td className="px-4 py-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                            {inv.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-500">
+                          {createdDate ? createdDate.toLocaleDateString('fr-FR') : '-'}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-500">
+                          {expiresDate ? expiresDate.toLocaleDateString('fr-FR') : '-'}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            inv.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                            inv.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {inv.status === 'pending' ? 'En attente' : inv.status === 'accepted' ? 'Acceptée' : 'Révoquée'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          {inv.status === 'pending' && canManageUsers && (
+                            <button
+                              onClick={() => handleRevokeInvitation(inv.id)}
+                              className="text-xs text-red-600 hover:text-red-800 hover:underline"
+                            >
+                              Révoquer
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Invite user modal */}
+      {inviteModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+                <Mail className="w-4 h-4" /> Inviter un utilisateur
+              </h2>
+              <button
+                onClick={() => setInviteModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSendInvitation} className="px-6 py-5 space-y-4">
+              {inviteError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  {inviteError}
+                </div>
+              )}
+              {inviteSuccess && (
+                <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+                  {inviteSuccess}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Adresse e-mail
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="exemple@email.com"
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Rôle
+                </label>
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value as typeof inviteRole)}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="user">Utilisateur</option>
+                  <option value="editor">Éditeur</option>
+                  <option value="director">Directeur</option>
+                  <option value="staff">Staff</option>
+                  <option value="admin">Administrateur</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setInviteModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviteLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-900 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
