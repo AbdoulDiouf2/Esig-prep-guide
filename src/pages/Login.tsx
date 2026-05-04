@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import type { AppUser } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +13,14 @@ const Login: React.FC = () => {
   const [githubLoading, setGithubLoading] = useState(false);
   const navigate = useNavigate();
   const { login, loginWithGoogle, loginWithGithub } = useAuth();
+
+  const getPostLoginPath = (user: AppUser | null) => {
+    if (!user) return '/applications';
+    if (user.isSuperAdmin || user.isAdmin) return '/admin';
+    if (user.isDirector) return '/director';
+    if (user.isStaff) return '/staff';
+    return '/applications';
+  };
 
   // For demo purposes, pre-populate with admin credentials
   React.useEffect(() => {
@@ -27,8 +36,8 @@ const Login: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
-      navigate('/applications');
+      const user = await login(email, password);
+      navigate(getPostLoginPath(user));
     } catch (err: unknown) {
       setError('Identifiants invalides. Veuillez réessayer.');
       console.error(err);
@@ -42,8 +51,8 @@ const Login: React.FC = () => {
     setError('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
-      navigate('/applications');
+      const user = await loginWithGoogle();
+      navigate(getPostLoginPath(user));
     } catch (err: unknown) {
       let message = "Erreur lors de la connexion avec Google.";
       if (err && typeof err === 'object' && 'message' in err) {
@@ -61,8 +70,8 @@ const Login: React.FC = () => {
     setError('');
     setGithubLoading(true);
     try {
-      await loginWithGithub();
-      navigate('/applications');
+      const user = await loginWithGithub();
+      navigate(getPostLoginPath(user));
     } catch (err: unknown) {
       let message = "Erreur lors de la connexion avec GitHub.";
       if (err && typeof err === 'object' && 'message' in err) {

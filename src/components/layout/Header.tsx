@@ -206,13 +206,15 @@ const Header: React.FC = () => {
                       <User className="w-4 h-4 mr-2" />
                       <span>Mon compte</span>
                     </Link>
-                    <Link 
-                      to="/my-alumni-profile" 
-                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>Mon profil alumni</span>
-                    </Link>
+                    {!canDirector && !canStaff && (
+                      <Link
+                        to="/my-alumni-profile"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        <span>Mon profil alumni</span>
+                      </Link>
+                    )}
                     {canAdmin && (
                       <Link 
                         to="/admin" 
@@ -388,14 +390,16 @@ const Header: React.FC = () => {
                     <User className="w-4 h-4 mr-3 flex-shrink-0" />
                     <span>Mon compte</span>
                   </Link>
-                  <Link
-                    to="/my-alumni-profile"
-                    className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Users className="w-4 h-4 mr-3 flex-shrink-0" />
-                    <span>Mon profil alumni</span>
-                  </Link>
+                  {!canDirector && !canStaff && (
+                    <Link
+                      to="/my-alumni-profile"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Users className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>Mon profil alumni</span>
+                    </Link>
+                  )}
 
                   {canAdmin && (
                     <Link

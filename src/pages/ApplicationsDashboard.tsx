@@ -34,7 +34,8 @@ import {
   CreditCard,
   AlertCircle,
   Book,
-  Newspaper
+  Newspaper,
+  Upload
 } from 'lucide-react';
 
 interface AppFeature {
@@ -56,7 +57,7 @@ interface CategoryFeatures {
 }
 
 const ApplicationsDashboard: React.FC = () => {
-  const { currentUser, isAdmin, isEditor, isSuperAdmin } = useAuth();
+  const { currentUser, isAdmin, isEditor, isSuperAdmin, isDirector, isStaff } = useAuth();
   const [isSuperAdminState, setIsSuperAdminState] = useState(false);
   const [activeCategory, setActiveCategory] = useState('mentorship');
   const [alumniProfile, setAlumniProfile] = useState<AlumniProfile | null>(null);
@@ -70,13 +71,17 @@ const ApplicationsDashboard: React.FC = () => {
     if (currentUser) {
       if (isAdmin()) {
         setActiveCategory('admin');
+      } else if (isDirector()) {
+        setActiveCategory('director');
+      } else if (isStaff()) {
+        setActiveCategory('staff');
       } else if (isEditor() && !isAdmin()) {
         setActiveCategory('editor');
       } else {
-        setActiveCategory('mentorship'); // Alumni par défaut pour les utilisateurs simples
+        setActiveCategory('mentorship');
       }
     }
-  }, [currentUser, isAdmin, isEditor]);
+  }, [currentUser, isAdmin, isEditor, isDirector, isStaff]);
 
   // Vérifier si l'utilisateur est superadmin
   useEffect(() => {
@@ -276,6 +281,88 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"],
           disabled: true,
           comingSoon: true
+        }
+      ]
+    },
+    director: {
+      title: "Portail Directeur",
+      icon: <BarChart2 className="w-6 h-6 text-blue-700" />,
+      features: [
+        {
+          icon: <BarChart2 className="w-8 h-8 text-blue-700" />,
+          title: "Portail Directeur",
+          description: "Accédez au tableau de bord de suivi des étudiants CPS",
+          link: "/director",
+          roles: ["director"]
+        },
+        {
+          icon: <Users className="w-8 h-8 text-blue-600" />,
+          title: "Progressions étudiants",
+          description: "Suivi détaillé de l'avancement par étudiant et par phase",
+          link: "/director/progressions",
+          roles: ["director"]
+        },
+        {
+          icon: <Newspaper className="w-8 h-8 text-amber-500" />,
+          title: "Annonces officielles",
+          description: "Publier des annonces et informations officielles",
+          link: "/news-editor",
+          roles: ["director"]
+        },
+        {
+          icon: <BookOpen className="w-8 h-8 text-green-600" />,
+          title: "Ressources",
+          description: "Consulter les ressources mises à disposition des étudiants",
+          link: "/all-resources",
+          roles: ["director"]
+        },
+        {
+          icon: <Video className="w-8 h-8 text-blue-500" />,
+          title: "Webinaires",
+          description: "Consulter le calendrier des webinaires de la prépa",
+          link: "/webinars",
+          roles: ["director"]
+        }
+      ]
+    },
+    staff: {
+      title: "Portail Staff",
+      icon: <Settings className="w-6 h-6 text-indigo-600" />,
+      features: [
+        {
+          icon: <Settings className="w-8 h-8 text-indigo-600" />,
+          title: "Portail Staff",
+          description: "Accédez au tableau de bord de gestion du contenu",
+          link: "/staff",
+          roles: ["staff"]
+        },
+        {
+          icon: <Upload className="w-8 h-8 text-green-600" />,
+          title: "Ressources",
+          description: "Uploader et gérer les documents, fiches et annales",
+          link: "/all-resources",
+          roles: ["staff"]
+        },
+        {
+          icon: <MessageSquare className="w-8 h-8 text-purple-500" />,
+          title: "Modération forum",
+          description: "Modérer les discussions et supprimer les contenus inappropriés",
+          link: "/forum",
+          roles: ["staff"]
+        },
+        {
+          icon: <Video className="w-8 h-8 text-blue-500" />,
+          title: "Webinaires",
+          description: "Créer et gérer le calendrier des webinaires",
+          link: "/editor/webinars",
+          roles: ["staff"]
+        },
+        {
+          icon: <Newspaper className="w-8 h-8 text-amber-500" />,
+          title: "Actualités",
+          description: "Publier des articles et annonces pour la communauté",
+          link: "/news-editor",
+          roles: ["staff"]
         }
       ]
     },
@@ -566,14 +653,16 @@ const ApplicationsDashboard: React.FC = () => {
   // Filtrer les fonctionnalités par rôle
   const getUserRole = () => {
     if (isAdmin()) return "admin";
+    if (isDirector()) return "director";
+    if (isStaff()) return "staff";
     if (isEditor()) return "editor";
     return "user";
   };
 
   const userRole = getUserRole();
   const filteredCategories = Object.entries(allFeatures).reduce((acc, [key, category]) => {
-    const filteredFeatures = category.features.filter(feature => 
-      feature.roles.includes(userRole) && (showComingSoon || !feature.comingSoon)
+    const filteredFeatures = category.features.filter(feature =>
+      (isSuperAdminState || feature.roles.includes(userRole)) && (showComingSoon || !feature.comingSoon)
     );
     
     // Filtrer également par recherche
@@ -674,7 +763,7 @@ const ApplicationsDashboard: React.FC = () => {
       </div>
 
       {/* Notification profil alumni brouillon */}
-      {!loadingAlumni && alumniProfile && alumniProfile.status === 'draft' && (
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'draft' && !isDirector() && !isStaff() && (
         <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3" />
@@ -756,7 +845,7 @@ const ApplicationsDashboard: React.FC = () => {
       )}
 
       {/* Notification profil alumni en attente */}
-      {!loadingAlumni && alumniProfile && alumniProfile.status === 'pending' && (
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'pending' && !isDirector() && !isStaff() && (
         <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
           <div className="flex items-start">
             <Clock className="w-5 h-5 text-yellow-600 mt-0.5 mr-3" />
@@ -774,7 +863,7 @@ const ApplicationsDashboard: React.FC = () => {
       )}
 
       {/* Notification profil alumni approuvé */}
-      {!loadingAlumni && alumniProfile && alumniProfile.status === 'approved' && (
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'approved' && !isDirector() && !isStaff() && (
         <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-md">
           <div className="flex items-start">
             <Bell className="w-5 h-5 text-green-600 mt-0.5 mr-3" />
@@ -794,7 +883,7 @@ const ApplicationsDashboard: React.FC = () => {
       )}
 
       {/* Notification profil alumni rejeté */}
-      {!loadingAlumni && alumniProfile && alumniProfile.status === 'rejected' && (
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'rejected' && !isDirector() && !isStaff() && (
         <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
           <div className="flex items-start">
             <Bell className="w-5 h-5 text-red-600 mt-0.5 mr-3" />
