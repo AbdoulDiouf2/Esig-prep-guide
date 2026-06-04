@@ -28,7 +28,13 @@ const CpsOverview: React.FC<CpsOverviewProps> = ({ backPath = '/admin/progressio
 
   useEffect(() => {
     if (promoYears.length > 0 && selectedPromo === 0) {
-      setSelectedPromo(promoYears[0]);
+      const currentYear = new Date().getFullYear();
+      const best = promoYears.includes(currentYear)
+        ? currentYear
+        : promoYears.reduce((prev, cur) =>
+            Math.abs(cur - currentYear) < Math.abs(prev - currentYear) ? cur : prev
+          );
+      setSelectedPromo(best);
     }
   }, [promoYears, selectedPromo]);
 

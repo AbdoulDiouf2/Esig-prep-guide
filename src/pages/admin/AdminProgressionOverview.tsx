@@ -607,10 +607,16 @@ const AdminProgressionOverview: React.FC = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [users]);
 
-  // Initialiser selectedPromo sur la première promo dispo dès le chargement
+  // Initialiser selectedPromo sur la promo de l'année courante (ou la plus proche par défaut)
   useEffect(() => {
     if (promoYears.length > 0 && selectedPromo === 0) {
-      setSelectedPromo(promoYears[0]);
+      const currentYear = new Date().getFullYear();
+      const best = promoYears.includes(currentYear)
+        ? currentYear
+        : promoYears.reduce((prev, cur) =>
+            Math.abs(cur - currentYear) < Math.abs(prev - currentYear) ? cur : prev
+          );
+      setSelectedPromo(best);
     }
   }, [promoYears, selectedPromo]);
 
