@@ -580,6 +580,13 @@ function App() {
                     </EditorRoute>
                   </AuthWrapper>
                 } />
+                <Route path="/editor/progressions" element={
+                  <AuthWrapper>
+                    <EditorRoute>
+                      <AdminProgressionOverview />
+                    </EditorRoute>
+                  </AuthWrapper>
+                } />
 
                 {/* Éditeur actualités — accessible director + staff + editor + admin */}
                 <Route path="/news-editor" element={

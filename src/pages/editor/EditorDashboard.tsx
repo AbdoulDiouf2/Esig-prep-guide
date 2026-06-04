@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, FileText, HelpCircle, MessageSquare, ArrowLeft, FolderArchive, Video, Newspaper } from 'lucide-react';
+import { BookOpen, FileText, HelpCircle, MessageSquare, ArrowLeft, FolderArchive, Video, Newspaper, BarChart2, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const EditorDashboard: React.FC = () => {
@@ -49,7 +49,19 @@ const EditorDashboard: React.FC = () => {
       description: 'Accéder et gérer les fichiers sur Dropbox',
       icon: <FolderArchive className="w-8 h-8 text-blue-400" />,
       link: '/editor/dropbox',
-    }
+    },
+    {
+      title: 'Progression des étudiants',
+      description: 'Suivre la progression et les données de visa/arrivée des étudiants',
+      icon: <BarChart2 className="w-8 h-8 text-emerald-500" />,
+      link: '/editor/progressions',
+    },
+    {
+      title: 'Tableau de bord staff',
+      description: 'Accéder au portail staff pour la gestion opérationnelle',
+      icon: <LayoutDashboard className="w-8 h-8 text-indigo-500" />,
+      link: '/staff',
+    },
   ];
 
   return (

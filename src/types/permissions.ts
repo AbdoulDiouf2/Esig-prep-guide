@@ -99,6 +99,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'webinars.view', 'webinars.manage',
     'workshops.view', 'workshops.manage',
     'admin.news',
+    'staff.dashboard',
   ],
   admin: [
     'forum.read', 'forum.write', 'forum.delete', 'forum.moderate',
