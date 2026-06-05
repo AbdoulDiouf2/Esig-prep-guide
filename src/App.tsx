@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { NotificationBanner } from './components/NotificationBanner';
 import UserStatusModal from './components/auth/UserStatusModal';
 import { AlertTriangle, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Analytics } from './components/analytics/VercelAnalytics';
 import { useMaintenance } from './hooks/useMaintenance';
 
@@ -82,6 +83,27 @@ import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import LegalNotice from './pages/legal/LegalNotice';
 import ModerationCharter from './pages/legal/ModerationCharter';
 import RGPDRegistry from './pages/legal/RGPDRegistry';
+
+// Onglet latéral feedback
+const FeedbackFAB = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  if (!currentUser) return null;
+  if (location.pathname === '/feedback') return null;
+
+  return (
+    <button
+      onClick={() => navigate('/feedback')}
+      title="Donner mon avis"
+      className="fixed top-1/2 -translate-y-1/2 right-0 z-50 bg-gray-500/60 hover:bg-gray-600/80 text-white text-xs font-semibold shadow-md transition-colors"
+      style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', padding: '12px 6px', borderRadius: '6px 0 0 6px' }}
+    >
+      Avis
+    </button>
+  );
+};
 
 // Toast affiché lors d'un accès refusé (permission insuffisante)
 const PermissionDeniedToast = () => {
@@ -228,6 +250,7 @@ function App() {
         <ContentProvider>
           <ScrollToTop />
           <PermissionDeniedToast />
+          <FeedbackFAB />
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-grow">

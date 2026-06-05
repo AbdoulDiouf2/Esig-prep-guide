@@ -54,7 +54,9 @@ export const createAlumniProfileOnSignup = async (
       expertise: data.expertise || [],
       company: data.company || '',
       position: data.position || '',
-      status: 'draft', // Brouillon par défaut, l'utilisateur doit compléter puis soumettre
+      ...(data.school ? { education: [{ school: data.school }] } : {}),
+      ...(data.city ? { city: data.city } : {}),
+      status: 'draft',
       dateCreated: Timestamp.now(),
     };
 

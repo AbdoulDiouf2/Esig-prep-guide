@@ -12,14 +12,12 @@ const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    yearPromo: new Date().getFullYear() + 1, // Année par défaut
-    isEntrepreneur: false,
-    // Données entrepreneur
-    company: '',
-    sector: '',
+    yearPromo: new Date().getFullYear() + 1,
+    isAlumni: false,
+    // Données alumni CPS
+    school: '',
     city: '',
-    country: '',
-    description: '',
+    bio: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -62,20 +60,16 @@ const Register: React.FC = () => {
     return true;
   };
 
-  // Validation Étape 2 : Choix entrepreneur
+  // Validation Étape 2 : Statut alumni
   const validateStep2 = (): boolean => {
-    if (formData.isEntrepreneur === false || formData.isEntrepreneur === true) {
-      setError('');
-      return true;
-    }
-    setError('Veuillez sélectionner une option');
-    return false;
+    setError('');
+    return true;
   };
 
-  // Validation Étape 3 : Données entrepreneur
+  // Validation Étape 3 : Données alumni CPS
   const validateStep3 = (): boolean => {
-    if (!formData.company || !formData.sector) {
-      setError('Le nom de l\'entreprise et le secteur sont obligatoires');
+    if (!formData.school) {
+      setError("L'école intégrée est obligatoire");
       return false;
     }
     setError('');
@@ -90,19 +84,19 @@ const Register: React.FC = () => {
       // Créer le compte utilisateur
       const user = await register(formData.email, formData.password, formData.name, formData.yearPromo);
       
-      // Si entrepreneur, créer le profil alumni
-      if (formData.isEntrepreneur) {
+      if (formData.isAlumni) {
         await createAlumniProfileOnSignup({
           uid: user.uid,
           name: formData.name,
           email: formData.email,
           yearPromo: formData.yearPromo,
-          company: formData.company,
-          sectors: formData.sector ? [formData.sector] : [],
+          school: formData.school,
+          city: formData.city,
+          bio: formData.bio,
+          sectors: [],
           expertise: [],
-          bio: formData.description,
         });
-        console.log('✅ Profil alumni créé avec succès');
+        console.log('✅ Profil alumni CPS créé avec succès');
       }
       
       // Redirection
@@ -235,67 +229,65 @@ const Register: React.FC = () => {
     </div>
   );
 
-  // Étape 2 : Décision entrepreneur
+  // Étape 2 : Statut alumni CPS
   const Step2Component = (
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Souhaitez-vous créer un profil alumni ?
+          Quel est ton statut actuel ?
         </h3>
         <p className="text-sm text-gray-600">
-          Le profil alumni vous permet d'être visible dans l'annuaire et de vous connecter avec d'autres alumni.
+          Les anciens élèves CPS peuvent créer un profil visible dans l'annuaire alumni.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <button
           type="button"
-          onClick={() => updateFormData('isEntrepreneur', false)}
+          onClick={() => updateFormData('isAlumni', false)}
           className={`p-6 border-2 rounded-lg transition-all ${
-            formData.isEntrepreneur === false
+            formData.isAlumni === false
               ? 'border-blue-600 bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
           }`}
         >
           <div className="text-center">
-            <div className="text-4xl mb-2">👤</div>
-            <div className="font-medium text-gray-900">Non</div>
+            <div className="text-4xl mb-2">🎓</div>
+            <div className="font-medium text-gray-900">Je suis encore en prépa</div>
             <div className="text-sm text-gray-600 mt-1">
-              Compte basique uniquement
+              Compte étudiant standard
             </div>
           </div>
         </button>
 
         <button
           type="button"
-          onClick={() => updateFormData('isEntrepreneur', true)}
+          onClick={() => updateFormData('isAlumni', true)}
           className={`p-6 border-2 rounded-lg transition-all ${
-            formData.isEntrepreneur === true
+            formData.isAlumni === true
               ? 'border-blue-600 bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
           }`}
         >
           <div className="text-center">
             <div className="text-4xl mb-2">🚀</div>
-            <div className="font-medium text-gray-900">Oui</div>
+            <div className="font-medium text-gray-900">J'ai intégré une grande école</div>
             <div className="text-sm text-gray-600 mt-1">
-              Créer mon profil alumni
+              Créer mon profil alumni CPS
             </div>
           </div>
         </button>
       </div>
 
       <p className="text-sm text-gray-500 text-center mt-4">
-        {formData.isEntrepreneur === null 
-          ? 'Sélectionnez une option pour continuer' 
-          : formData.isEntrepreneur 
-            ? '✓ Vous allez créer un profil alumni' 
-            : '✓ Vous créez un compte basique'}
+        {formData.isAlumni
+          ? '✓ Tu vas créer un profil alumni CPS'
+          : '✓ Tu vas créer un compte étudiant'}
       </p>
     </div>
   );
 
-  // Étape 3 : Données entrepreneur
+  // Étape 3 : Données alumni CPS
   const Step3Component = (
     <div className="space-y-4">
       {error && (
@@ -304,81 +296,50 @@ const Register: React.FC = () => {
         </div>
       )}
 
+      <div className="text-center mb-2">
+        <h3 className="text-lg font-medium text-gray-900">Ton profil alumni CPS</h3>
+        <p className="text-sm text-gray-600">Ces infos seront visibles dans l'annuaire des anciens CPS</p>
+      </div>
+
       <div>
-        <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-          Nom de l'entreprise / Projet *
+        <label htmlFor="school" className="block text-sm font-medium text-gray-700 mb-1">
+          École intégrée *
         </label>
         <input
-          id="company"
+          id="school"
           type="text"
           required
-          value={formData.company}
-          onChange={(e) => updateFormData('company', e.target.value)}
+          value={formData.school}
+          onChange={(e) => updateFormData('school', e.target.value)}
+          placeholder="ex: ESIGELEC, Centrale Nantes, INSA Lyon..."
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       <div>
-        <label htmlFor="sector" className="block text-sm font-medium text-gray-700 mb-1">
-          Secteur d'activité *
+        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+          Ville
         </label>
-        <select
-          id="sector"
-          required
-          value={formData.sector}
-          onChange={(e) => updateFormData('sector', e.target.value)}
+        <input
+          id="city"
+          type="text"
+          value={formData.city}
+          onChange={(e) => updateFormData('city', e.target.value)}
+          placeholder="ex: Rouen, Paris..."
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Sélectionnez un secteur</option>
-          <option value="Tech">Tech / IT</option>
-          <option value="Finance">Finance</option>
-          <option value="Design">Design</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Consulting">Consulting</option>
-          <option value="Education">Éducation</option>
-          <option value="Santé">Santé</option>
-          <option value="Autre">Autre</option>
-        </select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-            Ville
-          </label>
-          <input
-            id="city"
-            type="text"
-            value={formData.city}
-            onChange={(e) => updateFormData('city', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-            Pays
-          </label>
-          <input
-            id="country"
-            type="text"
-            value={formData.country}
-            onChange={(e) => updateFormData('country', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-          Description courte
+        <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+          Présentation courte
         </label>
         <textarea
-          id="description"
+          id="bio"
           rows={3}
-          value={formData.description}
-          onChange={(e) => updateFormData('description', e.target.value)}
-          placeholder="Décris brièvement ton activité..."
+          value={formData.bio}
+          onChange={(e) => updateFormData('bio', e.target.value)}
+          placeholder="Présente-toi en quelques mots..."
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -404,20 +365,18 @@ const Register: React.FC = () => {
           </div>
         </div>
 
-        {formData.isEntrepreneur && (
+        {formData.isAlumni && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Profil alumni</h4>
+            <h4 className="font-medium text-gray-900 mb-2">Profil alumni CPS</h4>
             <div className="bg-gray-50 p-4 rounded-md space-y-2 text-sm">
-              <p><span className="font-medium">Entreprise :</span> {formData.company}</p>
-              <p><span className="font-medium">Secteur :</span> {formData.sector}</p>
+              <p><span className="font-medium">École :</span> {formData.school}</p>
               {formData.city && <p><span className="font-medium">Ville :</span> {formData.city}</p>}
-              {formData.country && <p><span className="font-medium">Pays :</span> {formData.country}</p>}
-              {formData.description && (
-                <p><span className="font-medium">Description :</span> {formData.description}</p>
+              {formData.bio && (
+                <p><span className="font-medium">Présentation :</span> {formData.bio}</p>
               )}
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              ⏳ Votre profil alumni sera soumis pour validation avant d'être visible dans l'annuaire.
+              ⏳ Ton profil alumni sera soumis pour validation avant d'être visible dans l'annuaire.
             </p>
           </div>
         )}
@@ -435,15 +394,15 @@ const Register: React.FC = () => {
     },
     {
       id: 2,
-      title: 'Profil alumni',
+      title: 'Ton statut',
       component: Step2Component,
       validation: validateStep2,
     },
-    ...(formData.isEntrepreneur
+    ...(formData.isAlumni
       ? [
           {
             id: 3,
-            title: 'Détails entrepreneur',
+            title: 'Profil alumni CPS',
             component: Step3Component,
             validation: validateStep3,
           },

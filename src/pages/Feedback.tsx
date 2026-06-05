@@ -5,8 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
+type FeedbackType = 'bug' | 'suggestion' | 'remarque';
+
+const FEEDBACK_TYPES: { value: FeedbackType; label: string; emoji: string; color: string }[] = [
+  { value: 'bug', label: 'Bug', emoji: '🐛', color: 'border-red-400 bg-red-50 text-red-800' },
+  { value: 'suggestion', label: 'Suggestion', emoji: '💡', color: 'border-amber-400 bg-amber-50 text-amber-800' },
+  { value: 'remarque', label: 'Remarque', emoji: '💬', color: 'border-blue-400 bg-blue-50 text-blue-800' },
+];
+
 const Feedback: React.FC = () => {
   const { currentUser } = useAuth();
+  const [type, setType] = useState<FeedbackType>('remarque');
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [sent, setSent] = useState(false);
@@ -19,6 +28,7 @@ const Feedback: React.FC = () => {
     setError(null);
     try {
       await addDoc(collection(db, 'feedback'), {
+        type,
         message,
         email: email || null,
         userId: currentUser?.uid || null,
@@ -57,6 +67,24 @@ const Feedback: React.FC = () => {
         <h1 className="text-3xl md:text-4xl font-bold text-blue-900 mb-4 text-center mt-6">Donnez votre avis</h1>
         <p className="mb-8 text-gray-600 text-center">N'hésitez pas à nous faire part de vos remarques, suggestions ou critiques constructives pour améliorer la plateforme.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type de retour *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {FEEDBACK_TYPES.map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setType(t.value)}
+                  className={`p-3 border-2 rounded-lg text-center transition-all font-medium text-sm ${
+                    type === t.value ? t.color + ' border-current' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">{t.emoji}</div>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Votre message *</label>
             <textarea

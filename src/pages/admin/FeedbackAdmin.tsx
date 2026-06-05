@@ -4,8 +4,17 @@ import { db } from '../../firebase';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+type FeedbackType = 'bug' | 'suggestion' | 'remarque';
+
+const TYPE_CONFIG: Record<FeedbackType, { label: string; emoji: string; badge: string }> = {
+  bug:        { label: 'Bug',        emoji: '🐛', badge: 'bg-red-100 text-red-700 border border-red-200' },
+  suggestion: { label: 'Suggestion', emoji: '💡', badge: 'bg-amber-100 text-amber-700 border border-amber-200' },
+  remarque:   { label: 'Remarque',   emoji: '💬', badge: 'bg-blue-100 text-blue-700 border border-blue-200' },
+};
+
 interface FeedbackItem {
   id: string;
+  type?: FeedbackType;
   message: string;
   email?: string | null;
   userId?: string | null;
@@ -48,13 +57,23 @@ const FeedbackAdmin: React.FC = () => {
                 title={fb.message}
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs text-gray-500">
-                    {fb.createdAt &&
-                      new Date(fb.createdAt.seconds * 1000).toLocaleString('fr-FR', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                      {fb.createdAt &&
+                        new Date(fb.createdAt.seconds * 1000).toLocaleString('fr-FR', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                    </span>
+                    {(() => {
+                      const t = fb.type && TYPE_CONFIG[fb.type] ? TYPE_CONFIG[fb.type] : TYPE_CONFIG['remarque'];
+                      return (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.badge}`}>
+                          {t.emoji} {t.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <span className="text-xs">
                     {fb.email && fb.email.trim() !== '' ? (
                       <a href={`mailto:${fb.email}`} className="flex items-center text-blue-700 hover:underline">

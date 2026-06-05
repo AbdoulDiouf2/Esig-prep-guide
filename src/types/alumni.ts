@@ -235,6 +235,8 @@ export interface CreateAlumniProfileData {
   company?: string;
   position?: string;
   photo?: string;
+  school?: string;
+  city?: string;
 }
 
 /**
