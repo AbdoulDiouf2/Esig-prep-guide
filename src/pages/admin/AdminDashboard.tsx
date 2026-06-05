@@ -376,6 +376,33 @@ const AdminDashboard: React.FC = () => {
                 </Link>
               </SuperAdminCheck>
 
+              {/* Carte Feedbacks */}
+              <Link
+                to="/admin/feedbacks"
+                onClick={() => {
+                  getCountFromServer(collection(db, 'feedback'))
+                    .then((snap) => localStorage.setItem('admin_feedbacks_seen', String(snap.data().count)))
+                    .catch(() => {});
+                  setNewFeedbacksCount(0);
+                }}
+                className="relative block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                {newFeedbacksCount > 0 && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {newFeedbacksCount} nouveau{newFeedbacksCount > 1 ? 'x' : ''}
+                  </span>
+                )}
+                <div className="flex items-start">
+                  <div className="p-2 bg-violet-100 rounded-lg mr-4">
+                    <MessageSquare className="w-6 h-6 text-violet-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Feedbacks utilisateurs</h3>
+                    <p className="text-sm text-gray-600 mt-1">Consulter et gérer les avis, bugs et suggestions</p>
+                  </div>
+                </div>
+              </Link>
+
               {/* Carte Cours en ligne - Désactivée */}
               <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
                 <div className="flex items-start">
