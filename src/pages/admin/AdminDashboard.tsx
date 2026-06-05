@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useRecentAdminActivity } from './useRecentAdminActivity';
 import AlumniStats from './AlumniStats';
+import CommunityStats from './CommunityStats';
 
 import type { LogActivityParams } from './adminActivityLog';
 
@@ -69,7 +70,7 @@ const AdminDashboard: React.FC = () => {
   const [pendingWorkshopsCount, setPendingWorkshopsCount] = useState(0);
   const [newFeedbacksCount, setNewFeedbacksCount] = useState(0);
   // Tabs
-  const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'alumni' | 'cps' | 'community'>('general');
 
   // Vérifier les messages non lus au chargement et s'abonner aux mises à jour
   useEffect(() => {
@@ -176,6 +177,12 @@ const AdminDashboard: React.FC = () => {
             >
               Étudiants CPS
             </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-l border-gray-200 ${activeTab === 'community' ? 'bg-amber-500 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('community')}
+            >
+              Communauté
+            </button>
           </div>
         </div>
 
@@ -186,6 +193,9 @@ const AdminDashboard: React.FC = () => {
 
         {/* CPS tab content */}
         {activeTab === 'cps' && <CpsOverview />}
+
+        {/* Community stats tab */}
+        {activeTab === 'community' && <CommunityStats />}
 
         {/* Quick action buttons */}
         <div className="flex flex-wrap gap-4 mb-8">

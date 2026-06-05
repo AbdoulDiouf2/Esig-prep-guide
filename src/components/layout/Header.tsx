@@ -157,23 +157,6 @@ const Header: React.FC = () => {
                   </Link>
                 )}
 
-                {canDirector && (
-                  <Link to="/director" className={`flex items-center text-white bg-purple-700 hover:bg-purple-600 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
-                    location.pathname.startsWith('/director') ? 'bg-purple-600' : ''
-                  }`}>
-                    <Shield className="w-4 h-4 mr-1" />
-                    <span>Directeur</span>
-                  </Link>
-                )}
-
-                {canStaff && (
-                  <Link to="/staff" className={`flex items-center text-white bg-amber-600 hover:bg-amber-500 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap ${
-                    location.pathname.startsWith('/staff') ? 'bg-amber-500' : ''
-                  }`}>
-                    <Users className="w-4 h-4 mr-1" />
-                    <span>Staff</span>
-                  </Link>
-                )}
               </>
             )}
           </nav>
