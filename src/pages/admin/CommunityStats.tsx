@@ -42,6 +42,7 @@ interface Stats {
   githubUsers: number;
   emailUsers: number;
   alumni: AlumniStats | null;
+  usersByYear: Record<number, number>;
   alumniWithPhoto: number;
   alumniWithLinkedin: number;
   alumniWithExperiences: number;
@@ -62,6 +63,7 @@ const initialStats: Stats = {
   totalUsers: 0, cpsUsers: 0, alumniUsers: 0, futureUsers: 0,
   emailVerified: 0, googleUsers: 0, githubUsers: 0, emailUsers: 0,
   alumni: null,
+  usersByYear: {},
   alumniWithPhoto: 0, alumniWithLinkedin: 0, alumniWithExperiences: 0, avgCompleteness: 0,
   totalRecommendations: 0, totalContactRequests: 0, alumniMentoring: 0, alumniSeeking: 0,
   forumThreads: 0, forumPosts: 0,
@@ -128,6 +130,19 @@ const TopBar: React.FC<{ label: string; count: number; total: number; color?: st
 
 function buildExportSections(stats: Stats, approvalRate: number) {
   const { alumni } = stats;
+  const mergedExport: Record<number, { inscrits: number; profils: number }> = {};
+  Object.entries(stats.usersByYear).forEach(([y, c]) => {
+    const yr = Number(y);
+    if (!mergedExport[yr]) mergedExport[yr] = { inscrits: 0, profils: 0 };
+    mergedExport[yr].inscrits = c;
+  });
+  if (alumni) {
+    Object.entries(alumni.profilesByYear).forEach(([y, c]) => {
+      const yr = Number(y);
+      if (!mergedExport[yr]) mergedExport[yr] = { inscrits: 0, profils: 0 };
+      mergedExport[yr].profils = c;
+    });
+  }
   return [
     {
       title: 'Comptes utilisateurs',
@@ -167,7 +182,12 @@ function buildExportSections(stats: Stats, approvalRate: number) {
     },
     {
       title: 'Répartition par promotion',
-      rows: alumni ? Object.entries(alumni.profilesByYear).sort((a, b) => Number(b[0]) - Number(a[0])).map(([k, v]) => [`Promo ${k}`, v]) : [],
+      rows: [
+        ['Promotion', 'Inscrits (users)', 'Profils alumni'],
+        ...Object.entries(mergedExport)
+          .sort((a, b) => Number(b[0]) - Number(a[0]))
+          .map(([y, d]) => [`Promo ${y}`, (d as { inscrits: number; profils: number }).inscrits, (d as { inscrits: number; profils: number }).profils]),
+      ],
     },
     {
       title: 'Réseau & Engagement',
@@ -238,6 +258,7 @@ const CommunityStats: React.FC = () => {
 
         let cpsUsers = 0, alumniUsers = 0, futureUsers = 0;
         let emailVerified = 0, googleUsers = 0, githubUsers = 0, emailUsers = 0;
+        const usersByYear: Record<number, number> = {};
         usersSnap.forEach((d: DocumentData) => {
           const u = d.data();
           if (u.status === 'cps') cpsUsers++;
@@ -248,6 +269,9 @@ const CommunityStats: React.FC = () => {
           if (providers.some(p => p.providerId === 'google.com')) googleUsers++;
           else if (providers.some(p => p.providerId === 'github.com')) githubUsers++;
           else emailUsers++;
+          if (typeof u.yearPromo === 'number') {
+            usersByYear[u.yearPromo] = (usersByYear[u.yearPromo] || 0) + 1;
+          }
         });
 
         let alumniWithPhoto = 0, alumniWithLinkedin = 0, alumniWithExperiences = 0;
@@ -271,6 +295,7 @@ const CommunityStats: React.FC = () => {
           cpsUsers, alumniUsers, futureUsers, emailVerified,
           googleUsers, githubUsers, emailUsers,
           alumni: alumniStats,
+          usersByYear,
           alumniWithPhoto, alumniWithLinkedin, alumniWithExperiences,
           avgCompleteness: completenessCount > 0 ? Math.round(totalCompleteness / completenessCount) : 0,
           totalRecommendations: recommendationsCount,
@@ -504,9 +529,23 @@ const CommunityStats: React.FC = () => {
   const topCountries = alumni
     ? Object.entries(alumni.profilesByCountry).sort((a, b) => b[1] - a[1]).slice(0, 5)
     : [];
-  const promoByYear = alumni
-    ? Object.entries(alumni.profilesByYear).sort((a, b) => Number(b[0]) - Number(a[0])).slice(0, 6)
-    : [];
+  // Fusion users.yearPromo + alumni.profilesByYear
+  const mergedPromos: Record<number, { inscrits: number; profils: number }> = {};
+  Object.entries(stats.usersByYear).forEach(([y, count]) => {
+    const year = Number(y);
+    if (!mergedPromos[year]) mergedPromos[year] = { inscrits: 0, profils: 0 };
+    mergedPromos[year].inscrits = count;
+  });
+  if (alumni) {
+    Object.entries(alumni.profilesByYear).forEach(([y, count]) => {
+      const year = Number(y);
+      if (!mergedPromos[year]) mergedPromos[year] = { inscrits: 0, profils: 0 };
+      mergedPromos[year].profils = count;
+    });
+  }
+  const promoByYear = Object.entries(mergedPromos)
+    .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .slice(0, 8);
 
   return (
     <div className="space-y-2">
@@ -603,10 +642,31 @@ const CommunityStats: React.FC = () => {
         )}
         {promoByYear.length > 0 && (
           <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-3">Profils par promotion</h3>
-            {promoByYear.map(([year, count]) => (
-              <TopBar key={year} label={`Promo ${year}`} count={count} total={alumni?.totalProfiles ?? 1} color="bg-amber-500" />
-            ))}
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">Par promotion</h3>
+            <div className="flex gap-4 text-xs text-zinc-400 mb-3">
+              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-500" />Inscrits</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-amber-500" />Profils alumni</span>
+            </div>
+            {promoByYear.map(([year, data]) => {
+              const { inscrits, profils } = data as { inscrits: number; profils: number };
+              const maxVal = Math.max(inscrits, 1);
+              return (
+                <div key={year} className="mb-3">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-zinc-700">Promo {year}</span>
+                    <span className="text-zinc-400 text-xs">{inscrits} inscrits · {profils} profils</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="w-full bg-zinc-100 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.round((inscrits / maxVal) * 100)}%` }} />
+                    </div>
+                    <div className="w-full bg-zinc-100 rounded-full h-2">
+                      <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${Math.round((profils / maxVal) * 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
