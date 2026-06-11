@@ -189,7 +189,7 @@ const Header: React.FC = () => {
                       <User className="w-4 h-4 mr-2" />
                       <span>Mon compte</span>
                     </Link>
-                    {!canDirector && !canStaff && (
+                    {!currentUser?.isDirector && !currentUser?.isStaff && (
                       <Link
                         to="/my-alumni-profile"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
