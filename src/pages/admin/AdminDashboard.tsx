@@ -244,7 +244,23 @@ const AdminDashboard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-md font-semibold text-gray-900">Gestion du contenu</h3>
-                    <p className="text-sm text-gray-600 mt-1">Gérer les sections, ressources et questions FAQ</p>
+                    <p className="text-sm text-gray-600 mt-1">Gérer les sections et questions FAQ</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Ressources */}
+              <Link
+                to="/admin/resources"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Gestion des ressources</h3>
+                    <p className="text-sm text-gray-600 mt-1">Ajouter, modifier et organiser les ressources documentaires</p>
                   </div>
                 </div>
               </Link>

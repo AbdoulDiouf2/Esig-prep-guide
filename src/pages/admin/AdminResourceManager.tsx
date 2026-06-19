@@ -15,6 +15,7 @@ import DropboxFileBrowser from '../../components/DropboxFileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { Dropbox } from 'dropbox';
 import { getDropboxAccessToken } from '../../utils/dropboxUtils';
+import { detectFileTypeFromName } from '../../utils/fileTypeUtils';
 
 // Types de fichiers supportés
 type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
@@ -97,6 +98,11 @@ const AdminResourceManager: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<DropboxFile | null>(null);
   const [dropboxError, setDropboxError] = useState<string>('');
   const [showDropboxExplorer, setShowDropboxExplorer] = useState<boolean>(false);
+
+  // États pour le feedback de sauvegarde
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [formError, setFormError] = useState('');
   
   // Liste prédéfinie de catégories pour organiser les ressources
   const predefinedCategories = [
@@ -223,17 +229,7 @@ const AdminResourceManager: React.FC = () => {
       setDropboxError(''); // Effacer les erreurs précédentes
       
       // Déterminer le type de fichier en fonction de l'extension
-      const extension = file.name.split('.').pop()?.toLowerCase() || '';
-      if (extension === 'pdf') setFileType('pdf');
-      else if (['doc', 'docx'].includes(extension)) setFileType('docx');
-      else if (['xls', 'xlsx'].includes(extension)) setFileType('xlsx');
-      else if (['ppt', 'pptx'].includes(extension)) setFileType('pptx');
-      else if (extension === 'txt') setFileType('txt');
-      else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) setFileType('image');
-      else if (['mp4', 'webm', 'avi', 'mov'].includes(extension)) setFileType('video');
-      else if (['mp3', 'wav', 'ogg'].includes(extension)) setFileType('audio');
-      else if (['zip', 'rar', 'tar', 'gz'].includes(extension)) setFileType('zip');
-      else setFileType('link');
+      setFileType(detectFileTypeFromName(file.name));
       
       return rawUrl;
     } catch (error) {
@@ -272,49 +268,88 @@ const AdminResourceManager: React.FC = () => {
     }
   }, [editResourceId, isNewResource, resources]);
   
+  const currentUserDisplayName = (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined;
+
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editResourceId) {
-      // Update existing resource
-      updateResource(editResourceId, {
-        title,
-        description,
-        phase,
-        category,
-        fileUrl,
-        fileType
-      });
-      logAdminActivity({
-        type: 'Modification',
-        target: 'Ressource',
-        targetId: editResourceId,
-        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
-        details: { title }
-      });
-    } else {
-      // Add new resource
-      addResource({
-        title,
-        description,
-        phase,
-        category,
-        fileUrl,
-        fileType,
-        uploadDate: new Date().toISOString().split('T')[0],
-        updatedDate: new Date().toISOString().split('T')[0]
-      });
-      logAdminActivity({
-        type: 'Ajout',
-        target: 'Ressource',
-        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
-        details: { title }
-      });
+
+    if (saveStatus === 'saving') return; // empêche double-soumission
+
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    const trimmedCategory = category.trim();
+
+    if (!trimmedTitle || !trimmedDescription || !trimmedCategory || !fileUrl.trim()) {
+      setFormError('Tous les champs sont obligatoires.');
+      return;
     }
-    
-    // Stay on the resource manager page
-    // Removed navigation to stay on the same page
+    if (trimmedTitle.length > 200) {
+      setFormError('Le titre ne doit pas dépasser 200 caractères.');
+      return;
+    }
+    if (trimmedDescription.length > 2000) {
+      setFormError('La description ne doit pas dépasser 2000 caractères.');
+      return;
+    }
+    setFormError('');
+    setSaveStatus('saving');
+
+    try {
+      if (editResourceId) {
+        // Update existing resource
+        await updateResource(editResourceId, {
+          title: trimmedTitle,
+          description: trimmedDescription,
+          phase,
+          category: trimmedCategory,
+          fileUrl,
+          fileType,
+          updatedDate: new Date().toISOString().split('T')[0]
+        });
+        logAdminActivity({
+          type: 'Modification',
+          target: 'Ressource',
+          targetId: editResourceId,
+          user: currentUserDisplayName,
+          details: { title: trimmedTitle }
+        });
+      } else {
+        // Add new resource
+        await addResource({
+          title: trimmedTitle,
+          description: trimmedDescription,
+          phase,
+          category: trimmedCategory,
+          fileUrl,
+          fileType,
+          uploadDate: new Date().toISOString().split('T')[0],
+          updatedDate: new Date().toISOString().split('T')[0]
+        });
+        logAdminActivity({
+          type: 'Ajout',
+          target: 'Ressource',
+          user: currentUserDisplayName,
+          details: { title: trimmedTitle }
+        });
+
+        // Reset du formulaire après ajout réussi
+        setTitle('');
+        setDescription('');
+        setPhase('post-cps');
+        setCategory('');
+        setFileUrl('');
+        setFileType('link');
+        setSelectedFileName('');
+      }
+
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement de la ressource:', error);
+      setSaveStatus('error');
+      setSaveErrorMsg('Échec de l\'enregistrement. Vérifiez votre connexion et réessayez.');
+    }
   };
   
   // Demande de confirmation avant suppression
@@ -323,16 +358,25 @@ const AdminResourceManager: React.FC = () => {
   };
 
   // Procéder à la suppression après confirmation
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (editResourceId) {
-      deleteResource(editResourceId);
-      logAdminActivity({
-        type: 'Suppression',
-        target: 'Ressource',
-        targetId: editResourceId,
-        user: (typeof currentUser  === 'object' && currentUser ?.displayName) ? currentUser .displayName : undefined,
-        details: { title }
-      });
+      try {
+        await deleteResource(editResourceId);
+        logAdminActivity({
+          type: 'Suppression',
+          target: 'Ressource',
+          targetId: editResourceId,
+          user: currentUserDisplayName,
+          details: { title }
+        });
+        setShowDeleteModal(false);
+        navigate(isAdminMode ? '/admin' : '/editor');
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la ressource:', error);
+        setSaveStatus('error');
+        setSaveErrorMsg('Échec de la suppression. Vérifiez votre connexion et réessayez.');
+        setShowDeleteModal(false);
+      }
     }
   };
   
@@ -362,6 +406,17 @@ const AdminResourceManager: React.FC = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      {(saveStatus === 'success' || saveStatus === 'error') && (
+        <div
+          className={`fixed top-6 right-6 p-4 rounded-md shadow-lg z-50 text-sm flex items-center ${
+            saveStatus === 'success'
+              ? 'bg-green-100 border-l-4 border-green-500 text-green-800'
+              : 'bg-red-100 border-l-4 border-red-500 text-red-800'
+          }`}
+        >
+          {saveStatus === 'success' ? 'Ressource enregistrée avec succès.' : saveErrorMsg}
+        </div>
+      )}
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-2">
@@ -383,6 +438,11 @@ const AdminResourceManager: React.FC = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow p-6">
               <form onSubmit={handleSubmit} className="space-y-7">
+                {formError && (
+                  <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+                    {formError}
+                  </div>
+                )}
                 <div className="space-y-6">
                   <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700">
@@ -744,10 +804,15 @@ const AdminResourceManager: React.FC = () => {
                       {canManageResources && (
                         <button
                           type="submit"
-                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                          disabled={saveStatus === 'saving'}
+                          className="inline-flex items-center px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          <Save className="mr-2 h-4 w-4" />
-                          {isNewResource ? 'Ajouter' : 'Enregistrer'}
+                          {saveStatus === 'saving' ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                          )}
+                          {saveStatus === 'saving' ? 'Enregistrement...' : (isNewResource ? 'Ajouter' : 'Enregistrer')}
                         </button>
                       )}
                     </div>
@@ -891,22 +956,10 @@ const AdminResourceManager: React.FC = () => {
             </div>
             <div className="flex-grow overflow-y-auto">
               <DropboxFileBrowser
-                onSelect={(url, fileName, fileType) => {
+                onSelect={(url, fileName) => {
                   setFileUrl(url);
                   setSelectedFileName(fileName);
-                  
-                  // Convertir le type de fichier Dropbox en type compatible avec notre form
-                  if (fileType === 'pdf') setFileType('pdf');
-                  else if (fileType === 'docx') setFileType('docx');
-                  else if (fileType === 'xlsx') setFileType('xlsx');
-                  else if (fileType === 'pptx') setFileType('pptx');
-                  else if (fileType === 'txt') setFileType('txt');
-                  else if (fileType === 'image') setFileType('image');
-                  else if (fileType === 'video') setFileType('video');
-                  else if (fileType === 'audio') setFileType('audio');
-                  else if (fileType === 'zip') setFileType('zip');
-                  else setFileType('link');
-                  
+                  setFileType(detectFileTypeFromName(fileName));
                   setShowFileBrowserModal(false);
                 }}
                 showTitle={false}

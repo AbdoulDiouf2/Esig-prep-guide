@@ -90,6 +90,13 @@ const AdminContentEditor: React.FC = () => {
   const [showEmailNotification, setShowEmailNotification] = useState(false);
   const [emailNotificationStatus, setEmailNotificationStatus] = useState<'success' | 'error' | null>(null);
 
+  // États pour le feedback de sauvegarde
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [formError, setFormError] = useState('');
+
+  const currentUserDisplayName = (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined;
+
   // Initialisation des états pour édition
   useEffect(() => {
     if (editSectionId) {
@@ -148,159 +155,178 @@ const AdminContentEditor: React.FC = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saveStatus === 'saving') return; // empêche double-soumission
+
     if (isNewFaq || editFaqId) {
-      // FAQ mode
-      if (editFaqId) {
-        // Mettre à jour l'état isAnswered en fonction du contenu de la réponse
-        const hasValidAnswer = answer.trim() !== '' && 
-                              answer !== "Cette question est en attente de réponse par notre équipe.";
-        // Mettre à jour l'état local pour refléter le statut qui sera sauvegardé
-        setIsAnswered(hasValidAnswer);
-        
-        // Récupérer l'ancienne FAQ pour voir si elle avait déjà une réponse
-        const oldFaq = faqItems.find(f => f.id === editFaqId);
-        const wasAlreadyAnswered = oldFaq?.isAnswered || false;
-        
-        // Mise à jour de la FAQ dans la base de données
-        updateFAQItem(editFaqId, {
-          question,
-          answer,
-          category: faqCategory,
-          phase: questionType === 'phase' ? faqPhase : undefined,
-          questionType,
-          isApproved,
-          isAnswered: hasValidAnswer
-        });
-        
-        // Si la question vient de recevoir une réponse et qu'elle n'était pas déjà répondue, envoyer une notification
-        if (hasValidAnswer && !wasAlreadyAnswered && editFaqId) {
-          // Afficher l'indicateur de chargement
-          setShowEmailNotification(true);
-          setEmailNotificationStatus(null); // Réinitialiser le statut
-          
-          // Envoi d'un email de notification à l'utilisateur
-          sendFaqAnswerNotification(editFaqId, question, answer)
-            .then(success => {
-              if (success) {
-                console.log('Email de notification envoyé avec succès');
-                setEmailNotificationStatus('success');
-                
-                // Masquer la notification après 5 secondes
-                setTimeout(() => {
-                  setShowEmailNotification(false);
-                }, 5000);
-              } else {
-                console.error('Échec de l\'envoi de l\'email de notification');
+      // FAQ mode — validation
+      const trimmedQuestion = question.trim();
+      const trimmedAnswer = answer.trim();
+      const trimmedCategory = faqCategory.trim();
+      if (!trimmedQuestion || !trimmedCategory) {
+        setFormError('La question et la catégorie sont obligatoires.');
+        return;
+      }
+      if (trimmedQuestion.length > 500) {
+        setFormError('La question ne doit pas dépasser 500 caractères.');
+        return;
+      }
+      if (trimmedAnswer.length > 5000) {
+        setFormError('La réponse ne doit pas dépasser 5000 caractères.');
+        return;
+      }
+      setFormError('');
+      setSaveStatus('saving');
+
+      try {
+        if (editFaqId) {
+          // Mettre à jour l'état isAnswered en fonction du contenu de la réponse
+          const hasValidAnswer = trimmedAnswer !== '' &&
+                                trimmedAnswer !== "Cette question est en attente de réponse par notre équipe.";
+          setIsAnswered(hasValidAnswer);
+
+          // Récupérer l'ancienne FAQ pour voir si elle avait déjà une réponse
+          const oldFaq = faqItems.find(f => f.id === editFaqId);
+          const wasAlreadyAnswered = oldFaq?.isAnswered || false;
+
+          await updateFAQItem(editFaqId, {
+            question: trimmedQuestion,
+            answer: trimmedAnswer,
+            category: trimmedCategory,
+            phase: questionType === 'phase' ? faqPhase : undefined,
+            questionType,
+            isApproved,
+            isAnswered: hasValidAnswer,
+            updatedDate: new Date().toISOString().split('T')[0]
+          });
+
+          // Si la question vient de recevoir une réponse et qu'elle n'était pas déjà répondue, envoyer une notification
+          if (hasValidAnswer && !wasAlreadyAnswered) {
+            setShowEmailNotification(true);
+            setEmailNotificationStatus(null);
+
+            sendFaqAnswerNotification(editFaqId, trimmedQuestion, trimmedAnswer)
+              .then(success => {
+                setEmailNotificationStatus(success ? 'success' : 'error');
+                setTimeout(() => setShowEmailNotification(false), 5000);
+              })
+              .catch(error => {
+                console.error('Erreur lors de l\'envoi de l\'email de notification:', error);
                 setEmailNotificationStatus('error');
-                
-                // Masquer la notification après 5 secondes
-                setTimeout(() => {
-                  setShowEmailNotification(false);
-                }, 5000);
-              }
-            })
-            .catch(error => {
-              console.error('Erreur lors de l\'envoi de l\'email de notification:', error);
-              setEmailNotificationStatus('error');
-              
-              // Masquer la notification après 5 secondes
-              setTimeout(() => {
-                setShowEmailNotification(false);
-              }, 5000);
-            });
+                setTimeout(() => setShowEmailNotification(false), 5000);
+              });
+          }
+          logAdminActivity({
+            type: 'Modification',
+            target: 'FAQ',
+            targetId: editFaqId,
+            user: currentUserDisplayName,
+            details: { question: trimmedQuestion }
+          });
+        } else {
+          const hasValidAnswer = trimmedAnswer !== '' &&
+                                trimmedAnswer !== "Cette question est en attente de réponse par notre équipe.";
+          setIsAnswered(hasValidAnswer);
+
+          await addFAQItem({
+            question: trimmedQuestion,
+            answer: trimmedAnswer,
+            category: trimmedCategory,
+            phase: questionType === 'phase' ? faqPhase : undefined,
+            questionType,
+            isApproved,
+            isAnswered: hasValidAnswer,
+            createdDate: new Date().toISOString().split('T')[0],
+            updatedDate: new Date().toISOString().split('T')[0],
+          });
+          logAdminActivity({
+            type: 'Ajout',
+            target: 'FAQ',
+            user: currentUserDisplayName,
+            details: { question: trimmedQuestion }
+          });
+
+          // Réinitialiser les champs FAQ après ajout réussi
+          setQuestion('');
+          setAnswer('');
+          setFaqCategory('');
+          setFaqPhase('post-cps');
+          setQuestionType('phase');
+          setIsApproved(true);
+          setIsAnswered(false);
         }
-        logAdminActivity({
-          type: 'Modification',
-          target: 'FAQ',
-          targetId: editFaqId,
-          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
-          details: { question }
-        });
-      } else {
-        // Pour une nouvelle question, déterminer si elle est déjà répondue
-        const hasValidAnswer = answer.trim() !== '' && 
-                              answer !== "Cette question est en attente de réponse par notre équipe.";
-        // Mettre à jour l'état local pour refléter le statut qui sera sauvegardé
-        setIsAnswered(hasValidAnswer);
-        
-        addFAQItem({
-          question,
-          answer,
-          category: faqCategory,
-          phase: questionType === 'phase' ? faqPhase : undefined,
-          questionType,
-          isApproved,
-          isAnswered: hasValidAnswer,
-          createdDate: new Date().toISOString().split('T')[0],
-          updatedDate: new Date().toISOString().split('T')[0],
-        });
-        logAdminActivity({
-          type: 'Ajout',
-          target: 'FAQ',
-          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
-          details: { question }
-        });
+        setSaveStatus('success');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement de la FAQ:', error);
+        setSaveStatus('error');
+        setSaveErrorMsg('Échec de l\'enregistrement. Vérifiez votre connexion et réessayez.');
       }
     } else {
-      // Section mode
-      if (editSectionId) {
-        updateGuideSection(editSectionId, {
-          title,
-          phase,
-          content,
-          order,
-          resources: selectedResources,
-          subSections: subSections.length > 0 ? subSections : undefined
-        });
-        logAdminActivity({
-          type: 'Modification',
-          target: 'Section',
-          targetId: editSectionId,
-          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
-          details: { title }
-        });
-      } else {
-        addGuideSection({
-          title,
-          phase,
-          content,
-          order,
-          resources: selectedResources,
-          subSections: subSections.length > 0 ? subSections : undefined
-        });
-        logAdminActivity({
-          type: 'Ajout',
-          target: 'Section',
-          user: (typeof currentUser === 'object' && currentUser?.displayName) ? currentUser.displayName : undefined,
-          details: { title }
-        });
+      // Section mode — validation
+      const trimmedTitle = title.trim();
+      const trimmedContent = content.trim();
+      if (!trimmedTitle || !trimmedContent) {
+        setFormError('Le titre et le contenu sont obligatoires.');
+        return;
+      }
+      if (trimmedTitle.length > 200) {
+        setFormError('Le titre ne doit pas dépasser 200 caractères.');
+        return;
+      }
+      setFormError('');
+      setSaveStatus('saving');
+
+      try {
+        if (editSectionId) {
+          await updateGuideSection(editSectionId, {
+            title: trimmedTitle,
+            phase,
+            content: trimmedContent,
+            order,
+            resources: selectedResources,
+            subSections: subSections.length > 0 ? subSections : undefined
+          });
+          logAdminActivity({
+            type: 'Modification',
+            target: 'Section',
+            targetId: editSectionId,
+            user: currentUserDisplayName,
+            details: { title: trimmedTitle }
+          });
+        } else {
+          await addGuideSection({
+            title: trimmedTitle,
+            phase,
+            content: trimmedContent,
+            order,
+            resources: selectedResources,
+            subSections: subSections.length > 0 ? subSections : undefined
+          });
+          logAdminActivity({
+            type: 'Ajout',
+            target: 'Section',
+            user: currentUserDisplayName,
+            details: { title: trimmedTitle }
+          });
+
+          // Réinitialiser les champs Section après ajout réussi
+          setTitle('');
+          setContent('');
+          const phaseSections = guideSections.filter(s => s.phase === phase);
+          setOrder(phaseSections.length > 0 ? Math.max(...phaseSections.map(s => s.order)) + 1 : 1);
+          setSelectedResources([]);
+          setSubSections([]);
+        }
+        setSaveStatus('success');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement de la section:', error);
+        setSaveStatus('error');
+        setSaveErrorMsg('Échec de l\'enregistrement. Vérifiez votre connexion et réessayez.');
       }
     }
-    // Rester sur la même page
-  
-  // Réinitialiser les champs après ajout ou modification
-  if (isNewFaq || isNewSection) {
-    if (isNewFaq) {
-      // Réinitialiser les champs FAQ
-      setQuestion('');
-      setAnswer('');
-      setFaqCategory('');
-      setFaqPhase('post-cps');
-      setQuestionType('phase');
-      setIsApproved(true);
-      setIsAnswered(false);
-    } else if (isNewSection) {
-      // Réinitialiser les champs Section
-      setTitle('');
-      setContent('');
-      // Recalculer l'ordre pour la prochaine section
-      const phaseSections = guideSections.filter(s => s.phase === phase);
-      setOrder(phaseSections.length > 0 ? Math.max(...phaseSections.map(s => s.order)) + 1 : 1);
-      setSelectedResources([]);
-    }
-  }
   };
 
   // Demande de confirmation avant suppression
@@ -310,28 +336,34 @@ const AdminContentEditor: React.FC = () => {
   };
 
   // Procéder à la suppression après confirmation
-  const handleConfirmDelete = () => {
-    if (deleteType === 'section' && editSectionId) {
-      deleteGuideSection(editSectionId);
-      logAdminActivity({
-        type: 'Suppression',
-        target: 'Section',
-        targetId: editSectionId,
-        user: currentUser?.uid,
-        details: { title }
-      });
-      // Redirection vers le tableau de bord
-      navigate('/admin/content');
-    } else if (deleteType === 'faq' && editFaqId) {
-      deleteFAQItem(editFaqId);
-      logAdminActivity({
-        type: 'Suppression',
-        target: 'FAQ',
-        targetId: editFaqId,
-        user: currentUser?.uid,
-        details: { question }
-      });
-      // Rester sur la même page au lieu de rediriger
+  const handleConfirmDelete = async () => {
+    try {
+      if (deleteType === 'section' && editSectionId) {
+        await deleteGuideSection(editSectionId);
+        logAdminActivity({
+          type: 'Suppression',
+          target: 'Section',
+          targetId: editSectionId,
+          user: currentUserDisplayName,
+          details: { title }
+        });
+        // Redirection vers le tableau de bord
+        navigate('/admin/content');
+      } else if (deleteType === 'faq' && editFaqId) {
+        await deleteFAQItem(editFaqId);
+        logAdminActivity({
+          type: 'Suppression',
+          target: 'FAQ',
+          targetId: editFaqId,
+          user: currentUserDisplayName,
+          details: { question }
+        });
+        // Rester sur la même page au lieu de rediriger
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      setSaveStatus('error');
+      setSaveErrorMsg('Échec de la suppression. Vérifiez votre connexion et réessayez.');
     }
     setShowDeleteModal(false);
   };
@@ -606,6 +638,25 @@ const AdminContentEditor: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {formError && (
+        <div className="container mx-auto px-4 pt-4">
+          <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+            {formError}
+          </div>
+        </div>
+      )}
+      {(saveStatus === 'success' || saveStatus === 'error') && (
+        <div
+          className={`fixed top-6 right-6 p-4 rounded-md shadow-lg z-50 text-sm flex items-center ${
+            saveStatus === 'success'
+              ? 'bg-green-100 border-l-4 border-green-500 text-green-800'
+              : 'bg-red-100 border-l-4 border-red-500 text-red-800'
+          }`}
+        >
+          {saveStatus === 'success' ? 'Enregistré avec succès.' : saveErrorMsg}
+        </div>
+      )}
       
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -755,10 +806,15 @@ const AdminContentEditor: React.FC = () => {
                           {contentPerms['admin.news'] && (
                             <button
                               type="submit"
-                              className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                              disabled={saveStatus === 'saving'}
+                              className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                              <Save className="mr-2 h-4 w-4" />
-                              {isNewFaq ? 'Ajouter' : 'Enregistrer'}
+                              {saveStatus === 'saving' ? (
+                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                              ) : (
+                                <Save className="mr-2 h-4 w-4" />
+                              )}
+                              {saveStatus === 'saving' ? 'Enregistrement...' : (isNewFaq ? 'Ajouter' : 'Enregistrer')}
                             </button>
                           )}
                         </div>
@@ -994,10 +1050,15 @@ const AdminContentEditor: React.FC = () => {
                       {contentPerms['admin.news'] && (
                         <button
                           type="submit"
-                          className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2"
+                          disabled={saveStatus === 'saving'}
+                          className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-2.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          <Save className="mr-2 h-4 w-4" />
-                          {isNewSection ? 'Ajouter' : 'Enregistrer'}
+                          {saveStatus === 'saving' ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                          )}
+                          {saveStatus === 'saving' ? 'Enregistrement...' : (isNewSection ? 'Ajouter' : 'Enregistrer')}
                         </button>
                       )}
                     </div>

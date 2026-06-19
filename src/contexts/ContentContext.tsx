@@ -120,69 +120,103 @@ const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     fetchAll();
   }, []);
 
-  // CRUD Firestore
-  const reloadAll = async () => {
-    // Recharge toutes les collections (après un ajout/supp/sync)
-    const guideSnap = await getDocs(collection(db, 'guideSections'));
-    setGuideSections(guideSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as GuideSection));
-    const resSnap = await getDocs(collection(db, 'resources'));
-    setResources(resSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as ResourceDocument));
-    const faqSnap = await getDocs(collection(db, 'faq'));
-    setFAQItems(faqSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }) as FAQItem));
-  };
-
-  // Resource methods
+  // Resource methods (mise à jour optimiste locale du state, pas de refetch complet)
   const addResource = async (resource: Omit<ResourceDocument, 'id'>) => {
-    await addDoc(collection(db, 'resources'), resource);
-    await reloadAll();
+    try {
+      const docRef = await addDoc(collection(db, 'resources'), resource);
+      setResources(prev => [...prev, { id: docRef.id, ...resource }]);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la ressource:', error);
+      throw error;
+    }
   };
   const updateResource = async (id: string, resource: Partial<ResourceDocument>) => {
-    await updateDoc(doc(db, 'resources', id), resource);
-    await reloadAll();
+    try {
+      await updateDoc(doc(db, 'resources', id), resource);
+      setResources(prev => prev.map(r => (r.id === id ? { ...r, ...resource } : r)));
+    } catch (error) {
+      console.error('Erreur lors de la modification de la ressource:', error);
+      throw error;
+    }
   };
   const deleteResource = async (id: string) => {
-    await deleteDoc(doc(db, 'resources', id));
-    await reloadAll();
+    try {
+      await deleteDoc(doc(db, 'resources', id));
+      setResources(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la ressource:', error);
+      throw error;
+    }
   };
 
   // Guide section methods
   const addGuideSection = async (section: Omit<GuideSection, 'id'>) => {
-    // Ne pas envoyer subSections si vide
-    const dataToSend = { ...section };
-    if (!section.subSections || section.subSections.length === 0) {
-      delete dataToSend.subSections;
+    try {
+      // Ne pas envoyer subSections si vide
+      const dataToSend = { ...section };
+      if (!section.subSections || section.subSections.length === 0) {
+        delete dataToSend.subSections;
+      }
+      const docRef = await addDoc(collection(db, 'guideSections'), dataToSend);
+      setGuideSections(prev => [...prev, { id: docRef.id, ...section }]);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la section:', error);
+      throw error;
     }
-    await addDoc(collection(db, 'guideSections'), dataToSend);
-    await reloadAll();
   };
   const updateGuideSection = async (id: string, section: Partial<GuideSection>) => {
-    // Ne pas inclure subSections si vide ou undefined
-    const dataToUpdate = { ...section };
-    if ('subSections' in dataToUpdate) {
-      if (!dataToUpdate.subSections || dataToUpdate.subSections.length === 0) {
-        delete dataToUpdate.subSections;
+    try {
+      // Ne pas inclure subSections si vide ou undefined
+      const dataToUpdate = { ...section };
+      if ('subSections' in dataToUpdate) {
+        if (!dataToUpdate.subSections || dataToUpdate.subSections.length === 0) {
+          delete dataToUpdate.subSections;
+        }
       }
+      await updateDoc(doc(db, 'guideSections', id), dataToUpdate);
+      setGuideSections(prev => prev.map(s => (s.id === id ? { ...s, ...section } : s)));
+    } catch (error) {
+      console.error('Erreur lors de la modification de la section:', error);
+      throw error;
     }
-    await updateDoc(doc(db, 'guideSections', id), dataToUpdate);
-    await reloadAll();
   };
   const deleteGuideSection = async (id: string) => {
-    await deleteDoc(doc(db, 'guideSections', id));
-    await reloadAll();
+    try {
+      await deleteDoc(doc(db, 'guideSections', id));
+      setGuideSections(prev => prev.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la section:', error);
+      throw error;
+    }
   };
 
   // FAQ item methods
   const addFAQItem = async (item: Omit<FAQItem, 'id'>) => {
-    await addDoc(collection(db, 'faq'), item);
-    await reloadAll();
+    try {
+      const docRef = await addDoc(collection(db, 'faq'), item);
+      setFAQItems(prev => [...prev, { id: docRef.id, ...item }]);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la FAQ:', error);
+      throw error;
+    }
   };
   const updateFAQItem = async (id: string, item: Partial<FAQItem>) => {
-    await updateDoc(doc(db, 'faq', id), item);
-    await reloadAll();
+    try {
+      await updateDoc(doc(db, 'faq', id), item);
+      setFAQItems(prev => prev.map(f => (f.id === id ? { ...f, ...item } : f)));
+    } catch (error) {
+      console.error('Erreur lors de la modification de la FAQ:', error);
+      throw error;
+    }
   };
   const deleteFAQItem = async (id: string) => {
-    await deleteDoc(doc(db, 'faq', id));
-    await reloadAll();
+    try {
+      await deleteDoc(doc(db, 'faq', id));
+      setFAQItems(prev => prev.filter(f => f.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la FAQ:', error);
+      throw error;
+    }
   };
 
   // Filter methods
