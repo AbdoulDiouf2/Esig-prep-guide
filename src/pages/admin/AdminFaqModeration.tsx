@@ -20,7 +20,7 @@ const formatDateFr = (isoDate?: string): string => {
 const AdminFaqModeration: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const canModerate = usePermission('admin.news');
+  const canModerate = usePermission('faq.moderate');
   const { faqItems, updateFAQItem, deleteFAQItem } = useContent();
   const { sendFaqAnswerNotification } = useNotifications();
 

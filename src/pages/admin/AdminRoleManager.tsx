@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { ArrowLeft, Shield, Save, AlertCircle, CheckCircle, Plus, Trash2, X, Lock, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Shield, Save, AlertCircle, CheckCircle, Plus, Trash2, X, Lock, ChevronRight, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ALL_PERMISSIONS, PERMISSION_GROUPS, PERMISSION_LABELS, DEFAULT_ROLE_PERMISSIONS } from '../../types/permissions';
 import type { Permission, RoleDoc } from '../../types/permissions';
@@ -114,6 +114,21 @@ export default function AdminRoleManager() {
       showToast('error', 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const [syncing, setSyncing] = useState(false);
+
+  const syncSuperAdmin = async () => {
+    setSyncing(true);
+    try {
+      await setDoc(doc(db, 'roles', 'superAdmin'), { permissions: ALL_PERMISSIONS });
+      setRoles(prev => prev.map(r => r.id === 'superAdmin' ? { ...r, permissions: new Set(ALL_PERMISSIONS) } : r));
+      showToast('success', `Super Admin synchronisé — ${ALL_PERMISSIONS.length} permissions`);
+    } catch {
+      showToast('error', 'Erreur lors de la synchronisation');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -293,6 +308,17 @@ export default function AdminRoleManager() {
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  </button>
+                )}
+                {isLocked && (
+                  <button
+                    onClick={syncSuperAdmin}
+                    disabled={syncing}
+                    title="Réécrit la liste complète des permissions du code dans Firestore — utile après l'ajout d'une nouvelle permission"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-700 text-white rounded-lg text-sm font-semibold hover:bg-purple-800 disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Synchronisation...' : 'Synchroniser'}
                   </button>
                 )}
               </div>

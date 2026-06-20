@@ -6,6 +6,7 @@ export type Permission =
   | 'resources.read'
   | 'resources.upload'
   | 'resources.manage'
+  | 'faq.moderate'
   | 'alumni.view'
   | 'alumni.validate'
   | 'webinars.view'
@@ -36,6 +37,7 @@ export interface UserOverrideDoc {
 export const ALL_PERMISSIONS: Permission[] = [
   'forum.read', 'forum.write', 'forum.delete', 'forum.moderate',
   'resources.read', 'resources.upload', 'resources.manage',
+  'faq.moderate',
   'alumni.view', 'alumni.validate',
   'webinars.view', 'webinars.manage',
   'workshops.view', 'workshops.manage',
@@ -53,6 +55,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'resources.read': 'Consulter',
   'resources.upload': 'Uploader',
   'resources.manage': 'Gérer',
+  'faq.moderate': 'Modérer la FAQ',
   'alumni.view': 'Voir annuaire',
   'alumni.validate': 'Valider profils',
   'webinars.view': 'Voir',
@@ -75,6 +78,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Forum: ['forum.read', 'forum.write', 'forum.delete', 'forum.moderate'],
   Ressources: ['resources.read', 'resources.upload', 'resources.manage'],
+  FAQ: ['faq.moderate'],
   Alumni: ['alumni.view', 'alumni.validate'],
   Webinaires: ['webinars.view', 'webinars.manage'],
   Ateliers: ['workshops.view', 'workshops.manage'],
@@ -95,6 +99,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   editor: [
     'forum.read', 'forum.write', 'forum.delete', 'forum.moderate',
     'resources.read', 'resources.upload', 'resources.manage',
+    'faq.moderate',
     'alumni.view',
     'webinars.view', 'webinars.manage',
     'workshops.view', 'workshops.manage',
@@ -104,6 +109,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   admin: [
     'forum.read', 'forum.write', 'forum.delete', 'forum.moderate',
     'resources.read', 'resources.upload', 'resources.manage',
+    'faq.moderate',
     'alumni.view', 'alumni.validate',
     'webinars.view', 'webinars.manage',
     'workshops.view', 'workshops.manage',
@@ -121,6 +127,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   staff: [
     'forum.read', 'forum.write', 'forum.moderate',
     'resources.read', 'resources.upload', 'resources.manage',
+    'faq.moderate',
     'webinars.view', 'webinars.manage',
     'workshops.view',
     'admin.news',
