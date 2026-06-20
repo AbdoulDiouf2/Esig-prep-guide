@@ -14,6 +14,8 @@ import {
   TypedValue 
 } from '../services/subsectionDataService';
 import { ChatNotificationService } from '../services/chatNotificationService';
+import { db } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -30,7 +32,9 @@ const Dashboard: React.FC = () => {
   
   const [activePhase, setActivePhase] = useState<GuidePhase>('post-cps');
   // État pour les notifications de chat non lues
-  const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+  // État pour les nouveautés du forum (nouveaux fils / nouvelles réponses depuis la dernière visite)
+  const [newForumActivityCount, setNewForumActivityCount] = useState<number>(0);
   // Progress tracking (would be stored in user profile in a real app)
   const [completedSections, setCompletedSections] = useState<string[]>([]);
   // État pour les cases à cocher des sous-sections
@@ -401,28 +405,39 @@ const Dashboard: React.FC = () => {
     return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
 
-  // Effet pour vérifier les messages non lus
+  // Effet pour suivre le nombre de messages non lus (temps réel)
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    // Vérifier les messages non lus au chargement
-    const checkUnread = async () => {
-      const hasUnread = await ChatNotificationService.checkUnreadMessages(currentUser.uid);
-      setHasUnreadMessages(hasUnread);
-    };
-
-    checkUnread();
-
-    // S'abonner aux changements de messages non lus
-    const unsubscribe = ChatNotificationService.subscribeToUnreadMessages(
+    const unsubscribe = ChatNotificationService.subscribeToUnreadMessagesCount(
       currentUser.uid,
-      (hasUnread) => {
-        setHasUnreadMessages(hasUnread);
+      (count) => {
+        setUnreadMessagesCount(count);
       }
     );
 
     return () => unsubscribe();
   }, [currentUser?.uid]);
+
+  // Effet pour détecter les nouveautés du forum (nouveaux fils / réponses depuis la dernière visite)
+  useEffect(() => {
+    const lastSeen = parseInt(localStorage.getItem('forum_last_seen') ?? '0', 10);
+    const unsubscribe = onSnapshot(collection(db, 'forumThreads'), (snapshot) => {
+      const count = snapshot.docs.filter(d => {
+        const data = d.data();
+        const activityAt = (data.lastReplyAt ?? data.createdAt ?? 0) as number;
+        return activityAt > lastSeen;
+      }).length;
+      setNewForumActivityCount(count);
+    }, () => {});
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleForumClick = () => {
+    localStorage.setItem('forum_last_seen', String(Date.now()));
+    setNewForumActivityCount(0);
+  };
 
   // Affichage de chargement si les données ne sont pas encore chargées
   if (!resources || !faqItems || !guideSections || progressLoading || subsectionDataLoading) {
@@ -505,7 +520,16 @@ const Dashboard: React.FC = () => {
           {/* Forum and Admin Chat Buttons */}
           <div className="mb-4 lg:col-span-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Link to="/forum" className="flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 transition-colors">
+                <Link
+                  to="/forum"
+                  onClick={handleForumClick}
+                  className="relative flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 transition-colors"
+                >
+                  {newForumActivityCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {newForumActivityCount > 9 ? '9+' : newForumActivityCount}
+                    </span>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="bg-blue-600 rounded-full p-2">
                       <Users className="w-5 h-5 text-white" />
@@ -519,8 +543,10 @@ const Dashboard: React.FC = () => {
                 </Link>
                 
                 <Link to="/user-chat" className="flex items-center justify-between bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 transition-colors relative">
-                  {hasUnreadMessages && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                    </span>
                   )}
                   <div className="flex items-center gap-3">
                     <div className="bg-green-600 rounded-full p-2">

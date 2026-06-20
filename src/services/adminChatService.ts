@@ -320,7 +320,7 @@ const adminChatService = {
    * @returns Fonction de désabonnement
    */
   subscribeToUnreadMessages(
-    adminId: string, 
+    adminId: string,
     callback: (hasUnread: boolean) => void
   ): Unsubscribe {
     const messagesRef = collection(db, 'messages');
@@ -332,6 +332,28 @@ const adminChatService = {
 
     return onSnapshot(q, (snapshot) => {
       callback(!snapshot.empty);
+    });
+  },
+
+  /**
+   * S'abonne au nombre de messages non lus pour l'admin
+   * @param adminId ID de l'administrateur
+   * @param callback Fonction appelée avec le nombre de messages non lus à chaque changement
+   * @returns Fonction de désabonnement
+   */
+  subscribeToUnreadMessagesCount(
+    adminId: string,
+    callback: (count: number) => void
+  ): Unsubscribe {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('receiverId', '==', adminId),
+      where('read', '==', false)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.size);
     });
   }
 };

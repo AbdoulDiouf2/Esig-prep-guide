@@ -33,6 +33,7 @@ import NewThread from './pages/NewThread';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminContentEditor from './pages/admin/AdminContentEditor';
 import AdminResourceManager from './pages/admin/AdminResourceManager';
+import AdminFaqModeration from './pages/admin/AdminFaqModeration';
 import AdminUserManager from './pages/admin/AdminUserManager';
 import AdminUserProfile from './pages/admin/AdminUserProfile';
 import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
@@ -398,6 +399,13 @@ function App() {
                     </AdminRoute>
                   </AuthWrapper>
                 } />
+                <Route path="/admin/faq-moderation" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AdminFaqModeration />
+                    </AdminRoute>
+                  </AuthWrapper>
+                } />
                 <Route path="/admin/users" element={
                   <AuthWrapper>
                     <AdminRoute>
@@ -544,6 +552,13 @@ function App() {
                   <AuthWrapper>
                     <EditorRoute>
                       <AdminResourceManager />
+                    </EditorRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/editor/faq-moderation" element={
+                  <AuthWrapper>
+                    <EditorRoute>
+                      <AdminFaqModeration />
                     </EditorRoute>
                   </AuthWrapper>
                 } />

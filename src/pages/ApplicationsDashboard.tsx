@@ -450,7 +450,7 @@ const ApplicationsDashboard: React.FC = () => {
           icon: <HelpCircle className="w-8 h-8 text-yellow-600" />,
           title: "Gestion de la FAQ",
           description: "Répondre aux questions et gérer les catégories de FAQ",
-          link: "/editor/faq?mode=faq",
+          link: "/editor/faq-moderation",
           roles: ["editor"]
         },
         {

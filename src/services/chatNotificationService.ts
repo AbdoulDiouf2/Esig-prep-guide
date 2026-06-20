@@ -52,6 +52,25 @@ export const ChatNotificationService = {
   },
 
   /**
+   * S'abonne au nombre de messages non lus
+   * @param userId ID de l'utilisateur
+   * @param callback Fonction appelée avec le nombre de messages non lus à chaque changement
+   * @returns Fonction de désabonnement
+   */
+  subscribeToUnreadMessagesCount(userId: string, callback: (count: number) => void): Unsubscribe {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('receiverId', '==', userId),
+      where('read', '==', false)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.size);
+    });
+  },
+
+  /**
    * Marque tous les messages comme lus pour une conversation
    * @param userId ID de l'utilisateur
    * @param adminId ID de l'administrateur

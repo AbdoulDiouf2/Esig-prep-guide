@@ -24,7 +24,7 @@ const EditorDashboard: React.FC = () => {
       title: 'Gestion de la FAQ',
       description: 'Répondre aux questions et gérer les catégories de FAQ',
       icon: <HelpCircle className="w-8 h-8 text-yellow-500" />,
-      link: '/editor/faq?mode=faq',
+      link: '/editor/faq-moderation',
     },
     {
       title: 'Modération du forum',

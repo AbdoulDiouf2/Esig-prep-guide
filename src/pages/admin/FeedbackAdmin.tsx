@@ -37,15 +37,29 @@ const FeedbackAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FeedbackType | 'all'>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string>('');
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const fetchFeedbacks = async () => {
       setLoading(true);
-      const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const items: FeedbackItem[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as FeedbackItem[];
-      setFeedbacks(items);
-      setLoading(false);
+      setLoadError('');
+      try {
+        const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        const items: FeedbackItem[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as FeedbackItem[];
+        setFeedbacks(items);
+      } catch (error) {
+        console.error('Erreur lors du chargement des feedbacks:', error);
+        setLoadError('Échec du chargement des feedbacks. Réessayez.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchFeedbacks();
   }, []);
@@ -55,6 +69,10 @@ const FeedbackAdmin: React.FC = () => {
     try {
       await updateDoc(doc(db, 'feedback', id), { status: newStatus });
       setFeedbacks(prev => prev.map(fb => fb.id === id ? { ...fb, status: newStatus } : fb));
+      showToast('success', 'Statut mis à jour.');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showToast('error', 'Échec de la mise à jour du statut. Vérifiez vos droits et réessayez.');
     } finally {
       setUpdatingId(null);
     }
@@ -78,6 +96,17 @@ const FeedbackAdmin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-50 py-8 px-4">
+      {toast && (
+        <div
+          className={`fixed top-6 right-6 p-4 rounded-md shadow-lg z-50 text-sm ${
+            toast.type === 'success'
+              ? 'bg-green-100 border-l-4 border-green-500 text-green-800'
+              : 'bg-red-100 border-l-4 border-red-500 text-red-800'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -87,6 +116,12 @@ const FeedbackAdmin: React.FC = () => {
           <h1 className="text-2xl font-bold text-blue-900">Feedbacks utilisateurs</h1>
           <span className="ml-auto text-sm text-gray-500">{counts.all} au total</span>
         </div>
+
+        {loadError && (
+          <div className="p-3 mb-4 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+            {loadError}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">

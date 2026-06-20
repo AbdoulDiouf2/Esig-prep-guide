@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import SuperAdminCheck from '../../components/routes/SuperAdminCheck';
 import { UserDoc } from './AdminUserManager';
 import CpsOverview from './CpsOverview';
 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useContent } from '../../contexts/ContentContext';
 import adminChatService from '../../services/adminChatService';
 import {
   Users,
@@ -65,8 +66,10 @@ function formatAdminActivity(activity: LogActivityParams, usersList: UserDoc[] =
 const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { recentActivity, loading: loadingActivity } = useRecentAdminActivity();
+  const { faqItems } = useContent();
+  const pendingFaqCount = faqItems.filter(f => !f.isAnswered).length;
 
-  const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [pendingWorkshopsCount, setPendingWorkshopsCount] = useState(0);
   const [newFeedbacksCount, setNewFeedbacksCount] = useState(0);
   // Tabs
@@ -76,41 +79,41 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    // Vérifier les messages non lus au chargement
-    const checkUnreadMessages = async () => {
-      const hasUnread = await adminChatService.hasUnreadMessages(currentUser.uid);
-      setHasUnreadMessages(hasUnread);
-    };
-
-    checkUnreadMessages();
-
-    // S'abonner aux changements de messages non lus
-    const unsubscribe = adminChatService.subscribeToUnreadMessages(
+    // S'abonner au nombre de messages non lus
+    const unsubscribe = adminChatService.subscribeToUnreadMessagesCount(
       currentUser.uid,
-      (hasUnread) => {
-        setHasUnreadMessages(hasUnread);
+      (count) => {
+        setUnreadMessagesCount(count);
       }
     );
 
     return () => unsubscribe();
   }, [currentUser?.uid]);
 
-  // Propositions d'ateliers en attente
+  // Propositions d'ateliers en attente (temps réel)
   useEffect(() => {
-    getCountFromServer(
-      query(collection(db, 'workshopProposals'), where('status', '==', 'pending'))
-    ).then((snap) => setPendingWorkshopsCount(snap.data().count)).catch(() => {});
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'workshopProposals'), where('status', '==', 'pending')),
+      (snap) => setPendingWorkshopsCount(snap.size),
+      () => {}
+    );
+    return () => unsubscribe();
   }, []);
 
-  // Nouveaux feedbacks (comparaison avec le total vu en localStorage)
+  // Feedbacks au statut "nouveau" (temps réel) — un feedback sans champ status est considéré "nouveau" (cf. FeedbackAdmin.tsx)
   useEffect(() => {
-    getCountFromServer(collection(db, 'feedback'))
-      .then((snap) => {
-        const total = snap.data().count;
-        const seen = parseInt(localStorage.getItem('admin_feedbacks_seen') ?? '0', 10);
-        setNewFeedbacksCount(Math.max(0, total - seen));
-      })
-      .catch(() => {});
+    const unsubscribe = onSnapshot(
+      collection(db, 'feedback'),
+      (snap) => {
+        const count = snap.docs.filter(d => {
+          const status = d.data().status;
+          return !status || status === 'nouveau';
+        }).length;
+        setNewFeedbacksCount(count);
+      },
+      () => {}
+    );
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -127,12 +130,6 @@ const AdminDashboard: React.FC = () => {
             <div className="order-2 md:order-none flex flex-col gap-2 sm:flex-row sm:space-x-2 sm:gap-0 w-full md:w-auto mt-2 md:mt-0">
               <Link
                 to="/admin/feedbacks"
-                onClick={() => {
-                  getCountFromServer(collection(db, 'feedback'))
-                    .then((snap) => localStorage.setItem('admin_feedbacks_seen', String(snap.data().count)))
-                    .catch(() => {});
-                  setNewFeedbacksCount(0);
-                }}
                 className="relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white/80 hover:bg-white text-blue-900 border border-blue-200 shadow transition-colors"
               >
                 <MessageSquare className="w-4 h-4 mr-1.5" />
@@ -287,8 +284,10 @@ const AdminDashboard: React.FC = () => {
                   to="/admin/chat-interface"
                   className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200 relative"
                 >
-                  {hasUnreadMessages && (
-                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {unreadMessagesCount} non lu{unreadMessagesCount > 1 ? 's' : ''}
+                    </span>
                   )}
                   <div className="flex items-start">
                     <div className="p-2 bg-green-100 rounded-lg mr-4">
@@ -304,9 +303,14 @@ const AdminDashboard: React.FC = () => {
 
               {/* Carte FAQ */}
               <Link
-                to="/admin/content?faq=moderate"
-                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+                to="/admin/faq-moderation"
+                className="relative block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
               >
+                {pendingFaqCount > 0 && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {pendingFaqCount} en attente
+                  </span>
+                )}
                 <div className="flex items-start">
                   <div className="p-2 bg-blue-100 rounded-lg mr-4">
                     <MessageSquare className="w-6 h-6 text-blue-600" />
@@ -314,6 +318,22 @@ const AdminDashboard: React.FC = () => {
                   <div>
                     <h3 className="text-md font-semibold text-gray-900">Modérer la FAQ</h3>
                     <p className="text-sm text-gray-600 mt-1">Gérer les questions et réponses de la FAQ</p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Carte Forum */}
+              <Link
+                to="/forum"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Forum des étudiants</h3>
+                    <p className="text-sm text-gray-600 mt-1">Modérer les discussions, épingler ou supprimer des fils</p>
                   </div>
                 </div>
               </Link>
@@ -395,12 +415,6 @@ const AdminDashboard: React.FC = () => {
               {/* Carte Feedbacks */}
               <Link
                 to="/admin/feedbacks"
-                onClick={() => {
-                  getCountFromServer(collection(db, 'feedback'))
-                    .then((snap) => localStorage.setItem('admin_feedbacks_seen', String(snap.data().count)))
-                    .catch(() => {});
-                  setNewFeedbacksCount(0);
-                }}
                 className="relative block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
               >
                 {newFeedbacksCount > 0 && (
@@ -557,7 +571,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
               
               <Link
-                to="/admin/content?faq=moderate"
+                to="/admin/faq-moderation"
                 className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="p-2 rounded-md bg-blue-100 text-blue-800 mr-3">
