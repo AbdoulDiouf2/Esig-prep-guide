@@ -8,6 +8,7 @@ import { STATUS_OPTIONS, getStatusLabel } from '../constants/statusOptions';
 import { User, GraduationCap, MapPin } from 'lucide-react';
 import { Shield } from 'lucide-react';
 import PasswordConfirmModal from '../components/PasswordConfirmModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 
 const UserProfile: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -29,6 +30,8 @@ const UserProfile: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState(true);
 
   const [providerError, setProviderError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
 
   // Détecter le fournisseur d'authentification
   const isSocialLogin = currentUser?.providerData?.some(provider => 
@@ -158,21 +161,14 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer définitivement votre compte ? Cette action est irréversible et toutes vos données seront perdues.')) {
-      return;
-    }
+  const handleDeleteAccount = () => {
+    setDeleteModalError(null);
+    setDeleteModalOpen(true);
+  };
 
-    // Demander à l'utilisateur de confirmer en tapant la phrase exacte
-    const confirmationText = 'je veux supprimer mon compte';
-    const userInput = prompt(`Pour confirmer la suppression, veuillez taper exactement : "${confirmationText}"`);
-    
-    if (userInput !== confirmationText) {
-      setError('Suppression annulée. La phrase de confirmation ne correspond pas.');
-      return;
-    }
-
+  const confirmDeleteAccount = async (password: string) => {
     setSaving(true);
+    setDeleteModalError(null);
     setError(null);
     setSuccess(null);
 
@@ -184,11 +180,6 @@ const UserProfile: React.FC = () => {
 
       // Pour les utilisateurs avec mot de passe, demander la réauthentification
       if (hasPasswordProvider) {
-        const password = prompt('Pour confirmer la suppression de votre compte, veuillez entrer votre mot de passe :');
-        if (!password) {
-          setSaving(false);
-          return;
-        }
         const credential = EmailAuthProvider.credential(firebaseUser.email || '', password);
         await reauthenticateWithCredential(firebaseUser, credential);
       }
@@ -205,14 +196,15 @@ const UserProfile: React.FC = () => {
       // Supprimer le compte utilisateur
       await deleteUser(firebaseUser);
 
+      setDeleteModalOpen(false);
+
       // Rediriger vers la page d'accueil
       navigate('/');
-      
-      // Afficher un message de confirmation
-      alert('Votre compte a été supprimé avec succès.');
     } catch (error) {
       console.error('Erreur lors de la suppression du compte :', error);
-      setError(error instanceof Error ? error.message : 'Une erreur est survenue lors de la suppression du compte.');
+      setDeleteModalError(
+        error instanceof Error ? error.message : 'Une erreur est survenue lors de la suppression du compte.'
+      );
     } finally {
       setSaving(false);
     }
@@ -427,9 +419,17 @@ const UserProfile: React.FC = () => {
           onSubmit={handlePasswordConfirm}
           loading={modalLoading}
           error={modalError}
-          label={pendingAction === 'profile' 
+          label={pendingAction === 'profile'
             ? 'Veuillez entrer VOTRE mot de passe pour confirmer la modification du profil.'
             : 'Veuillez entrer VOTRE mot de passe pour changer votre mot de passe.'}
+        />
+        <DeleteAccountModal
+          open={deleteModalOpen}
+          onClose={() => { setDeleteModalOpen(false); setDeleteModalError(null); }}
+          onConfirm={confirmDeleteAccount}
+          requiresPassword={hasPasswordProvider}
+          loading={saving}
+          error={deleteModalError}
         />
         </div>
       </div>
