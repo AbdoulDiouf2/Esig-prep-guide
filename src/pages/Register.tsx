@@ -40,39 +40,62 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
   const [currentStep, setCurrentStep] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  
+
   const navigate = useNavigate();
   const { register } = useAuth();
 
   // Fonction pour mettre à jour les données du formulaire
   const updateFormData = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (fieldErrors.has(field)) {
+      setFieldErrors(prev => {
+        const next = new Set(prev);
+        next.delete(field);
+        return next;
+      });
+    }
   };
+
+  const inputClass = (field: string) =>
+    `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+      fieldErrors.has(field)
+        ? 'border-red-500 focus:ring-red-500'
+        : 'border-gray-300 focus:ring-blue-500'
+    }`;
 
   // Validation Étape 1 : Informations de base
   const validateStep1 = (): boolean => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Tous les champs sont obligatoires');
+    const missing = new Set<string>();
+    if (!formData.name) missing.add('name');
+    if (!formData.email) missing.add('email');
+    if (!formData.password) missing.add('password');
+    if (!formData.confirmPassword) missing.add('confirmPassword');
+    if (!formData.yearPromo) missing.add('yearPromo');
+
+    if (missing.size > 0) {
+      setFieldErrors(missing);
+      setError('Merci de remplir tous les champs obligatoires (en rouge)');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
+      setFieldErrors(new Set(['password', 'confirmPassword']));
       setError('Les mots de passe ne correspondent pas');
       return false;
     }
     if (formData.password.length < 6) {
+      setFieldErrors(new Set(['password']));
       setError('Le mot de passe doit contenir au moins 6 caractères');
       return false;
     }
-    if (!formData.yearPromo) {
-      setError('L\'année de promotion est obligatoire');
-      return false;
-    }
     if (!termsAccepted) {
+      setFieldErrors(new Set(['terms']));
       setError('Vous devez accepter les conditions d\'utilisation');
       return false;
     }
+    setFieldErrors(new Set());
     setError('');
     return true;
   };
@@ -86,9 +109,11 @@ const Register: React.FC = () => {
   // Validation Étape 3 : Données alumni CPS
   const validateStep3 = (): boolean => {
     if (!formData.school) {
+      setFieldErrors(new Set(['school']));
       setError("L'école intégrée est obligatoire");
       return false;
     }
+    setFieldErrors(new Set());
     setError('');
     return true;
   };
@@ -144,7 +169,7 @@ const Register: React.FC = () => {
           required
           value={formData.name}
           onChange={(e) => updateFormData('name', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass('name')}
         />
       </div>
 
@@ -158,7 +183,7 @@ const Register: React.FC = () => {
           required
           value={formData.email}
           onChange={(e) => updateFormData('email', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass('email')}
         />
       </div>
 
@@ -175,7 +200,7 @@ const Register: React.FC = () => {
           value={formData.yearPromo}
           onChange={(e) => updateFormData('yearPromo', parseInt(e.target.value))}
           placeholder="Ex: 2022"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass('yearPromo')}
         />
         <p className="mt-1 text-sm text-gray-500">
           Ex: Si tu as fini la prépa en 2022, ta promo est 2022. Si tu es en 1ère année, indique ton année de sortie estimée.
@@ -193,7 +218,7 @@ const Register: React.FC = () => {
             required
             value={formData.password}
             onChange={(e) => updateFormData('password', e.target.value)}
-            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`pr-10 ${inputClass('password')}`}
           />
           <button
             type="button"
@@ -216,7 +241,7 @@ const Register: React.FC = () => {
             required
             value={formData.confirmPassword}
             onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`pr-10 ${inputClass('confirmPassword')}`}
           />
           <button
             type="button"
@@ -233,10 +258,21 @@ const Register: React.FC = () => {
           id="terms"
           type="checkbox"
           checked={termsAccepted}
-          onChange={(e) => setTermsAccepted(e.target.checked)}
-          className="h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          onChange={(e) => {
+            setTermsAccepted(e.target.checked);
+            if (fieldErrors.has('terms')) {
+              setFieldErrors(prev => {
+                const next = new Set(prev);
+                next.delete('terms');
+                return next;
+              });
+            }
+          }}
+          className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 rounded ${
+            fieldErrors.has('terms') ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'
+          }`}
         />
-        <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
+        <label htmlFor="terms" className={`ml-2 text-sm ${fieldErrors.has('terms') ? 'text-red-600' : 'text-gray-700'}`}>
           J'accepte les{' '}
           <Link to="/legal/CGU" className="font-medium text-blue-600 hover:text-blue-500" target="_blank">
             conditions d'utilisation
@@ -330,7 +366,7 @@ const Register: React.FC = () => {
           value={formData.school}
           onChange={(e) => updateFormData('school', e.target.value)}
           placeholder="ex: ESIGELEC, Centrale Nantes, INSA Lyon..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass('school')}
         />
       </div>
 

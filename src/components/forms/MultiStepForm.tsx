@@ -114,15 +114,26 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
               key={step.id}
               onClick={() => goToStep(index)}
               disabled={index > currentStepIndex}
-              className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all ${
-                index < currentStepIndex
-                  ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700'
-                  : index === currentStepIndex
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
+              className="flex flex-col items-center gap-1 max-w-[80px]"
             >
-              {index + 1}
+              <span
+                className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all ${
+                  index < currentStepIndex
+                    ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700'
+                    : index === currentStepIndex
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {index + 1}
+              </span>
+              <span
+                className={`text-xs text-center leading-tight ${
+                  index === currentStepIndex ? 'font-medium text-blue-700' : 'text-gray-500'
+                }`}
+              >
+                {step.title}
+              </span>
             </button>
           ))}
         </div>
