@@ -102,7 +102,8 @@ const Register: React.FC = () => {
       // Redirection
       navigate('/applications');
     } catch (err) {
-      setError('Erreur lors de la création du compte');
+      const message = err instanceof Error ? err.message : '';
+      setError(`Erreur lors de la création du compte${message ? ` : ${message}` : ''}`);
       console.error(err);
     }
   };
@@ -349,6 +350,12 @@ const Register: React.FC = () => {
   // Étape 4 : Résumé
   const Step4Component = (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-600 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
       <div className="bg-blue-50 border-l-4 border-blue-600 p-4">
         <p className="text-sm text-blue-700">
           Vérifiez vos informations avant de créer votre compte.
