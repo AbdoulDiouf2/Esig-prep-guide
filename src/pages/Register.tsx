@@ -5,6 +5,23 @@ import { MultiStepForm, Step } from '../components/forms/MultiStepForm';
 import { Eye, EyeOff } from 'lucide-react';
 import { createAlumniProfileOnSignup, submitAlumniProfileForValidation } from '../services/alumniService';
 
+const getRegisterErrorMessage = (err: unknown): string => {
+  const code = err instanceof Error && 'code' in err ? (err as { code?: string }).code : undefined;
+
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Un compte existe déjà avec cet email. Essaie de te connecter directement (ou via Google/GitHub si tu l\'as utilisé à l\'inscription).';
+    case 'auth/weak-password':
+      return 'Le mot de passe est trop faible. Utilise au moins 6 caractères.';
+    case 'auth/invalid-email':
+      return 'L\'adresse email saisie n\'est pas valide.';
+    case 'auth/network-request-failed':
+      return 'Problème de connexion internet. Vérifie ta connexion et réessaie.';
+    default:
+      return 'Une erreur est survenue lors de la création du compte. Réessaie, et si le problème persiste, contacte un administrateur.';
+  }
+};
+
 const Register: React.FC = () => {
   // États pour les données du formulaire
   const [formData, setFormData] = useState({
@@ -103,8 +120,7 @@ const Register: React.FC = () => {
       // Redirection
       navigate('/applications');
     } catch (err) {
-      const message = err instanceof Error ? err.message : '';
-      setError(`Erreur lors de la création du compte${message ? ` : ${message}` : ''}`);
+      setError(getRegisterErrorMessage(err));
       console.error(err);
     }
   };
