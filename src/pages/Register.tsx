@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MultiStepForm, Step } from '../components/forms/MultiStepForm';
 import { Eye, EyeOff } from 'lucide-react';
-import { createAlumniProfileOnSignup } from '../services/alumniService';
+import { createAlumniProfileOnSignup, submitAlumniProfileForValidation } from '../services/alumniService';
 
 const Register: React.FC = () => {
   // États pour les données du formulaire
@@ -96,7 +96,8 @@ const Register: React.FC = () => {
           sectors: [],
           expertise: [],
         });
-        console.log('✅ Profil alumni CPS créé avec succès');
+        await submitAlumniProfileForValidation(user.uid);
+        console.log('✅ Profil alumni CPS créé et soumis pour validation');
       }
       
       // Redirection
