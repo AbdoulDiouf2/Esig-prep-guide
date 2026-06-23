@@ -65,6 +65,22 @@ const ApplicationsDashboard: React.FC = () => {
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadNewsCount, setUnreadNewsCount] = useState(0);
+  const [alumniBannerDismissed, setAlumniBannerDismissed] = useState(false);
+
+  // Lire l'état de fermeture du banner "Crée ton profil alumni" (persisté par compte)
+  useEffect(() => {
+    if (currentUser) {
+      const dismissed = localStorage.getItem(`alumni_banner_dismissed_${currentUser.uid}`);
+      setAlumniBannerDismissed(dismissed === 'true');
+    }
+  }, [currentUser]);
+
+  const dismissAlumniBanner = () => {
+    if (currentUser) {
+      localStorage.setItem(`alumni_banner_dismissed_${currentUser.uid}`, 'true');
+      setAlumniBannerDismissed(true);
+    }
+  };
 
   // Définir la catégorie par défaut selon le profil utilisateur
   useEffect(() => {
@@ -761,6 +777,37 @@ const ApplicationsDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Incitation à créer un profil alumni (aucun profil existant) */}
+      {!loadingAlumni && !alumniProfile && currentUser?.status === 'alumni' && !isDirector() && !isStaff() && !alumniBannerDismissed && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md relative">
+          <button
+            type="button"
+            onClick={dismissAlumniBanner}
+            className="absolute top-2 right-2 text-amber-500 hover:text-amber-700"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+          <div className="flex items-start pr-6">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800">
+                Crée ton profil alumni
+              </h3>
+              <p className="mt-1 text-sm text-amber-700">
+                Tu fais partie des anciens CPS mais n'as pas encore de profil dans l'annuaire alumni. Crée-le pour être visible et te connecter avec les autres anciens.
+              </p>
+              <Link
+                to="/complete-alumni-profile"
+                className="mt-2 inline-block text-sm font-medium text-amber-800 underline hover:text-amber-900"
+              >
+                Créer mon profil →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification profil alumni brouillon */}
       {!loadingAlumni && alumniProfile && alumniProfile.status === 'draft' && !isDirector() && !isStaff() && (
