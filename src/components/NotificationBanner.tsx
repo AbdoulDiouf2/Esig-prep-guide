@@ -10,6 +10,11 @@ export function NotificationBanner() {
   useEffect(() => {
     // Vérifier si la bannière doit être affichée
     const checkNotificationStatus = () => {
+      // Ne pas afficher si les notifications ne sont pas supportées (iOS Safari)
+      if (!('Notification' in window)) {
+        setShowBanner(false);
+        return;
+      }
       // Ne pas afficher si la permission a déjà été accordée ou refusée
       if (Notification.permission === 'granted' || Notification.permission === 'denied') {
         setShowBanner(false);
