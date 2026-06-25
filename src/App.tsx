@@ -6,7 +6,28 @@ import Footer from './components/layout/Footer';
 import { AdminRoute, SuperAdminRoute, EditorRoute, PermissionRoute } from './components/routes/PermissionRoute';
 import ConsentBanner from './components/legal/ConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Component } from 'react';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, fontFamily: 'monospace', background: '#fff1f0', minHeight: '100vh' }}>
+          <h2 style={{ color: '#c00' }}>Erreur de rendu</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{this.state.error.message}{'\n'}{this.state.error.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { NotificationBanner } from './components/NotificationBanner';
 import UserStatusModal from './components/auth/UserStatusModal';
 import { AlertTriangle, X } from 'lucide-react';
@@ -246,6 +267,7 @@ const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) =>
 // Composant principal de l'application
 function App() {
   return (
+    <ErrorBoundary>
     <Router>
       <AuthProvider>
         <ContentProvider>
@@ -694,6 +716,7 @@ function App() {
         </ContentProvider>
       </AuthProvider>
     </Router>
+    </ErrorBoundary>
   );
 }
 

@@ -1,0 +1,58 @@
+iOS SAFARI BLANK PAGE ISSUES - COMPREHENSIVE REPORT
+
+CRITICAL ISSUES (Module-level window.location access in components):
+
+1. AdminContentEditor.tsx:21
+   const urlIndicatesAdmin = window.location.href.includes('/admin/');
+   - Module-level component code runs on render
+   - iOS Safari: window.location may not be available during initial hydration
+   - Result: Component fails to render, page goes blank
+
+2. AdminContentEditor.tsx:27 (inside useEffect but references module-level variable)
+   const currentParams = window.location.search;
+   - Called within useEffect but depends on module-level window access
+   - Secondary issue
+
+3. AdminFaqModeration.tsx:29
+   const urlIndicatesAdmin = window.location.href.includes('/admin/');
+   - Same issue as AdminContentEditor line 21
+   - Module-level component code
+
+4. AdminResourceManager.tsx:53
+   const urlIndicatesAdmin = window.location.href.includes('/admin/');
+   - Same issue as above
+   - Module-level component code
+
+5. AdminResourceManager.tsx:62 (inside useEffect)
+   const currentParams = window.location.search;
+   - Called within useEffect but same underlying issue
+
+HIGH-PRIORITY ISSUES (window.location.origin in async functions):
+
+6. NotificationService.ts:97
+   faq_url: `${window.location.origin}/Esig-prep-guide/faq`
+   - Inside async function sendFaqAnswerNotification
+   - If called early in app lifecycle, could crash
+   - Should guard with: typeof window !== 'undefined'
+
+7. NotificationService.ts:204
+   faq_url: `${window.location.origin}/Esig-prep-guide/webinars`
+   - Inside async function sendWebinarCreationNotification
+   - Same issue as line 97
+
+MISSING COMPONENT:
+
+8. App.tsx - NO ERROR BOUNDARY
+   - App renders without error boundary
+   - Any error in child components causes complete blank page
+   - No graceful error fallback on iOS Safari crashes
+   - This is why users see blank white screen instead of error message
+
+ALREADY FIXED:
+- pushNotificationService.ts: Already has isMessagingSupported guard ✓
+
+SUMMARY:
+- 5 files with critical window.location access at module level
+- 1 file with unsafe window.location.origin in async functions
+- 1 missing error boundary for graceful error handling
+- Total: 7 issues causing iOS Safari blank page
