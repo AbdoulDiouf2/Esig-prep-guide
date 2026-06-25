@@ -24,28 +24,36 @@ export interface NotificationData {
 // Clé publique de l'application FCM (à remplacer par votre clé)
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || '';
 
+// Firebase Messaging is not supported on Safari/iOS — guard before instantiating
+const isMessagingSupported =
+  typeof window !== 'undefined' &&
+  'Notification' in window &&
+  'serviceWorker' in navigator &&
+  'PushManager' in window;
+
 class PushNotificationService {
-  private messaging: Messaging;
+  private messaging: Messaging | null = null;
   private db: Firestore;
   private app: FirebaseApp;
   private hasRequestedPermission = false;
   private notificationPermission: NotificationPermission = 'default';
 
   constructor() {
-    // Initialisation de l'application Firebase
     this.app = getApp();
-    
-    // Configuration de la messagerie
-    this.messaging = getMessaging(this.app);
-    
-    // Initialisation de Firestore
     this.db = getFirestore(this.app);
-    
-    // Configuration de l'écouteur de messages
-    this.setupMessageListener();
-    
-    // Enregistrer le service worker
-    this.registerServiceWorker();
+
+    if (!isMessagingSupported) {
+      console.info('Push notifications not supported on this browser/device.');
+      return;
+    }
+
+    try {
+      this.messaging = getMessaging(this.app);
+      this.setupMessageListener();
+      this.registerServiceWorker();
+    } catch (error) {
+      console.warn('Firebase Messaging init failed:', error);
+    }
   }
   
   // Enregistrer le service worker
@@ -122,6 +130,7 @@ class PushNotificationService {
 
   // Obtenir le token FCM actuel
   public async getCurrentToken(): Promise<string | null> {
+    if (!this.messaging) return null;
     try {
       const currentToken = await getToken(this.messaging, { vapidKey: VAPID_KEY });
       if (currentToken) {
@@ -182,6 +191,7 @@ class PushNotificationService {
 
   // Supprimer le token FCM actuel
   public async deleteToken(): Promise<boolean> {
+    if (!this.messaging) return false;
     try {
       const token = await getToken(this.messaging);
       if (token) {
@@ -224,6 +234,7 @@ class PushNotificationService {
 
   // Configurer l'écouteur de messages
   private setupMessageListener() {
+    if (!this.messaging) return;
     onMessage(this.messaging, (payload) => {
       console.log('Message reçu au premier plan:', payload);
       
