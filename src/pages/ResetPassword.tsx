@@ -43,7 +43,12 @@ const ResetPassword: React.FC = () => {
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 text-blue-700 text-sm">
             Si vous vous êtes inscrit via Google ou GitHub, connectez-vous directement avec ce bouton — aucun mot de passe n'est associé à votre compte.
           </div>
-          {message && <div className="bg-green-50 border-l-4 border-green-600 p-4 mb-6 text-green-700">{message}</div>}
+          {message && (
+            <div className="bg-green-50 border-l-4 border-green-600 p-4 mb-6 text-green-700 text-sm space-y-1">
+              <p>{message}</p>
+              <p className="text-green-600">📬 Si vous ne le voyez pas, vérifiez votre dossier <strong>Spam</strong> ou <strong>Courrier indésirable</strong>.</p>
+            </div>
+          )}
           {error && <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-6 text-red-700">{error}</div>}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>

@@ -92,6 +92,7 @@ import Ressources from './pages/Ressources';
 import Maintenance from './pages/Maintenance';
 import MaintenanceToggle from './pages/admin/MaintenanceToggle';
 import ImportAlumni from './pages/admin/ImportAlumni';
+import AdminRecensements from './pages/admin/AdminRecensements';
 import News from './pages/News';
 import NewsDetail from './pages/NewsDetail';
 import AdminNews from './pages/admin/AdminNews';
@@ -531,6 +532,13 @@ function App() {
                     <SuperAdminRoute>
                       <MaintenanceToggle />
                     </SuperAdminRoute>
+                  </AuthWrapper>
+                } />
+                <Route path="/admin/recensements" element={
+                  <AuthWrapper>
+                    <AdminRoute>
+                      <AdminRecensements />
+                    </AdminRoute>
                   </AuthWrapper>
                 } />
                 <Route path="/admin/import-alumni" element={

@@ -433,6 +433,22 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
 
+              {/* Carte Recensements */}
+              <Link
+                to="/admin/recensements"
+                className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-200"
+              >
+                <div className="flex items-start">
+                  <div className="p-2 bg-indigo-100 rounded-lg mr-4">
+                    <ClipboardList className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Recensements</h3>
+                    <p className="text-sm text-gray-600 mt-1">Historique et chiffres-clés des recensements</p>
+                  </div>
+                </div>
+              </Link>
+
               {/* Carte Cours en ligne - Désactivée */}
               <div className="block p-4 bg-white border border-gray-200 rounded-lg opacity-60 cursor-not-allowed">
                 <div className="flex items-start">

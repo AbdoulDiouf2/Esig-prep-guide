@@ -23,7 +23,8 @@ export type Permission =
   | 'ai.chat'
   | 'maintenance.toggle'
   | 'director.dashboard'
-  | 'staff.dashboard';
+  | 'staff.dashboard'
+  | 'recensement.manage';
 
 export interface RoleDoc {
   permissions: Permission[];
@@ -42,7 +43,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'webinars.view', 'webinars.manage',
   'workshops.view', 'workshops.manage',
   'users.view', 'users.manage',
-  'admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news',
+  'admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news', 'recensement.manage',
   'broadcast.send', 'ai.chat', 'maintenance.toggle',
   'director.dashboard', 'staff.dashboard',
 ];
@@ -73,6 +74,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'maintenance.toggle': 'Maintenance',
   'director.dashboard': 'Portail directeur',
   'staff.dashboard': 'Portail staff',
+  'recensement.manage': 'Gérer recensements',
 };
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
@@ -83,7 +85,7 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Webinaires: ['webinars.view', 'webinars.manage'],
   Ateliers: ['workshops.view', 'workshops.manage'],
   Utilisateurs: ['users.view', 'users.manage'],
-  Administration: ['admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news'],
+  Administration: ['admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news', 'recensement.manage'],
   'Super Admin': ['broadcast.send', 'ai.chat', 'maintenance.toggle'],
   'Portails spéciaux': ['director.dashboard', 'staff.dashboard'],
 };
@@ -114,7 +116,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'webinars.view', 'webinars.manage',
     'workshops.view', 'workshops.manage',
     'users.view', 'users.manage',
-    'admin.dashboard', 'admin.news',
+    'admin.dashboard', 'admin.news', 'recensement.manage',
   ],
   director: [
     'forum.read',

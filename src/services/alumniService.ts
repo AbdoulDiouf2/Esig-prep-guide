@@ -782,6 +782,7 @@ export interface ImportAlumniData {
 export interface ImportResult {
   success: number;
   skipped: number;
+  updated: number;
   errors: Array<{
     row: number;
     email: string;
@@ -936,11 +937,13 @@ export const createAlumniAccountWithProfile = async (
  */
 export const importAlumniFromFile = async (
   parsedData: ImportAlumniData[],
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  options?: { sendActivationEmail?: boolean }
 ): Promise<ImportResult> => {
   const result: ImportResult = {
     success: 0,
     skipped: 0,
+    updated: 0,
     errors: [],
   };
   
@@ -965,8 +968,24 @@ export const importAlumniFromFile = async (
       );
       
       if (!existingProfiles.empty) {
-        console.log(`⚠️  Ligne ${rowNumber}: Email ${row.email} existe déjà, ignoré`);
-        result.skipped++;
+        const existingDoc = existingProfiles.docs[0];
+        const existingData = existingDoc.data();
+        // Mettre à jour uniquement les champs non vides qui ont changé
+        const updates: Record<string, unknown> = {};
+        if (row.city && row.city !== existingData.city) updates.city = row.city;
+        if (row.position && row.position !== existingData.position) updates.position = row.position;
+        if (row.sectors && row.sectors.length > 0) updates.sectors = row.sectors;
+        if (row.expertise && row.expertise.length > 0) updates.expertise = row.expertise;
+        if (row.yearPromo && row.yearPromo !== existingData.yearPromo) updates.yearPromo = row.yearPromo;
+        if (Object.keys(updates).length > 0) {
+          updates.dateUpdated = Timestamp.now();
+          await updateDoc(doc(db, ALUMNI_COLLECTION, existingDoc.id), updates);
+          console.log(`🔄 Ligne ${rowNumber}: Email ${row.email} mis à jour`);
+          result.updated++;
+        } else {
+          console.log(`⏭️  Ligne ${rowNumber}: Email ${row.email} inchangé, ignoré`);
+          result.skipped++;
+        }
         continue;
       }
       
@@ -976,6 +995,16 @@ export const importAlumniFromFile = async (
       if (createResult.success) {
         console.log(`✅ Ligne ${rowNumber}: Compte créé pour ${row.email}`);
         result.success++;
+        if (options?.sendActivationEmail) {
+          try {
+            const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+            const subject = "Votre compte CPS Connect a été créé";
+            const message = `Bonjour ${row.name},\n\nVotre compte sur CPS Connect a été créé suite au recensement de la communauté alumni CPS.\n\nPour accéder à votre espace :\n1. Rendez-vous sur ${appUrl}/login\n2. Cliquez sur "Mot de passe oublié"\n3. Entrez votre adresse email : ${row.email}\n4. Suivez les instructions pour définir votre mot de passe\n\nUne fois connecté, complétez votre profil pour être visible dans l'annuaire.\n\nÀ bientôt sur CPS Connect 🎓`.trim();
+            await NotificationService.sendCustomEmail(row.email, subject, message, row.name);
+          } catch (emailError) {
+            console.warn(`⚠️ Email non envoyé pour ${row.email}:`, emailError);
+          }
+        }
       } else {
         console.error(`❌ Ligne ${rowNumber}: Erreur pour ${row.email}: ${createResult.error}`);
         result.errors.push({
@@ -1003,10 +1032,167 @@ export const importAlumniFromFile = async (
   console.log('='.repeat(50));
   console.log(`Total traité    : ${parsedData.length}`);
   console.log(`✅ Succès       : ${result.success}`);
-  console.log(`⚠️  Ignorés      : ${result.skipped}`);
+  console.log(`🔄 Mis à jour   : ${result.updated}`);
+  console.log(`⏭️  Ignorés      : ${result.skipped}`);
   console.log(`❌ Erreurs      : ${result.errors.length}`);
   console.log('='.repeat(50));
   
+  return result;
+};
+
+/**
+ * ===== IMPORT SIMPLIFIÉ (NOM + EMAIL) =====
+ */
+
+export interface MinimalImportEntry {
+  name: string;
+  email: string;
+}
+
+export interface EmailImportResult {
+  success: number;
+  skipped: number;
+  errors: Array<{ email: string; error: string }>;
+}
+
+export const importEmailsOnly = async (
+  entries: MinimalImportEntry[],
+  options: { yearPromo?: number; sendActivationEmail?: boolean },
+  onProgress?: (current: number, total: number) => void
+): Promise<EmailImportResult> => {
+  const result: EmailImportResult = { success: 0, skipped: 0, errors: [] };
+  const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+
+  console.log(`🚀 Import simplifié : ${entries.length} entrées...`);
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+
+    try {
+      if (onProgress) onProgress(i + 1, entries.length);
+
+      // Vérifier si email existe déjà dans alumni
+      const existing = await getDocs(
+        query(collection(db, ALUMNI_COLLECTION), where('email', '==', entry.email.toLowerCase()))
+      );
+
+      if (!existing.empty) {
+        console.log(`⏭️  ${entry.email} existe déjà, ignoré`);
+        result.skipped++;
+        continue;
+      }
+
+      // Créer compte + profil alumni
+      const createResult = await createAlumniAccountWithProfile({
+        name: entry.name,
+        email: entry.email,
+        yearPromo: options.yearPromo ?? 0,
+      });
+
+      if (!createResult.success) {
+        result.errors.push({ email: entry.email, error: createResult.error || 'Erreur inconnue' });
+        continue;
+      }
+
+      // Envoyer email d'activation
+      if (options.sendActivationEmail !== false) {
+        const subject = "Votre compte CPS Connect a été créé";
+        const message = `Bonjour ${entry.name},\n\nVotre compte sur CPS Connect — la plateforme communautaire des alumni CPS — a été créé suite au recensement de la communauté.\n\nPour accéder à votre espace :\n1. Rendez-vous sur ${appUrl}/login\n2. Cliquez sur "Mot de passe oublié"\n3. Entrez votre adresse email : ${entry.email}\n4. Suivez les instructions reçues pour définir votre mot de passe\n\nUne fois connecté, complétez votre profil alumni pour être visible dans l'annuaire et entrer en contact avec la communauté.\n\nÀ bientôt sur CPS Connect !`;
+        await NotificationService.sendCustomEmail(entry.email, subject, message, entry.name);
+      }
+
+      result.success++;
+      console.log(`✅ ${entry.email} créé`);
+
+      // Rate limiting Firebase Auth
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+    } catch (error: any) {
+      console.error(`❌ ${entry.email}:`, error.message);
+      result.errors.push({ email: entry.email, error: error.message || 'Erreur inconnue' });
+    }
+  }
+
+  console.log(`\n📊 Import simplifié — Succès: ${result.success} | Ignorés: ${result.skipped} | Erreurs: ${result.errors.length}`);
+  return result;
+};
+
+/**
+ * ===== RAPPELS D'ACTIVATION =====
+ */
+
+export interface ReminderResult {
+  sent: number;
+  alreadyActive: number;
+  errors: Array<{ email: string; error: string }>;
+}
+
+export interface InactiveAlumni { uid: string; name: string; email: string; }
+
+export const getInactiveAlumni = async (
+  importedFrom: 'bulk_import' | 'email_only_import'
+): Promise<InactiveAlumni[]> => {
+  const alumniSnap = await getDocs(
+    query(collection(db, ALUMNI_COLLECTION), where('importedFrom', '==', importedFrom))
+  );
+  const inactive: InactiveAlumni[] = [];
+  for (const alumniDoc of alumniSnap.docs) {
+    const alumni = alumniDoc.data();
+    if (!alumni.uid || !alumni.email) continue;
+    const userDoc = await getDoc(doc(db, 'users', alumni.uid));
+    if (!userDoc.exists() || !userDoc.data().lastActive) {
+      inactive.push({ uid: alumni.uid, name: alumni.name || '', email: alumni.email });
+    }
+  }
+  return inactive;
+};
+
+export const sendActivationReminders = async (
+  importedFrom: 'bulk_import' | 'email_only_import',
+  onProgress?: (current: number, total: number) => void
+): Promise<ReminderResult> => {
+  const result: ReminderResult = { sent: 0, alreadyActive: 0, errors: [] };
+  const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+
+  // 1. Récupérer tous les alumni importés
+  const alumniSnap = await getDocs(
+    query(collection(db, ALUMNI_COLLECTION), where('importedFrom', '==', importedFrom))
+  );
+
+  const total = alumniSnap.size;
+
+  // 2. Pour chaque alumni, vérifier si lastActive absent dans users
+  for (let i = 0; i < alumniSnap.docs.length; i++) {
+    const alumniDoc = alumniSnap.docs[i];
+    const alumni = alumniDoc.data();
+    if (onProgress) onProgress(i + 1, total);
+
+    try {
+      const uid = alumni.uid;
+      if (!uid || !alumni.email) { result.alreadyActive++; continue; }
+
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (!userDoc.exists() || userDoc.data().lastActive) {
+        // lastActive présent → s'est déjà connecté
+        result.alreadyActive++;
+        continue;
+      }
+
+      // Jamais connecté → envoyer rappel
+      const name = alumni.name || '';
+      const subject = "Rappel : votre compte CPS Connect vous attend";
+      const message = `Bonjour ${name},\n\nVotre compte sur CPS Connect a été créé suite au recensement de la communauté alumni CPS, mais il n'a pas encore été activé.\n\nPour accéder à votre espace :\n1. Rendez-vous sur ${appUrl}/login\n2. Cliquez sur "Mot de passe oublié"\n3. Entrez votre adresse email : ${alumni.email}\n4. Suivez les instructions pour définir votre mot de passe\n\nUne fois connecté, complétez votre profil pour être visible dans l'annuaire.\n\nÀ bientôt sur CPS Connect 🎓`.trim();
+
+      await NotificationService.sendCustomEmail(alumni.email, subject, message, name);
+      result.sent++;
+
+      // Pause pour éviter rate limit EmailJS
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error: any) {
+      result.errors.push({ email: alumni.email || '?', error: error.message });
+    }
+  }
+
   return result;
 };
 

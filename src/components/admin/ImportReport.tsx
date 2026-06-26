@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Download, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Download, RefreshCw, ChevronDown, ChevronUp, RefreshCcw } from 'lucide-react';
 import { ImportResult } from '../../services/alumniService';
 
 interface ImportReportProps {
@@ -24,12 +24,12 @@ const ImportReport: React.FC<ImportReportProps> = ({ result, onNewImport }) => {
     link.click();
   };
 
-  const total = result.success + result.skipped + result.errors.length;
+  const total = result.success + (result.updated ?? 0) + result.skipped + result.errors.length;
 
   return (
     <div className="space-y-6">
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Total */}
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <div className="flex items-center justify-between">
@@ -54,16 +54,28 @@ const ImportReport: React.FC<ImportReportProps> = ({ result, onNewImport }) => {
           </div>
         </div>
 
+        {/* Mis à jour */}
+        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-700">Mis à jour</p>
+              <p className="text-2xl font-bold text-blue-900">{result.updated ?? 0}</p>
+            </div>
+            <RefreshCcw className="w-12 h-12 text-blue-600" />
+          </div>
+          <p className="text-xs text-blue-600 mt-2">Profils existants modifiés</p>
+        </div>
+
         {/* Ignorés */}
         <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-yellow-700">Ignorés</p>
+              <p className="text-sm text-yellow-700">Inchangés</p>
               <p className="text-2xl font-bold text-yellow-900">{result.skipped}</p>
             </div>
             <AlertCircle className="w-12 h-12 text-yellow-600" />
           </div>
-          <p className="text-xs text-yellow-600 mt-2">Emails déjà existants</p>
+          <p className="text-xs text-yellow-600 mt-2">Déjà à jour</p>
         </div>
 
         {/* Erreurs */}
