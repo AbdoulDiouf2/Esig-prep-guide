@@ -6,9 +6,10 @@ import chatService, { ChatMessage as ChatMessageType } from '../../services/chat
 import ChatMessage from '../../components/chat/ChatMessage';
 import { Send, User, MessageSquare, Trash2, Plus, Bell, BellOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, serverTimestamp, getDocs, query } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, getDocs, query, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { pushNotificationService } from '../../services/pushNotificationService';
+import { NotificationService } from '../../services/NotificationService';
 
 
 
@@ -367,6 +368,23 @@ const AdminChatInterface: React.FC = () => {
         timestamp: serverTimestamp()
       });
       
+      // Notifier l'utilisateur par email
+      try {
+        const userSnap = await getDoc(doc(db, 'users', selectedUserId));
+        const userEmail = userSnap.data()?.email as string | undefined;
+        if (userEmail) {
+          const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+          await NotificationService.sendCustomEmail(
+            userEmail,
+            "Nouveau message de l'équipe CPS Connect",
+            `Bonjour ${selectedUserName},\n\nL'équipe CPS Connect vous a laissé un message sur la plateforme.\n\nPour le lire et y répondre :\n${appUrl}/user-chat\n\nÀ bientôt sur CPS Connect 🎓`,
+            selectedUserName
+          );
+        }
+      } catch (emailError) {
+        console.warn("Email de notification non envoyé :", emailError);
+      }
+
       // Réinitialiser le formulaire
       setMessageText('');
     } catch (error) {
