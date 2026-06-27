@@ -899,7 +899,7 @@ export const createAlumniAccountWithProfile = async (
       status: 'approved', // Pré-approuvé
       dateCreated: Timestamp.now(),
       dateUpdated: Timestamp.now(),
-      importedFrom: 'bulk_import',
+      importedFrom: options?.importedFrom || 'bulk_import',
       importedAt: Timestamp.now(),
     });
     
@@ -929,7 +929,7 @@ export const createAlumniAccountWithProfile = async (
 export const importAlumniFromFile = async (
   parsedData: ImportAlumniData[],
   onProgress?: (current: number, total: number) => void,
-  options?: { sendActivationEmail?: boolean }
+  options?: { sendActivationEmail?: boolean; importedFrom?: string }
 ): Promise<ImportResult> => {
   const result: ImportResult = {
     success: 0,

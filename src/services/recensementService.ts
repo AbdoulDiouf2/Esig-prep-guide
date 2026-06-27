@@ -82,15 +82,15 @@ export async function updateRecensementStats(
   });
 }
 
-export async function computeImportedAlumniCount(importedFrom: 'bulk_import' | 'email_only_import' = 'bulk_import'): Promise<number> {
+export async function computeImportedAlumniCount(importedFrom: string = 'bulk_import'): Promise<number> {
   const snap = await getDocs(
     query(collection(db, 'alumni'), where('importedFrom', '==', importedFrom))
   );
   return snap.size;
 }
 
-export async function syncRecensementFromBulkImport(id: string): Promise<number> {
-  const count = await computeImportedAlumniCount('bulk_import');
+export async function syncRecensementFromBulkImport(id: string, importedFrom: string = 'bulk_import'): Promise<number> {
+  const count = await computeImportedAlumniCount(importedFrom);
   await updateRecensementStats(id, {
     totalForms: count,
     newAccounts: count,

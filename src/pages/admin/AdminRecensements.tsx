@@ -455,6 +455,9 @@ const AdminRecensements: React.FC = () => {
     closedAt: '',
     notes: '',
     totalForms: 0,
+    newAccounts: 0,
+    updatedAccounts: 0,
+    errors: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [computing, setComputing] = useState(false);
@@ -549,6 +552,9 @@ const AdminRecensements: React.FC = () => {
       closedAt: dateStr,
       notes: r.notes,
       totalForms: r.stats.totalForms,
+      newAccounts: r.stats.newAccounts,
+      updatedAccounts: r.stats.updatedAccounts,
+      errors: r.stats.errors,
     });
     setFormError('');
     setShowModal(true);
@@ -556,7 +562,7 @@ const AdminRecensements: React.FC = () => {
 
   function openCreate() {
     setEditingRecensement(null);
-    setForm({ title: '', year: new Date().getFullYear(), closedAt: '', notes: '', totalForms: 0 });
+    setForm({ title: '', year: new Date().getFullYear(), closedAt: '', notes: '', totalForms: 0, newAccounts: 0, updatedAccounts: 0, errors: 0 });
     setFormError('');
     setShowModal(true);
   }
@@ -575,12 +581,21 @@ const AdminRecensements: React.FC = () => {
     setSubmitting(true);
     try {
       if (editingRecensement) {
+        const hasImportData = form.newAccounts > 0 || form.updatedAccounts > 0;
+        const newStatus = hasImportData ? 'imported' : editingRecensement.status;
         await updateRecensement(editingRecensement.id, {
           title: form.title.trim(),
           year: form.year,
           closedAt: Timestamp.fromDate(new Date(form.closedAt)),
           notes: form.notes.trim(),
-          stats: { ...editingRecensement.stats, totalForms: form.totalForms },
+          stats: {
+            totalForms: form.totalForms,
+            newAccounts: form.newAccounts,
+            updatedAccounts: form.updatedAccounts,
+            alreadyExisted: editingRecensement.stats.alreadyExisted,
+            errors: form.errors,
+          },
+          status: newStatus,
         });
       } else {
         const data: CreateRecensementData = {
@@ -594,7 +609,7 @@ const AdminRecensements: React.FC = () => {
       }
       setShowModal(false);
       setEditingRecensement(null);
-      setForm({ title: '', year: new Date().getFullYear(), closedAt: '', notes: '', totalForms: 0 });
+      setForm({ title: '', year: new Date().getFullYear(), closedAt: '', notes: '', totalForms: 0, newAccounts: 0, updatedAccounts: 0, errors: 0 });
       await loadRecensements();
     } catch (e) {
       setFormError(editingRecensement ? 'Erreur lors de la modification' : 'Erreur lors de la création');
@@ -892,6 +907,42 @@ const AdminRecensements: React.FC = () => {
                   </button>
                 </div>
               </div>
+              {/* Stats manuelles — visibles uniquement en édition */}
+              {editingRecensement && (
+                <div className="grid grid-cols-3 gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                  <p className="col-span-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Statistiques d'import</p>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-700 mb-1">Nouveaux comptes</label>
+                    <input
+                      type="number"
+                      value={form.newAccounts}
+                      onChange={e => setForm(f => ({ ...f, newAccounts: parseInt(e.target.value) || 0 }))}
+                      min={0}
+                      className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-700 mb-1">Mis à jour</label>
+                    <input
+                      type="number"
+                      value={form.updatedAccounts}
+                      onChange={e => setForm(f => ({ ...f, updatedAccounts: parseInt(e.target.value) || 0 }))}
+                      min={0}
+                      className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-700 mb-1">Erreurs</label>
+                    <input
+                      type="number"
+                      value={form.errors}
+                      onChange={e => setForm(f => ({ ...f, errors: parseInt(e.target.value) || 0 }))}
+                      min={0}
+                      className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Notes</label>
                 <textarea

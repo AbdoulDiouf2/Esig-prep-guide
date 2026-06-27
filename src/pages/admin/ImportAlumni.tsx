@@ -245,7 +245,7 @@ const ImportAlumni: React.FC = () => {
       const result = await importAlumniFromFile(
         dataToImport,
         (current, total) => { setImportProgress({ current, total }); },
-        { sendActivationEmail: fichierSendEmail }
+        { sendActivationEmail: fichierSendEmail, importedFrom: recensementId ? `import_${recensementId}` : 'bulk_import' }
       );
 
       result.errors.push(...validationErrors);
