@@ -799,56 +799,47 @@ export const createAlumniAccountWithProfile = async (
   data: ImportAlumniData
 ): Promise<{ success: boolean; uid?: string; error?: string }> => {
   try {
-    const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
-    const { secondaryAuth } = await import('../firebase');
+    const { createUserWithEmailAndPassword, updateProfile, getAuth } = await import('firebase/auth');
+    const { initializeApp, deleteApp } = await import('firebase/app');
+    const { firebaseConfig } = await import('../firebase');
     const { generateSecurePassword } = await import('../utils/passwordGenerator');
-    
-    // Vérifier que l'instance secondaire est disponible
-    if (!secondaryAuth) {
-      return {
-        success: false,
-        error: 'Instance secondaire Firebase non disponible',
-      };
-    }
-    
+
     let user;
     let isNewAccount = false;
-    
+
     try {
-      // 1. Essayer de créer le compte avec l'instance SECONDAIRE
-      // ✅ Cela ne déconnecte PAS l'utilisateur principal !
-      const tempPassword = generateSecurePassword();
-      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, tempPassword);
-      user = userCredential.user;
-      isNewAccount = true;
-      
-      // 2. Mettre à jour le displayName dans Firebase Auth
-      // Important : faire ça AVANT de déconnecter
-      await updateProfile(user, {
-        displayName: data.name,
-      });
-      
-      // 3. Créer le document utilisateur dans Firestore
-      // Le displayName est sauvegardé ici aussi pour cohérence
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: data.email,
-        displayName: data.name, // Même valeur que Firebase Auth
-        emailVerified: false,
-        isAdmin: false,
-        isSuperAdmin: false,
-        isEditor: false,
-        yearPromo: data.yearPromo,
-        profileComplete: true,
-        createdAt: Timestamp.now(),
-        lastLogin: Timestamp.now(),
-      });
-      
-      // 4. Déconnecter l'instance secondaire (APRÈS avoir tout sauvegardé)
-      await secondaryAuth.signOut();
-      
-      console.log(`✅ Nouveau compte Auth créé pour ${data.email}`);
+      // Créer une app temporaire isolée — évite la corruption d'état après de nombreuses créations
+      const tempApp = initializeApp(firebaseConfig, `temp-${Date.now()}-${Math.random()}`);
+      const tempAuth = getAuth(tempApp);
+
+      try {
+        const tempPassword = generateSecurePassword();
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, tempPassword);
+        user = userCredential.user;
+        isNewAccount = true;
+
+        await updateProfile(user, { displayName: data.name });
+
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: data.email,
+          displayName: data.name,
+          emailVerified: false,
+          isAdmin: false,
+          isSuperAdmin: false,
+          isEditor: false,
+          yearPromo: data.yearPromo,
+          profileComplete: true,
+          createdAt: Timestamp.now(),
+          lastLogin: Timestamp.now(),
+        });
+
+        console.log(`✅ Nouveau compte Auth créé pour ${data.email}`);
+      } finally {
+        // Toujours détruire l'app temporaire pour libérer les ressources
+        await deleteApp(tempApp);
+      }
     } catch (authError: any) {
       // Si l'email existe déjà dans Auth
       if (authError.code === 'auth/email-already-in-use') {
@@ -997,7 +988,7 @@ export const importAlumniFromFile = async (
         result.success++;
         if (options?.sendActivationEmail) {
           try {
-            const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+            const appUrl = import.meta.env.VITE_APP_URL || 'https://esig-prep-guide.vercel.app';
             const subject = "Votre compte CPS Connect a été créé";
             const message = `Bonjour ${row.name},\n\nVotre compte sur CPS Connect a été créé suite au recensement de la communauté alumni CPS.\n\nPour accéder à votre espace :\n1. Rendez-vous sur ${appUrl}/login\n2. Cliquez sur "Mot de passe oublié"\n3. Entrez votre adresse email : ${row.email}\n4. Suivez les instructions pour définir votre mot de passe\n\nUne fois connecté, complétez votre profil pour être visible dans l'annuaire.\n\nÀ bientôt sur CPS Connect 🎓`.trim();
             await NotificationService.sendCustomEmail(row.email, subject, message, row.name);
@@ -1061,7 +1052,7 @@ export const importEmailsOnly = async (
   onProgress?: (current: number, total: number) => void
 ): Promise<EmailImportResult> => {
   const result: EmailImportResult = { success: 0, skipped: 0, errors: [] };
-  const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+  const appUrl = import.meta.env.VITE_APP_URL || 'https://esig-prep-guide.vercel.app';
 
   console.log(`🚀 Import simplifié : ${entries.length} entrées...`);
 
@@ -1152,7 +1143,7 @@ export const sendActivationReminders = async (
   onProgress?: (current: number, total: number) => void
 ): Promise<ReminderResult> => {
   const result: ReminderResult = { sent: 0, alreadyActive: 0, errors: [] };
-  const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+  const appUrl = import.meta.env.VITE_APP_URL || 'https://esig-prep-guide.vercel.app';
 
   // 1. Récupérer tous les alumni importés
   const alumniSnap = await getDocs(

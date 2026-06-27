@@ -373,7 +373,7 @@ const AdminChatInterface: React.FC = () => {
         const userSnap = await getDoc(doc(db, 'users', selectedUserId));
         const userEmail = userSnap.data()?.email as string | undefined;
         if (userEmail) {
-          const appUrl = import.meta.env.VITE_APP_URL || 'https://cps-connect.web.app';
+          const appUrl = import.meta.env.VITE_APP_URL || 'https://esig-prep-guide.vercel.app';
           await NotificationService.sendCustomEmail(
             userEmail,
             "Nouveau message de l'équipe CPS Connect",
