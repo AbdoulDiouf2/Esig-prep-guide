@@ -7,24 +7,10 @@ import {
   User as FirebaseUser,
   AuthError 
 } from 'firebase/auth';
-import DropboxUploader from '../components/dropbox';
-import { Dropbox } from 'dropbox';
+import R2Uploader from '../components/R2Uploader';
 import emailjs from '@emailjs/browser';
 import { EMAILJS_CONFIG } from '../services/NotificationService';
 
-// Interface pour les fichiers Dropbox
-interface DropboxFile {
-  id: string;
-  name: string;
-  path_lower: string;
-  path_display: string;
-  size?: number;
-  client_modified?: string;
-  is_downloadable?: boolean;
-  shared_link?: {
-    url: string;
-  }
-}
 
 const TestFirebase: React.FC = () => {
   const [testData, setTestData] = useState<string>('');
@@ -32,12 +18,8 @@ const TestFirebase: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('test1234');
-  const [dropboxStatus, setDropboxStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [dropboxError, setDropboxError] = useState<string>('');
-  const [dropboxFiles, setDropboxFiles] = useState<DropboxFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
-  const [selectedFile, setSelectedFile] = useState<DropboxFile | null>(null);
-  
+
   // États pour les tests d'envoi d'email
   const [emailTestStatus, setEmailTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [emailTestError, setEmailTestError] = useState<string>('');
@@ -45,104 +27,29 @@ const TestFirebase: React.FC = () => {
   const [testSubject, setTestSubject] = useState<string>('Test EmailJS depuis ESIG-prep-guide');
   const [testMessage, setTestMessage] = useState<string>('Ceci est un email de test pour vérifier la configuration d\'EmailJS.');
 
-  // États pour les tests Dropbox Token
-  const [dropboxTokenStatus, setDropboxTokenStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [dropboxToken, setDropboxToken] = useState<string>('');
-  const [dropboxTokenError, setDropboxTokenError] = useState<string>('');
+  // États pour les tests R2 Worker
+  const [r2WorkerStatus, setR2WorkerStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [r2WorkerError, setR2WorkerError] = useState<string>('');
 
-  // Tester la récupération de l'access token Dropbox depuis Netlify Function
-  const testDropboxToken = async () => {
-    setDropboxTokenStatus('loading');
-    setDropboxToken('');
-    setDropboxTokenError('');
+  // Tester la connexion au Worker Cloudflare R2
+  const testR2Worker = async () => {
+    setR2WorkerStatus('loading');
+    setR2WorkerError('');
     
     try {
-      // Créer différentes variantes d'URL à tester
-      const urls = [
-        // URL absolue de Netlify (fonctionne quel que soit l'hébergement)
-        'https://esig-prep-guide.netlify.app/.netlify/functions/dropbox-token',
-        
-        // URLs locales avec CORS (pour le dev local)
-        'http://localhost:8888/.netlify/functions/dropbox-token',
-        'http://localhost:8888/.netlify/functions/dropbox-token.cjs',
-        
-        // URLs relatives ajustées selon l'environnement
-        window.location.hostname.includes('netlify.app') 
-          ? '/.netlify/functions/dropbox-token' 
-          : '/Esig-prep-guide/.netlify/functions/dropbox-token',
-          
-        window.location.hostname.includes('netlify.app') 
-          ? '/.netlify/functions/dropbox-token.cjs' 
-          : '/Esig-prep-guide/.netlify/functions/dropbox-token.cjs'
-      ];
-      
-      console.log('Environnement :', {
-        hostname: window.location.hostname,
-        pathname: window.location.pathname,
-        protocol: window.location.protocol,
-        urls: urls
-      });
-      
-      let success = false;
-      let lastError = '';
-      
-      // Essayer les deux URLs
-      for (const url of urls) {
-        try {
-          const response = await fetch(url);
-          console.log(`Test ${url} - Status:`, response.status);
-          
-          if (response.ok) {
-            // Vérifier le Content-Type pour déterminer comment traiter la réponse
-            const contentType = response.headers.get('content-type');
-            
-            if (contentType && contentType.includes('application/json')) {
-              try {
-                const data = await response.json();
-                console.log(`Test ${url} - Data:`, data);
-                
-                if (data.access_token) {
-                  setDropboxToken(data.access_token);
-                  setDropboxTokenStatus('success');
-                  success = true;
-                  break; // Sortir de la boucle si on a réussi
-                } else {
-                  lastError = `Réponse reçue de ${url} mais pas d'access_token trouvé: ${JSON.stringify(data)}`;
-                }
-              } catch (parseError) {
-                const text = await response.clone().text();
-                const preview = text.substring(0, 100) + '...';
-                lastError = `Erreur de parsing JSON pour ${url}: ${preview}`;
-                console.error('Erreur de parsing JSON:', parseError);
-                console.log('Contenu de la réponse (début):', preview);
-              }
-            } else {
-              // La réponse n'est pas du JSON
-              const text = await response.text();
-              const preview = text.substring(0, 150) + '...';
-              lastError = `Réponse reçue de ${url} mais pas au format JSON (${contentType}): ${preview}`;
-              console.log('Réponse complète:', text);
-            }
-          } else {
-            const text = await response.text();
-            const preview = text.length > 150 ? text.substring(0, 150) + '...' : text;
-            lastError = `Erreur HTTP ${response.status} pour ${url}: ${preview}`;
-          }
-        } catch (err: unknown) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          lastError = `Exception lors de l'appel à ${url}: ${errorMessage}`;
-        }
-      }
-      
-      if (!success) {
-        setDropboxTokenError(lastError);
-        setDropboxTokenStatus('error');
+      const workerUrl = import.meta.env.VITE_R2_WORKER_URL;
+      if (!workerUrl) throw new Error('VITE_R2_WORKER_URL non défini dans .env');
+      const res = await fetch(`${workerUrl}/health`);
+      if (res.ok) {
+        setR2WorkerStatus('success');
+        setTestData(prev => prev + '\n\nWorker Cloudflare R2 opérationnel !');
+      } else {
+        throw new Error(`HTTP ${res.status}`);
       }
     } catch (err: unknown) {
-      console.error('Erreur lors du test de récupération de token:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setDropboxTokenError(`Erreur générale: ${errorMessage}`);
-      setDropboxTokenStatus('error');
+      const msg = err instanceof Error ? err.message : String(err);
+      setR2WorkerError(msg);
+      setR2WorkerStatus('error');
     }
   };
   
@@ -167,128 +74,24 @@ const TestFirebase: React.FC = () => {
     }
   };
 
-  // Tester la connexion à Dropbox
-  const testDropboxConnection = async () => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    
-    if (!DROPBOX_ACCESS_TOKEN) {
-      setDropboxStatus('error');
-      setDropboxError('Erreur : Token Dropbox non trouvé dans les variables d\'environnement (VITE_DROPBOX_ACCESS_TOKEN)');
-      return;
-    }
-    
-    setDropboxStatus('loading');
-    setDropboxError('');
-    
-    try {
-      // Créer une instance Dropbox
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
-      
-      // Test simple : récupérer les informations du compte
-      const response = await dbx.usersGetCurrentAccount();
-      
-      // Si on arrive ici, la connexion est réussie
-      setDropboxStatus('success');
-      setTestData(prev => prev + '\n\nConnexion Dropbox réussie! Compte: ' + 
-        response.result.name.display_name + ' (Email: ' + 
-        response.result.email + ')');
-
-      // Une fois connecté, récupérons la liste des fichiers
-      await listDropboxFiles();
-    } catch (error) {
-      console.error('Erreur de connexion Dropbox:', error);
-      setDropboxStatus('error');
-      if (error instanceof Error) {
-        setDropboxError(`Erreur de connexion Dropbox: ${error.message}`);
-        setTestData(prev => prev + '\n\nErreur de connexion Dropbox: ' + error.message);
-      } else {
-        setDropboxError(`Erreur de connexion Dropbox: ${String(error)}`);
-        setTestData(prev => prev + '\n\nErreur de connexion Dropbox: ' + String(error));
-      }
-    }
-  };
-
-  // Récupérer la liste des fichiers Dropbox
-  const listDropboxFiles = async () => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) return;
-    
+  // Lister les fichiers R2 (test)
+  const listR2Files = async () => {
     setLoadingFiles(true);
-    setTestData(prev => prev + '\n\nChargement des fichiers Dropbox...');
-    
+    setTestData(prev => prev + '\n\nChargement des fichiers R2...');
     try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
-      
-      // Lister le contenu du dossier racine
-      const response = await dbx.filesListFolder({
-        path: '',
-        include_media_info: true,
-        include_deleted: false,
-        include_has_explicit_shared_members: false
-      });
-      
-      const files = response.result.entries.filter(entry => entry['.tag'] === 'file');
-      
-      // Convertir au format DropboxFile
-      const formattedFiles: DropboxFile[] = files.map(file => ({
-        id: file.id,
-        name: file.name,
-        path_lower: file.path_lower || '',
-        path_display: file.path_display || file.name,
-        size: 'size' in file ? file.size : undefined,
-        client_modified: 'client_modified' in file ? file.client_modified : undefined,
-        is_downloadable: true
-      }));
-      
-      setDropboxFiles(formattedFiles);
-      setTestData(prev => prev + `\n\n${formattedFiles.length} fichiers trouvés dans Dropbox.`);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des fichiers:', error);
-      if (error instanceof Error) {
-        setTestData(prev => prev + '\n\nErreur lors de la récupération des fichiers: ' + error.message);
-      } else {
-        setTestData(prev => prev + '\n\nErreur lors de la récupération des fichiers: ' + String(error));
-      }
+      const workerUrl = import.meta.env.VITE_R2_WORKER_URL;
+      const res = await fetch(`${workerUrl}/list`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { objects: Array<{ name: string }> };
+      setTestData(prev => prev + `\n\n${data.objects.length} fichiers trouvés dans R2.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTestData(prev => prev + `\n\nErreur R2 list: ${msg}`);
     } finally {
       setLoadingFiles(false);
     }
   };
-  
-  // Créer un lien de partage pour un fichier
-  const createShareLink = async (file: DropboxFile) => {
-    const DROPBOX_ACCESS_TOKEN = import.meta.env.VITE_DROPBOX_ACCESS_TOKEN;
-    if (!DROPBOX_ACCESS_TOKEN) return;
-    
-    setTestData(prev => prev + `\n\nCréation d'un lien de partage pour ${file.name}...`);
-    
-    try {
-      const dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
-      
-      const response = await dbx.sharingCreateSharedLinkWithSettings({
-        path: file.path_lower,
-      });
-      
-      const rawUrl = response.result.url.replace("?dl=0", "?raw=1");
-      setTestData(prev => prev + `\n\nLien de partage créé avec succès: ${rawUrl}`);
-      
-      // Mise à jour du fichier sélectionné avec le lien
-      setSelectedFile({
-        ...file,
-        shared_link: {
-          url: rawUrl
-        }
-      });
-      
-      return rawUrl;
-    } catch (error) {
-      console.error('Erreur lors de la création du lien de partage:', error);
-      if (error instanceof Error) {
-        setTestData(prev => prev + '\n\nErreur lors de la création du lien de partage: ' + error.message);
-      } else {
-        setTestData(prev => prev + '\n\nErreur lors de la création du lien de partage: ' + String(error));
-      }
-    }
-  };
+
 
   // Tester l'authentification
   const testAuth = async () => {
@@ -537,177 +340,39 @@ const TestFirebase: React.FC = () => {
         </pre>
       </div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Test Dropbox</h2>
-        
+        <h2 className="text-xl font-semibold mb-2">Test Cloudflare R2</h2>
+
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium mb-2">1. Tester l'endpoint Netlify Function pour Dropbox Token</h3>
+          <h3 className="font-medium mb-2">1. Tester la connexion au Worker R2</h3>
           <button
-            onClick={testDropboxToken}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
-            disabled={dropboxTokenStatus === 'loading'}
+            onClick={testR2Worker}
+            className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded mr-4"
+            disabled={r2WorkerStatus === 'loading'}
           >
-            {dropboxTokenStatus === 'loading' ? 'Chargement...' : 'Tester l\'endpoint Dropbox Token'}
+            {r2WorkerStatus === 'loading' ? 'Vérification...' : 'Tester le Worker R2'}
           </button>
-          
-          {dropboxTokenStatus === 'error' && (
-            <div className="mt-3 p-3 bg-red-50 text-red-800 rounded-md border border-red-200">
-              <h4 className="font-semibold mb-1">❌ Erreur lors de la récupération du token</h4>
-              <p className="text-sm">{dropboxTokenError}</p>
-            </div>
-          )}
-          
-          {dropboxTokenStatus === 'success' && (
-            <div className="mt-3 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
-              <h4 className="font-semibold mb-1">✅ Access token récupéré avec succès !</h4>
-              <p className="text-sm break-all">Token: {dropboxToken.substring(0, 20)}...{dropboxToken.substring(dropboxToken.length - 10)}</p>
-            </div>
-          )}
+          {r2WorkerStatus === 'success' && <div className="mt-3 p-3 bg-green-50 text-green-800 rounded-md">✅ Worker opérationnel</div>}
+          {r2WorkerStatus === 'error' && <div className="mt-3 p-3 bg-red-50 text-red-800 rounded-md">❌ {r2WorkerError}</div>}
         </div>
-        
+
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium mb-2">2. Tester la connectivité Dropbox</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            Vérifiez d'abord si vos identifiants Dropbox sont correctement configurés et si la connexion fonctionne.
-          </p>
+          <h3 className="font-medium mb-2">2. Lister les fichiers R2</h3>
           <button
-            onClick={testDropboxConnection}
-            className={`flex items-center justify-center py-2 px-4 rounded-md font-medium text-white transition-colors ${
-              dropboxStatus === 'loading' 
-                ? 'bg-blue-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-            disabled={dropboxStatus === 'loading'}
+            onClick={listR2Files}
+            className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
+            disabled={loadingFiles}
           >
-            {dropboxStatus === 'loading' ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Vérification en cours...
-              </>
-            ) : (
-              'Tester la connectivité Dropbox'
-            )}
+            {loadingFiles ? 'Chargement...' : 'Lister les fichiers R2'}
           </button>
-          
-          {dropboxStatus === 'success' && (
-            <div className="mt-3 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
-              ✅ Connexion Dropbox établie avec succès!
-            </div>
-          )}
-          
-          {dropboxStatus === 'error' && (
-            <div className="mt-3 p-3 bg-red-50 text-red-800 rounded-md border border-red-200">
-              ❌ {dropboxError}
-            </div>
-          )}
         </div>
-        
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium mb-2">2. Explorer les fichiers Dropbox</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            Afficher la liste des fichiers disponibles dans votre compte Dropbox et créer des liens partageables.
-          </p>
-          
-          <button
-            onClick={listDropboxFiles}
-            className="flex items-center justify-center py-2 px-4 rounded-md font-medium text-white transition-colors bg-blue-600 hover:bg-blue-700 mb-4"
-            disabled={loadingFiles || dropboxStatus !== 'success'}
-          >
-            {loadingFiles ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Chargement des fichiers...
-              </>
-            ) : (
-              'Lister les fichiers Dropbox'
-            )}
-          </button>
-          
-          {dropboxFiles.length > 0 && (
-            <div className="border rounded-md overflow-hidden">
-              <div className="bg-gray-100 px-4 py-2 font-medium text-sm text-gray-700 border-b">
-                Fichiers disponibles dans Dropbox ({dropboxFiles.length})
-              </div>
-              <div className="divide-y max-h-60 overflow-auto">
-                {dropboxFiles.map((file) => (
-                  <div 
-                    key={file.id} 
-                    className={`px-4 py-3 flex items-center justify-between hover:bg-blue-50 cursor-pointer ${
-                      selectedFile?.id === file.id ? 'bg-blue-50' : ''
-                    }`}
-                    onClick={() => setSelectedFile(file)}
-                  >
-                    <div className="flex-1 mr-4 truncate">
-                      <div className="font-medium text-gray-800">{file.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {file.size ? `${Math.round(file.size / 1024)} Ko` : ''}
-                        {file.client_modified ? ` • Modifié le ${new Date(file.client_modified).toLocaleDateString()}` : ''}
-                      </div>
-                    </div>
-                    <button
-                      className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        createShareLink(file);
-                      }}
-                    >
-                      Créer un lien
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {selectedFile && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-2">Fichier sélectionné : {selectedFile.name}</h4>
-              {selectedFile.shared_link ? (
-                <div className="flex items-center">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={selectedFile.shared_link.url} 
-                    className="flex-1 py-2 px-3 bg-white border rounded-l-md focus:outline-none text-sm"
-                  />
-                  <button 
-                    className="bg-blue-600 text-white py-2 px-3 rounded-r-md text-sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedFile.shared_link!.url);
-                      setTestData(prev => prev + '\n\nLien copié dans le presse-papier!');
-                    }}
-                  >
-                    Copier
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
-                  onClick={() => createShareLink(selectedFile)}
-                >
-                  Générer un lien partageable
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        
+
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium mb-2">3. Tester l'upload de fichiers</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            Uploadez un nouveau fichier vers votre compte Dropbox.
-          </p>
-          <DropboxUploader 
-            buttonText="Uploader un fichier test" 
+          <h3 className="font-medium mb-2">3. Tester l'upload vers R2</h3>
+          <p className="text-sm text-gray-600 mb-2">Uploadez un fichier vers Cloudflare R2.</p>
+          <R2Uploader
+            buttonText="Uploader un fichier test vers R2"
             onSuccess={(url) => {
-              setTestData(prev => prev + `\n\nFichier uploadé avec succès! URL: ${url}`);
-              // Rafraîchir la liste des fichiers
-              listDropboxFiles();
+              setTestData(prev => prev + `\n\nFichier uploadé sur R2! URL: ${url}`);
             }}
           />
         </div>

@@ -24,7 +24,8 @@ export type Permission =
   | 'maintenance.toggle'
   | 'director.dashboard'
   | 'staff.dashboard'
-  | 'recensement.manage';
+  | 'recensement.manage'
+  | 'storage.manage';
 
 export interface RoleDoc {
   permissions: Permission[];
@@ -46,6 +47,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news', 'recensement.manage',
   'broadcast.send', 'ai.chat', 'maintenance.toggle',
   'director.dashboard', 'staff.dashboard',
+  'storage.manage',
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -75,6 +77,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'director.dashboard': 'Portail directeur',
   'staff.dashboard': 'Portail staff',
   'recensement.manage': 'Gérer recensements',
+  'storage.manage': 'Gérer stockage R2',
 };
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
@@ -85,7 +88,7 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Webinaires: ['webinars.view', 'webinars.manage'],
   Ateliers: ['workshops.view', 'workshops.manage'],
   Utilisateurs: ['users.view', 'users.manage'],
-  Administration: ['admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news', 'recensement.manage'],
+  Administration: ['admin.dashboard', 'admin.roles', 'admin.overrides', 'admin.news', 'recensement.manage', 'storage.manage'],
   'Super Admin': ['broadcast.send', 'ai.chat', 'maintenance.toggle'],
   'Portails spéciaux': ['director.dashboard', 'staff.dashboard'],
 };
@@ -107,6 +110,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'workshops.view', 'workshops.manage',
     'admin.news',
     'staff.dashboard',
+    'storage.manage',
   ],
   admin: [
     'forum.read', 'forum.write', 'forum.delete', 'forum.moderate',
@@ -116,7 +120,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'webinars.view', 'webinars.manage',
     'workshops.view', 'workshops.manage',
     'users.view', 'users.manage',
-    'admin.dashboard', 'admin.news', 'recensement.manage',
+    'admin.dashboard', 'admin.news', 'recensement.manage', 'storage.manage',
   ],
   director: [
     'forum.read',

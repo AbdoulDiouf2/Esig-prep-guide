@@ -10,38 +10,14 @@ import {
 
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import DropboxUploader from '../../components/dropbox';
-import DropboxFileBrowser from '../../components/DropboxFileBrowser';
+import R2Uploader from '../../components/R2Uploader';
+import R2FileBrowser from '../../components/R2FileBrowser';
 import ConfirmationModal from '../../components/ConfirmationModal';
-import { Dropbox } from 'dropbox';
-import { getDropboxAccessToken } from '../../utils/dropboxUtils';
+import { listR2Files, type R2Object } from '../../utils/r2Utils';
 import { detectFileTypeFromName } from '../../utils/fileTypeUtils';
 
 // Types de fichiers supportés
 type FileType = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'txt' | 'image' | 'video' | 'audio' | 'zip' | 'link';
-
-// Interface pour les fichiers Dropbox
-interface DropboxFile {
-  id: string;
-  name: string;
-  path_lower: string;
-  path_display?: string;
-  size?: number;
-  client_modified?: string;
-  is_downloadable?: boolean;
-  shared_link?: {
-    url: string;
-  }
-}
-
-// Interface pour les erreurs Dropbox
-interface DropboxError {
-  status: number;
-  error?: {
-    shared_link_already_exists?: boolean;
-    [key: string]: unknown;
-  };
-}
 
 const AdminResourceManager: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -92,12 +68,12 @@ const AdminResourceManager: React.FC = () => {
   const [showFileBrowserModal, setShowFileBrowserModal] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState('');
   
-  // États pour la navigation Dropbox
-  const [dropboxFiles, setDropboxFiles] = useState<DropboxFile[]>([]);
+  // États pour la navigation R2
+  const [r2Files, setR2Files] = useState<R2Object[]>([]);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
-  const [selectedFile, setSelectedFile] = useState<DropboxFile | null>(null);
-  const [dropboxError, setDropboxError] = useState<string>('');
-  const [showDropboxExplorer, setShowDropboxExplorer] = useState<boolean>(false);
+  const [selectedR2File, setSelectedR2File] = useState<R2Object | null>(null);
+  const [r2Error, setR2Error] = useState<string>('');
+  const [showR2Explorer, setShowR2Explorer] = useState<boolean>(false);
 
   // États pour le feedback de sauvegarde
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -131,115 +107,27 @@ const AdminResourceManager: React.FC = () => {
   // Combine les catégories prédéfinies avec celles déjà existantes
   const categories = [...new Set([...predefinedCategories, ...resources.map(resource => resource.category).filter(Boolean)])];
   
-  // Liste les fichiers disponibles dans Dropbox
-  const listDropboxFiles = async () => {
+  // Liste les fichiers R2
+  const loadR2Files = async () => {
     setLoadingFiles(true);
-    setDropboxError('');
-    
+    setR2Error('');
     try {
-      const dbx = new Dropbox({
-        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
-      });
-      
-      // Lister le contenu du dossier racine
-      const response = await dbx.filesListFolder({
-        path: '',
-        include_media_info: true,
-        include_deleted: false,
-        include_has_explicit_shared_members: false
-      });
-      
-      const files = response.result.entries.filter(entry => entry['.tag'] === 'file');
-      
-      // Convertir au format DropboxFile
-      const formattedFiles: DropboxFile[] = files.map(file => ({
-        id: file.id,
-        name: file.name,
-        path_lower: file.path_lower || '',
-        path_display: file.path_display || file.name,
-        size: 'size' in file ? file.size : undefined,
-        client_modified: 'client_modified' in file ? file.client_modified : undefined,
-        is_downloadable: true
-      }));
-      
-      setDropboxFiles(formattedFiles);
+      const files = await listR2Files('resources/');
+      setR2Files(files);
     } catch (error) {
-      console.error('Erreur lors de la récupération des fichiers:', error);
-      if (error instanceof Error) {
-        setDropboxError(`Erreur lors de la récupération des fichiers: ${error.message}`);
-      } else {
-        setDropboxError(`Erreur lors de la récupération des fichiers: ${String(error)}`);
-      }
+      setR2Error(error instanceof Error ? error.message : String(error));
     } finally {
       setLoadingFiles(false);
     }
   };
-  
-  // Créer un lien de partage pour un fichier
-  const createShareLink = async (file: DropboxFile) => {
-    try {
-      const dbx = new Dropbox({
-        accessToken: await getDropboxAccessToken() // Utilisation de l'access token récupéré
-      });
-      
-      let shareUrl = '';
-      
-      try {
-        // Essayer de créer un nouveau lien
-        const response = await dbx.sharingCreateSharedLinkWithSettings({
-          path: file.path_lower,
-        });
-        shareUrl = response.result.url;
-      } catch (err: unknown) {
-        // Convertir en DropboxError pour accéder aux propriétés spécifiques
-        const dropboxErr = err as DropboxError;
-        // Si erreur 409 (lien déjà existant), récupérer le lien existant
-        if (dropboxErr.status === 409 || (dropboxErr.error && dropboxErr.error.shared_link_already_exists)) {
-          console.log('Lien de partage déjà existant, récupération...');
-          const listLinksResponse = await dbx.sharingListSharedLinks({
-            path: file.path_lower,
-            direct_only: true
-          });
-          
-          if (listLinksResponse.result.links && listLinksResponse.result.links.length > 0) {
-            shareUrl = listLinksResponse.result.links[0].url;
-          } else {
-            throw new Error('Impossible de récupérer le lien existant');
-          }
-        } else {
-          // Si c'est une autre erreur, la relancer
-          throw err;
-        }
-      }
-      
-      // Convertir en lien 'raw' pour téléchargement direct
-      const rawUrl = shareUrl.replace("?dl=0", "?raw=1");
-      
-      // Mise à jour du fichier sélectionné avec le lien
-      setSelectedFile({
-        ...file,
-        shared_link: {
-          url: rawUrl
-        }
-      });
-      
-      // Mise à jour de l'URL du fichier dans le formulaire
-      setFileUrl(rawUrl);
-      setSelectedFileName(file.name);
-      setDropboxError(''); // Effacer les erreurs précédentes
-      
-      // Déterminer le type de fichier en fonction de l'extension
-      setFileType(detectFileTypeFromName(file.name));
-      
-      return rawUrl;
-    } catch (error) {
-      console.error('Erreur lors de la création du lien de partage:', error);
-      if (error instanceof Error) {
-        setDropboxError(`Erreur lors de la création du lien de partage: ${error.message}`);
-      } else {
-        setDropboxError(`Erreur lors de la création du lien de partage: ${String(error)}`);
-      }
-    }
+
+  // Sélectionner un fichier R2 existant
+  const selectR2File = (file: R2Object) => {
+    setSelectedR2File(file);
+    setFileUrl(file.url);
+    setSelectedFileName(file.name);
+    setFileType(detectFileTypeFromName(file.name));
+    setR2Error('');
   };
   
   // Initialize form with existing data if editing
@@ -262,9 +150,6 @@ const AdminResourceManager: React.FC = () => {
       setCategory('');
       setFileUrl('');
       setFileType('link');
-      
-      // Charger les fichiers Dropbox pour les nouveaux ajouts
-      listDropboxFiles();
     }
   }, [editResourceId, isNewResource, resources]);
   
@@ -554,20 +439,21 @@ const AdminResourceManager: React.FC = () => {
                     </label>
                     
                     {fileType !== 'link' && (
-                      <div className="rounded-md bg-blue-50 p-4 mb-4">
+                      <div className="rounded-md bg-orange-50 p-4 mb-4">
                         <div className="flex items-center mb-2">
-                          <UploadCloud className="w-5 h-5 text-blue-600 mr-2" />
-                          <h3 className="text-sm font-medium text-gray-700">Upload direct vers Dropbox</h3>
+                          <UploadCloud className="w-5 h-5 text-orange-600 mr-2" />
+                          <h3 className="text-sm font-medium text-gray-700">Upload direct vers Cloudflare R2</h3>
                         </div>
-                        <div className="mt-2 text-sm text-blue-700 mb-3">
-                          Uploadez directement votre fichier vers Dropbox et le lien sera automatiquement ajouté ci-dessous.
+                        <div className="mt-2 text-sm text-orange-700 mb-3">
+                          Uploadez directement votre fichier sur Cloudflare R2 — le lien public sera ajouté automatiquement.
                         </div>
-                        <DropboxUploader 
+                        <R2Uploader
                           onSuccess={(url) => {
                             setFileUrl(url);
                             setSelectedFileName(url.split('/').pop() || '');
                           }}
-                          buttonText="Uploader le fichier vers Dropbox"
+                          buttonText="Uploader le fichier vers R2"
+                          folder="resources"
                         />
                       </div>
                     )}
@@ -577,93 +463,77 @@ const AdminResourceManager: React.FC = () => {
                         <div className="flex flex-col space-y-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                           <div className="flex justify-between items-center">
                             <h3 className="text-sm font-medium text-gray-700 flex items-center">
-                              <FileIcon className="w-4 h-4 text-blue-600 mr-2" />
-                              Fichiers Dropbox
+                              <FileIcon className="w-4 h-4 text-orange-500 mr-2" />
+                              Fichiers Cloudflare R2
                             </h3>
                             <button
                               type="button"
                               onClick={() => {
-                                setShowDropboxExplorer(!showDropboxExplorer);
-                                if (!showDropboxExplorer) listDropboxFiles();
+                                setShowR2Explorer(!showR2Explorer);
+                                if (!showR2Explorer) loadR2Files();
                               }}
-                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
+                              className="text-xs text-orange-600 hover:text-orange-800 flex items-center"
                             >
-                              {showDropboxExplorer ? (
-                                <>
-                                  <X className="w-3 h-3 mr-1" />
-                                  Masquer
-                                </>
+                              {showR2Explorer ? (
+                                <><X className="w-3 h-3 mr-1" />Masquer</>
                               ) : (
-                                <>
-                                  <FolderOpen className="w-3 h-3 mr-1" />
-                                  Explorer
-                                </>
+                                <><FolderOpen className="w-3 h-3 mr-1" />Explorer R2</>
                               )}
                             </button>
                           </div>
-                          
-                          {showDropboxExplorer && (
+
+                          {showR2Explorer && (
                             <div className="mt-2 border rounded-md">
                               <div className="flex items-center justify-between bg-gray-100 px-3 py-2 border-b">
-                                <h4 className="text-sm font-medium text-gray-700">Fichiers disponibles</h4>
-                                <div className="flex space-x-2">
-                                  <button
-                                    type="button"
-                                    onClick={listDropboxFiles}
-                                    className="inline-flex items-center p-1 text-xs text-blue-700 bg-blue-50 rounded hover:bg-blue-100"
-                                    disabled={loadingFiles}
-                                  >
-                                    {loadingFiles ? (
-                                      <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-                                    ) : (
-                                      <RefreshCw className="w-3 h-3" />
-                                    )}
-                                    <span className="ml-1">Actualiser</span>
-                                  </button>
-                                </div>
+                                <h4 className="text-sm font-medium text-gray-700">Fichiers R2 disponibles</h4>
+                                <button
+                                  type="button"
+                                  onClick={loadR2Files}
+                                  className="inline-flex items-center p-1 text-xs text-orange-700 bg-orange-50 rounded hover:bg-orange-100"
+                                  disabled={loadingFiles}
+                                >
+                                  {loadingFiles ? (
+                                    <div className="animate-spin w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full" />
+                                  ) : (
+                                    <RefreshCw className="w-3 h-3" />
+                                  )}
+                                  <span className="ml-1">Actualiser</span>
+                                </button>
                               </div>
-                              
-                              {dropboxError && (
+
+                              {r2Error && (
                                 <div className="p-3 text-sm text-red-600 bg-red-50">
                                   <div className="flex items-start">
                                     <CloudOff className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
-                                    <span>{dropboxError}</span>
+                                    <span>{r2Error}</span>
                                   </div>
                                 </div>
                               )}
-                              
+
                               {loadingFiles ? (
                                 <div className="flex justify-center items-center py-8">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
                                 </div>
-                              ) : dropboxFiles.length > 0 ? (
+                              ) : r2Files.length > 0 ? (
                                 <div className="max-h-60 overflow-y-auto">
                                   <ul className="divide-y">
-                                    {dropboxFiles.map((file) => (
-                                      <li key={file.id}>
-                                        <div 
-                                          className={`flex items-center justify-between p-3 hover:bg-blue-50 cursor-pointer ${
-                                            selectedFile?.id === file.id ? 'bg-blue-50' : ''
-                                          }`}
-                                          onClick={() => setSelectedFile(file)}
+                                    {r2Files.map(file => (
+                                      <li key={file.key}>
+                                        <div
+                                          className={`flex items-center justify-between p-3 hover:bg-orange-50 cursor-pointer ${selectedR2File?.key === file.key ? 'bg-orange-50' : ''}`}
+                                          onClick={() => setSelectedR2File(file)}
                                         >
                                           <div className="flex items-center flex-grow pr-3 truncate">
-                                            <FileText className="w-4 h-4 text-blue-600 mr-2 flex-shrink-0" />
+                                            <FileText className="w-4 h-4 text-orange-500 mr-2 flex-shrink-0" />
                                             <div className="truncate">
                                               <div className="text-sm font-medium text-gray-800 truncate">{file.name}</div>
-                                              <div className="text-xs text-gray-500">
-                                                {file.size ? `${Math.round((file.size as number) / 1024)} Ko` : ''}
-                                                {file.client_modified ? ` • ${new Date(file.client_modified).toLocaleDateString()}` : ''}
-                                              </div>
+                                              <div className="text-xs text-gray-500">{Math.round(file.size / 1024)} Ko</div>
                                             </div>
                                           </div>
                                           <button
                                             type="button"
-                                            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded flex items-center"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              createShareLink(file);
-                                            }}
+                                            className="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded flex items-center"
+                                            onClick={e => { e.stopPropagation(); selectR2File(file); }}
                                           >
                                             <ExternalLink className="w-3 h-3 mr-1" />
                                             Utiliser
@@ -675,45 +545,32 @@ const AdminResourceManager: React.FC = () => {
                                 </div>
                               ) : (
                                 <div className="py-8 text-center">
-                                  <p className="text-sm text-gray-500">
-                                    {dropboxFiles.length === 0 && !dropboxError ? "Cliquez sur Actualiser pour afficher vos fichiers." : "Aucun fichier trouvé."}
-                                  </p>
+                                  <p className="text-sm text-gray-500">Cliquez sur Actualiser pour afficher les fichiers R2.</p>
                                 </div>
                               )}
                             </div>
                           )}
-                          
+
                           <div className="flex items-center space-x-3">
                             <button
                               type="button"
                               onClick={() => setShowFileBrowserModal(true)}
-                              className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm transition-colors"
+                              className="flex-1 flex items-center justify-center gap-2 p-2 border border-orange-200 rounded-md bg-orange-50 hover:bg-orange-100 text-orange-700 text-sm transition-colors"
                             >
-                              <FolderOpen className="w-4 h-4 text-blue-600" />
-                              Parcourir Dropbox
+                              <FolderOpen className="w-4 h-4 text-orange-500" />
+                              Parcourir Cloudflare R2
                             </button>
                           </div>
-                          
-                          {selectedFile && selectedFile.shared_link && (
+
+                          {selectedR2File && (
                             <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded-md">
                               <div className="flex items-center text-sm text-green-800 mb-2">
                                 <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                                Fichier sélectionné : {selectedFile.name}
+                                Fichier sélectionné : {selectedR2File.name}
                               </div>
                               <div className="flex items-center">
-                                <input 
-                                  type="text" 
-                                  readOnly 
-                                  value={selectedFile.shared_link.url} 
-                                  className="flex-1 text-xs py-1 px-2 bg-white border rounded-l-md focus:outline-none"
-                                />
-                                <button 
-                                  type="button"
-                                  className="bg-blue-600 text-white py-1 px-2 rounded-r-md text-xs"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(selectedFile.shared_link!.url);
-                                  }}
-                                >
+                                <input type="text" readOnly value={selectedR2File.url} className="flex-1 text-xs py-1 px-2 bg-white border rounded-l-md focus:outline-none" />
+                                <button type="button" className="bg-orange-500 text-white py-1 px-2 rounded-r-md text-xs" onClick={() => navigator.clipboard.writeText(selectedR2File.url)}>
                                   <Download className="w-3 h-3" />
                                 </button>
                               </div>
@@ -945,7 +802,7 @@ const AdminResourceManager: React.FC = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 px-4 py-6 overflow-y-auto">
           <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Sélectionner un fichier Dropbox</h3>
+              <h3 className="text-lg font-medium text-gray-900">Sélectionner un fichier Cloudflare R2</h3>
               <button
                 onClick={() => setShowFileBrowserModal(false)}
                 className="text-gray-400 hover:text-gray-500 focus:outline-none">
@@ -955,7 +812,7 @@ const AdminResourceManager: React.FC = () => {
               </button>
             </div>
             <div className="flex-grow overflow-y-auto">
-              <DropboxFileBrowser
+              <R2FileBrowser
                 onSelect={(url, fileName) => {
                   setFileUrl(url);
                   setSelectedFileName(fileName);

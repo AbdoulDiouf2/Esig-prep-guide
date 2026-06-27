@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useContent, GuidePhase, ResourceDocument } from '../contexts/ContentContext';
 import { Search, FileText, Image, File, Archive, Video, Download, Filter, ChevronDown, X, ExternalLink } from 'lucide-react';
+import { getR2PreviewUrl } from '../utils/r2Utils';
 
 const ResourceLibrary: React.FC = () => {
   const { resources } = useContent();
@@ -18,27 +19,8 @@ const ResourceLibrary: React.FC = () => {
   // Get unique categories
   const categories = [...new Set(resources.map(resource => resource.category))];
   
-  // Fonction pour convertir une URL Dropbox en URL de prévisualisation
-  const getPreviewUrl = (fileUrl: string) => {
-    if (fileUrl.includes('dropbox.com')) {
-      // Remplacer www.dropbox.com par dl.dropboxusercontent.com
-      let previewUrl = fileUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-      
-      // Remplacer ?dl=0 par ?raw=1 ou ajouter ?raw=1 si pas de paramètre
-      if (previewUrl.includes('?dl=0')) {
-        previewUrl = previewUrl.replace('?dl=0', '?raw=1');
-      } else if (!previewUrl.includes('?')) {
-        previewUrl += '?raw=1';
-      } else {
-        previewUrl += '&raw=1';
-      }
-      
-      return previewUrl;
-    }
-    
-    // Si ce n'est pas une URL Dropbox, retourner l'URL originale
-    return fileUrl;
-  };
+  // URLs R2 sont directes — pas de transformation nécessaire
+  const getPreviewUrl = (fileUrl: string) => fileUrl;
 
   // Helper function to get embeddable video URLs
   const getVideoEmbedUrl = (url: string): string => {
@@ -63,16 +45,22 @@ const ResourceLibrary: React.FC = () => {
       console.error("Error parsing video URL for embedding:", error);
       // Return original URL if parsing fails, it might be a direct video link
     }
-    // If it's a Dropbox link and not YouTube/Vimeo, use getPreviewUrl for potential raw link
-    if (url.includes('dropbox.com') && (embedUrl === url)) {
-      return getPreviewUrl(url);
-    }
     return embedUrl;
   };
 
-  // Fonction pour obtenir une URL Google Docs Viewer pour les PDFs
   const getGoogleViewerUrl = (fileUrl: string) => {
     return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+  };
+
+  const getOfficeViewerUrl = (fileUrl: string) => {
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+  };
+
+  const isOfficeFile = (fileUrl: string) => {
+    const lower = fileUrl.toLowerCase();
+    return lower.endsWith('.docx') || lower.endsWith('.doc') ||
+           lower.endsWith('.xlsx') || lower.endsWith('.xls') ||
+           lower.endsWith('.pptx') || lower.endsWith('.ppt');
   };
 
   // Handle search
@@ -449,54 +437,52 @@ const ResourceLibrary: React.FC = () => {
                     ></iframe>
                   </div>
                 </div>
-              ) : previewResource.fileType === 'pdf' ? (
-                <div className="flex flex-col h-full bg-white"> {/* PDF main container, h-full, no internal padding here */}
-                  <div className="flex-grow p-4"> {/* PDF content area, grows, padding applied here */}
-                    <object
-                      data={getPreviewUrl(previewResource.fileUrl)}
-                      type="application/pdf"
-                      className="w-full h-full rounded-md"
-                    >
-                      <iframe
-                        src={getGoogleViewerUrl(previewResource.fileUrl)}
-                        className="w-full h-full border-0 rounded-md"
-                        title={`${previewResource.title} (Google Viewer)`}
-                        allowFullScreen
-                      ></iframe>
-                    </object>
+              ) : previewResource.fileType === 'image' ? (
+                <div className="flex items-center justify-center h-full p-4 bg-white">
+                  <img
+                    src={previewResource.fileUrl}
+                    alt={previewResource.title}
+                    className="max-w-full max-h-full object-contain rounded-md"
+                  />
+                </div>
+              ) : isOfficeFile(previewResource.fileUrl) ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4 p-8 bg-white text-center">
+                  <FileText className="w-16 h-16 text-blue-300" />
+                  <p className="text-gray-600 text-sm max-w-xs">
+                    Ce format ne peut pas être prévisualisé directement. Téléchargez le fichier pour l'ouvrir.
+                  </p>
+                  <a
+                    href={previewResource.fileUrl}
+                    download
+                    className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger le fichier
+                  </a>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full bg-white">
+                  <div className="flex-grow">
+                    <iframe
+                      src={getR2PreviewUrl(previewResource.fileUrl)}
+                      className="w-full h-full border-0"
+                      title={previewResource.title}
+                      allowFullScreen
+                    ></iframe>
                   </div>
-                  <div className="p-2 text-center text-sm text-gray-500 border-t border-gray-200"> {/* Fallback message area */}
-                    Si le document ne s'affiche pas correctement, essayez de le 
-                    <a 
-                      href={previewResource.fileUrl} 
-                      target="_blank" 
+                  <div className="p-2 text-center text-sm text-gray-500 border-t border-gray-200">
+                    Si le document ne s'affiche pas, essayez de le{' '}
+                    <a
+                      href={previewResource.fileUrl}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-400 hover:text-blue-300 mx-1 font-medium"
                       onClick={(e) => e.stopPropagation()}
                     >
                       télécharger
                     </a>
-                    ou l'
-                    <a 
-                      href={`https://docs.google.com/viewer?url=${encodeURIComponent(previewResource.fileUrl)}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 mx-1 font-medium"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      ouvrir avec Google Docs
-                    </a>
                   </div>
-                </div>
-              ) : (
-                <div className="h-full bg-white"> {/* Generic iframe container, h-full, no padding here */}
-                  <iframe
-                    src={getPreviewUrl(previewResource.fileUrl)}
-                    className="w-full h-full border-0 rounded-md"
-                    title={previewResource.title}
-                    allowFullScreen
-                    sandbox="allow-scripts allow-same-origin allow-popups"
-                  ></iframe>
                 </div>
               )}
             </div>

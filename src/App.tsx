@@ -60,7 +60,7 @@ import AdminUserProfile from './pages/admin/AdminUserProfile';
 import AdminActivityLogPage from './pages/admin/AdminActivityLog.tsx';
 import AdminTutorial from './pages/admin/AdminTutorial';
 import AdminProgressionOverview from './pages/admin/AdminProgressionOverview';
-import AdminDropboxManager from './pages/admin/AdminDropboxManager';
+import AdminCloudflareManager from './pages/admin/AdminCloudflareManager';
 import AdminChatInterface from './pages/admin/AdminChatInterface';
 // FutureFeatures n'est plus utilisé mais conservé pour référence
 // import FutureFeatures from './pages/admin/FutureFeatures';
@@ -464,11 +464,11 @@ function App() {
                     </AdminRoute>
                   </AuthWrapper>
                 } />
-                <Route path="/admin/dropbox" element={
+                <Route path="/admin/cloudflare" element={
                   <AuthWrapper>
-                    <AdminRoute>
-                      <AdminDropboxManager />
-                    </AdminRoute>
+                    <PermissionRoute permission="storage.manage">
+                      <AdminCloudflareManager />
+                    </PermissionRoute>
                   </AuthWrapper>
                 } />
                 <Route path="/admin/feedbacks" element={
@@ -620,11 +620,11 @@ function App() {
                     </EditorRoute>
                   </AuthWrapper>
                 } />
-                <Route path="/editor/dropbox" element={
+                <Route path="/editor/cloudflare" element={
                   <AuthWrapper>
-                    <EditorRoute>
-                      <AdminDropboxManager />
-                    </EditorRoute>
+                    <PermissionRoute permission="storage.manage">
+                      <AdminCloudflareManager />
+                    </PermissionRoute>
                   </AuthWrapper>
                 } />
                 <Route path="/editor/news" element={

@@ -45,10 +45,10 @@ const EditorDashboard: React.FC = () => {
       link: '/editor/webinars',
     },
     {
-      title: 'Gestion de Dropbox',
-      description: 'Accéder et gérer les fichiers sur Dropbox',
-      icon: <FolderArchive className="w-8 h-8 text-blue-400" />,
-      link: '/editor/dropbox',
+      title: 'Gestion Cloudflare R2',
+      description: "Accéder et gérer les fichiers sur Cloudflare R2",
+      icon: <FolderArchive className="w-8 h-8 text-orange-500" />,
+      link: '/editor/cloudflare',
     },
     {
       title: 'Progression des étudiants',

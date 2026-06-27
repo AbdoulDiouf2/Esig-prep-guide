@@ -5,8 +5,7 @@ import chatService, { ChatMessage as ChatMessageType } from '../services/chatSer
 import ChatMessage from '../components/chat/ChatMessage';
 import { Paperclip, Send, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase';
+import { uploadToR2 } from '../utils/r2Utils';
 
 const AdminChat: React.FC = () => {
   const { currentUser } = useAuth();
@@ -95,9 +94,8 @@ const AdminChat: React.FC = () => {
       
       // Téléchargement du fichier si présent
       if (file) {
-        const storageRef = ref(storage, `chat_attachments/${currentUser.uid}/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        attachmentUrl = await getDownloadURL(snapshot.ref);
+        const { url } = await uploadToR2(file, 'chat_attachments');
+        attachmentUrl = url;
       }
       
       // Créer et envoyer le message
