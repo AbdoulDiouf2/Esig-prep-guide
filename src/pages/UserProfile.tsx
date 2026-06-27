@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext';
-import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail, deleteUser } from 'firebase/auth';
+import {
+  updateProfile, updatePassword, reauthenticateWithCredential,
+  EmailAuthProvider, sendPasswordResetEmail, deleteUser
+} from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { STATUS_OPTIONS, getStatusLabel } from '../constants/statusOptions';
-import { User, GraduationCap, MapPin } from 'lucide-react';
-import { Shield } from 'lucide-react';
+import {
+  Shield, User, GraduationCap, MapPin, Mail, Calendar,
+  ExternalLink, CheckCircle, Lock, AlertTriangle, Users, LayoutDashboard
+} from 'lucide-react';
 import PasswordConfirmModal from '../components/PasswordConfirmModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
+import ProfileCoverHeader from '../components/profile/ProfileCoverHeader';
 
 const UserProfile: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<'profile' | 'password' | null>(null);
-  const [pendingProfile, setPendingProfile] = useState<{displayName: string, photoURL: string} | null>(null);
+  const [pendingProfile, setPendingProfile] = useState<{ displayName: string; photoURL: string } | null>(null);
   const [pendingPassword, setPendingPassword] = useState<string>('');
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -28,76 +34,102 @@ const UserProfile: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [userStatus, setUserStatus] = useState<string>('none');
   const [loadingStatus, setLoadingStatus] = useState(true);
-
-  const [providerError, setProviderError] = useState<string | null>(null);
+  const [memberSince, setMemberSince] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
 
-  // Détecter le fournisseur d'authentification
-  const isSocialLogin = currentUser?.providerData?.some(provider => 
-    provider?.providerId === 'google.com' || provider?.providerId === 'github.com'
-  ) || false;
-  
-  const isGoogleUser = currentUser?.providerData?.some(provider => 
-    provider?.providerId === 'google.com'
+  const isSocialLogin = currentUser?.providerData?.some(
+    p => p?.providerId === 'google.com' || p?.providerId === 'github.com'
   ) || false;
 
-  // Charger le statut utilisateur depuis Firestore
+  const isGoogleUser = currentUser?.providerData?.some(p => p?.providerId === 'google.com') || false;
+
+  const firebaseUser = auth.currentUser;
+  const hasPasswordProvider = firebaseUser?.providerData.some(p => p.providerId === 'password');
+
   useEffect(() => {
-    const fetchUserStatus = async () => {
-      if (currentUser) {
-        try {
-          const userRef = doc(db, 'users', currentUser.uid);
-          const userDoc = await getDoc(userRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData.status) {
-              setUserStatus(userData.status);
-            } else if (userData.isDirector || userData.isStaff) {
-              setUserStatus('administration');
-            }
+    const fetchUserData = async () => {
+      if (!currentUser) return;
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.status) setUserStatus(data.status);
+          else if (data.isDirector || data.isStaff) setUserStatus('administration');
+
+          if (data.createdAt?.toDate) {
+            const d = data.createdAt.toDate() as Date;
+            setMemberSince(d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
           }
-        } catch (error) {
-          console.error('Erreur lors du chargement du statut utilisateur:', error);
-        } finally {
-          setLoadingStatus(false);
         }
+      } catch (e) {
+        console.error('Erreur chargement données utilisateur:', e);
+      } finally {
+        setLoadingStatus(false);
       }
     };
-
-    fetchUserStatus();
+    fetchUserData();
   }, [currentUser]);
 
-  // Vérifie si l'utilisateur a un mot de passe local (providerData.type === 'password')
-  const firebaseUser = auth.currentUser;
-  const hasPasswordProvider = firebaseUser?.providerData.some(
-    (provider) => provider.providerId === 'password'
-  );
-  
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center w-full max-w-md">
-          <div className="text-red-600 text-center text-lg font-semibold">Vous devez être connecté pour accéder à votre profil.</div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <div className="bg-white rounded-2xl shadow p-8 text-center max-w-md w-full border border-zinc-200">
+          <p className="text-red-600 font-semibold">Vous devez être connecté pour accéder à votre profil.</p>
         </div>
       </div>
     );
   }
 
+  const getRoleBadge = () => {
+    if (currentUser.isSuperAdmin) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+        <Shield className="w-3 h-3" /> Super Admin
+      </span>
+    );
+    if (currentUser.isAdmin) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+        <Shield className="w-3 h-3" /> Admin
+      </span>
+    );
+    if (currentUser.isEditor) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+        <Shield className="w-3 h-3" /> Éditeur
+      </span>
+    );
+    if (currentUser.isDirector) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+        <Shield className="w-3 h-3" /> Directeur
+      </span>
+    );
+    if (currentUser.isStaff) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+        <Shield className="w-3 h-3" /> Staff
+      </span>
+    );
+    return null;
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'cps': return <MapPin className="w-3.5 h-3.5 text-blue-500" />;
+      case 'esigelec': return <GraduationCap className="w-3.5 h-3.5 text-green-500" />;
+      case 'alumni': return <User className="w-3.5 h-3.5 text-purple-500" />;
+      case 'administration': return <Shield className="w-3.5 h-3.5 text-slate-600" />;
+      default: return <User className="w-3.5 h-3.5 text-gray-400" />;
+    }
+  };
+
   const handleStatusSave = async () => {
     setError(null);
     setSuccess(null);
     setSaving(true);
-    
     try {
-      if (currentUser) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(userRef, { status: userStatus });
-        setSuccess('Statut mis à jour !');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut:', error);
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { status: userStatus });
+      setSuccess('Statut mis à jour !');
+    } catch {
       setError('Erreur lors de la mise à jour du statut.');
     } finally {
       setSaving(false);
@@ -108,10 +140,7 @@ const UserProfile: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!hasPasswordProvider) {
-      setProviderError("Vous avez créé votre compte avec Google. Vous ne pouvez pas modifier votre profil ou mot de passe ici.");
-      return;
-    }
+    if (!hasPasswordProvider) return;
     setPendingProfile({ displayName, photoURL });
     setPendingAction('profile');
     setModalOpen(true);
@@ -121,31 +150,27 @@ const UserProfile: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!hasPasswordProvider) {
-      setProviderError("Vous avez créé votre compte avec Google. Vous ne pouvez pas modifier votre profil ou mot de passe ici.");
-      return;
-    }
+    if (!hasPasswordProvider) return;
     setPendingPassword(password);
     setPendingAction('password');
     setModalOpen(true);
   };
 
-
   const handlePasswordConfirm = async (userPassword: string) => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return;
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
     setModalLoading(true);
     setModalError(null);
-    const credential = EmailAuthProvider.credential(firebaseUser.email || '', userPassword);
+    const credential = EmailAuthProvider.credential(fbUser.email || '', userPassword);
     try {
-      await reauthenticateWithCredential(firebaseUser, credential);
+      await reauthenticateWithCredential(fbUser, credential);
       if (pendingAction === 'profile' && pendingProfile) {
-        await updateProfile(firebaseUser, { displayName: pendingProfile.displayName, photoURL: pendingProfile.photoURL });
+        await updateProfile(fbUser, { displayName: pendingProfile.displayName, photoURL: pendingProfile.photoURL });
         setDisplayName(pendingProfile.displayName);
         setPhotoURL(pendingProfile.photoURL);
         setSuccess('Profil mis à jour !');
       } else if (pendingAction === 'password' && pendingPassword) {
-        await updatePassword(firebaseUser, pendingPassword);
+        await updatePassword(fbUser, pendingPassword);
         setPassword('');
         setSuccess('Mot de passe mis à jour !');
       }
@@ -161,278 +186,303 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = () => {
-    setDeleteModalError(null);
-    setDeleteModalOpen(true);
-  };
-
-  const confirmDeleteAccount = async (password: string) => {
+  const confirmDeleteAccount = async (pwd: string) => {
     setSaving(true);
     setDeleteModalError(null);
-    setError(null);
-    setSuccess(null);
-
     try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        throw new Error('Aucun utilisateur connecté');
-      }
-
-      // Pour les utilisateurs avec mot de passe, demander la réauthentification
+      const fbUser = auth.currentUser;
+      if (!fbUser) throw new Error('Aucun utilisateur connecté');
       if (hasPasswordProvider) {
-        const credential = EmailAuthProvider.credential(firebaseUser.email || '', password);
-        await reauthenticateWithCredential(firebaseUser, credential);
+        const credential = EmailAuthProvider.credential(fbUser.email || '', pwd);
+        await reauthenticateWithCredential(fbUser, credential);
       }
-      // Pour les utilisateurs Google/GitHub, on fait confiance à leur session
-      // car ils sont déjà authentifiés via leur fournisseur d'identité
-
-      // Supprimer les données utilisateur de Firestore
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      await deleteDoc(userRef);
-
-      // Déconnecter l'utilisateur
+      await deleteDoc(doc(db, 'users', fbUser.uid));
       await logout();
-
-      // Supprimer le compte utilisateur
-      await deleteUser(firebaseUser);
-
+      await deleteUser(fbUser);
       setDeleteModalOpen(false);
-
-      // Rediriger vers la page d'accueil
       navigate('/');
-    } catch (error) {
-      console.error('Erreur lors de la suppression du compte :', error);
-      setDeleteModalError(
-        error instanceof Error ? error.message : 'Une erreur est survenue lors de la suppression du compte.'
-      );
+    } catch (e) {
+      setDeleteModalError(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
     } finally {
       setSaving(false);
     }
   };
 
-
-  
+  const profileSubtitle = [
+    currentUser.email,
+    userStatus !== 'none' ? getStatusLabel(userStatus) : null,
+  ].filter(Boolean).join(' · ');
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Header style admin */}
-      <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white py-8 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/admin" className="inline-flex items-center px-3 py-2 rounded-md bg-blue-700 hover:bg-blue-600 text-white font-medium text-sm focus:outline-none">
-            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-            Retour
-          </Link>
-          <span className="flex items-center text-xl font-bold"><Shield className="w-6 h-6 mr-2 text-white"/> Mon profil</span>
-        </div>
-      </div>
-      <div className="w-full mx-auto p-4 flex justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col items-center w-full max-w-xl relative animate-fadeInUp mt-8 mb-8">
-          {/* Avatar et badge */}
-          <div className="relative mb-5">
-            {photoURL ? (
-              <img src={photoURL} alt={displayName || email} className="w-32 h-32 rounded-full object-cover shadow-lg border-4 border-blue-100 bg-gray-200 transition-all duration-300 hover:scale-105" />
-            ) : (
-              <span className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center text-5xl text-blue-400 shadow-lg border-4 border-blue-100">
-                <svg className="w-16 h-16 text-blue-200" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14c4.418 0 8 1.79 8 4v2H4v-2c0-2.21 3.582-4 8-4zm0-4a4 4 0 110-8 4 4 0 010 8z" /></svg>
-              </span>
-            )}
-            {currentUser?.emailVerified && (
-              <span className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full px-2 py-1 text-xs font-semibold shadow">Vérifié</span>
-            )}
-            {currentUser?.isAdmin && (
-              <span className="absolute top-2 left-2 flex items-center gap-1 bg-blue-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> {currentUser?.isSuperAdmin ? 'Super Admin' : 'Admin'}</span>
-            )}
-            {currentUser?.isDirector && !currentUser?.isAdmin && (
-              <span className="absolute top-2 left-2 flex items-center gap-1 bg-purple-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> Directeur</span>
-            )}
-            {currentUser?.isStaff && !currentUser?.isAdmin && !currentUser?.isDirector && (
-              <span className="absolute top-2 left-2 flex items-center gap-1 bg-amber-600 text-white rounded-full px-2 py-1 text-xs font-semibold shadow"><Shield className="w-4 h-4" /> Staff</span>
-            )}
+    <div className="min-h-screen bg-zinc-50">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+
+        {/* Cover header */}
+        <ProfileCoverHeader
+          name={displayName || email}
+          subtitle={profileSubtitle}
+          photoURL={photoURL || undefined}
+          initials={(displayName || email).charAt(0).toUpperCase()}
+          badge={getRoleBadge()}
+          actions={
+            <>
+              <Link
+                to="/my-alumni-profile"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Mon profil alumni <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          }
+        />
+
+        {/* Feedback global */}
+        {(error || success) && (
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium border ${error ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+            {error || success}
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">{displayName || email}</h1>
-          <div className="text-gray-500 text-sm mb-4 text-center">{email}</div>
-          <form onSubmit={handleProfileSave} className="w-full flex flex-col gap-4 mb-8 animate-fadeInUp">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Nom affiché</label>
-                <input
-                  type="text"
-                  className="border-2 border-blue-100 rounded-lg px-4 py-2 w-full focus:border-blue-400 transition"
-                  value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
-                  placeholder="Nom affiché"
-                  disabled={saving}
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Photo (URL)</label>
-                <input
-                  type="text"
-                  className="border-2 border-blue-100 rounded-lg px-4 py-2 w-full focus:border-blue-400 transition"
-                  value={photoURL}
-                  onChange={e => setPhotoURL(e.target.value)}
-                  placeholder="URL de la photo"
-                  disabled={saving}
-                />
-              </div>
-              <div className="col-span-1 md:col-span-2">
-                <label className="block text-gray-700 font-medium mb-1">Votre statut</label>
-                <div className="relative border-2 border-blue-100 rounded-lg">
-                  <select
-                    className="appearance-none w-full px-4 py-2 bg-transparent focus:outline-none"
-                    value={userStatus}
-                    onChange={e => setUserStatus(e.target.value)}
-                    disabled={saving || loadingStatus}
-                  >
-                    <option value="none">Sélectionnez votre statut</option>
-                    {STATUS_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* === SIDEBAR === */}
+          <div className="space-y-4">
+
+            {/* Infos compte */}
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Compte</h2>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2 text-gray-700">
+                  <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{email}</span>
+                </li>
+                {memberSince && (
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                    Membre depuis {memberSince}
+                  </li>
+                )}
+                <li className="flex items-center gap-2 text-gray-700">
+                  {currentUser.emailVerified ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                  )}
+                  Email {currentUser.emailVerified ? 'vérifié' : 'non vérifié'}
+                </li>
+                <li className="flex items-center gap-2 text-gray-700">
+                  <Lock className="w-4 h-4 text-gray-400 shrink-0" />
+                  {isGoogleUser ? 'Connexion Google' : hasPasswordProvider ? 'Connexion email' : 'Connexion GitHub'}
+                </li>
+              </ul>
+            </div>
+
+            {/* Liens rapides */}
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Navigation</h2>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/alumni" className="flex items-center gap-2 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                    <Users className="w-4 h-4" /> Annuaire alumni
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/dashboard" className="flex items-center gap-2 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard CPS
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/my-alumni-profile" className="flex items-center gap-2 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                    <User className="w-4 h-4" /> Mon profil alumni
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* === MAIN CONTENT === */}
+          <div className="lg:col-span-2 space-y-4">
+
+            {/* Section Informations */}
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
+              <h2 className="text-base font-semibold text-gray-900 mb-5">Informations personnelles</h2>
+
+              {isSocialLogin && !hasPasswordProvider ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700 mb-4">
+                  Vous utilisez la connexion avec {isGoogleUser ? 'Google' : 'GitHub'}. Votre nom et photo sont synchronisés automatiquement depuis votre compte.
+                </div>
+              ) : null}
+
+              <form onSubmit={handleProfileSave} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom affiché</label>
+                    <input
+                      type="text"
+                      className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition disabled:bg-gray-50 disabled:text-gray-400"
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      placeholder="Votre nom"
+                      disabled={saving || isSocialLogin}
+                    />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Photo (URL)</label>
+                    <input
+                      type="text"
+                      className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition disabled:bg-gray-50 disabled:text-gray-400"
+                      value={photoURL}
+                      onChange={e => setPhotoURL(e.target.value)}
+                      placeholder="https://..."
+                      disabled={saving || isSocialLogin}
+                    />
+                  </div>
+                </div>
+
+                {hasPasswordProvider && (
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    disabled={saving}
+                  >
+                    Sauvegarder
+                  </button>
+                )}
+              </form>
+
+              {/* Statut */}
+              <div className="mt-6 pt-5 border-t border-zinc-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Mon statut</label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <select
+                      className="w-full appearance-none border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white pr-8"
+                      value={userStatus}
+                      onChange={e => setUserStatus(e.target.value)}
+                      disabled={saving || loadingStatus}
+                    >
+                      <option value="none">Sélectionnez votre statut</option>
+                      {STATUS_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStatusSave}
+                    className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    disabled={saving || loadingStatus || userStatus === 'none'}
+                  >
+                    Mettre à jour
+                  </button>
                 </div>
                 {userStatus !== 'none' && (
-                  <div className="mt-2 flex items-center">
-                    <span className="mr-2">Statut actuel:</span>
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                      {userStatus === 'cps' && <MapPin className="w-4 h-4 text-blue-500" />}
-                      {userStatus === 'esigelec' && <GraduationCap className="w-4 h-4 text-green-500" />}
-                      {userStatus === 'alumni' && <User className="w-4 h-4 text-purple-500" />}
-                      {userStatus === 'administration' && <Shield className="w-4 h-4 text-slate-700" />}
-                      {userStatus === 'other' && <User className="w-4 h-4 text-gray-500" />}
-                      {getStatusLabel(userStatus)}
-                    </span>
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-zinc-100 text-gray-700">
+                    {getStatusIcon(userStatus)}
+                    {getStatusLabel(userStatus)}
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={handleStatusSave}
-                  className="mt-2 bg-green-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-green-700 transition disabled:opacity-50"
-                  disabled={saving || loadingStatus || userStatus === 'none'}
-                >
-                  Mettre à jour mon statut
-                </button>
               </div>
             </div>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-blue-700 transition disabled:opacity-50 mt-2"
-              disabled={saving}
-            >
-              Sauvegarder le profil
-            </button>
-          </form>
-          <div className="w-full border-t border-blue-100 my-6"></div>
-          {hasPasswordProvider && (
-            <>
-              <form onSubmit={handlePasswordChange} className="w-full flex flex-col gap-4 animate-fadeInUp">
-                <label className="block text-gray-700 font-medium mb-1">Changer le mot de passe</label>
-                <input
-                  type="password"
-                  className="border-2 border-blue-100 rounded-lg px-4 py-2 w-full focus:border-blue-400 transition"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Nouveau mot de passe (min. 6 caractères)"
-                  disabled={saving}
-                />
-                <button
-                  type="submit"
-                  className="bg-green-600 text-white rounded-lg px-6 py-2 font-semibold hover:bg-green-700 transition disabled:opacity-50"
-                  disabled={saving || password.length < 6}
-                >
-                  Mettre à jour le mot de passe
-                </button>
-              </form>
-              <button
-                type="button"
-                className="mt-2 underline text-blue-700 hover:text-blue-900 text-sm"
-                onClick={async () => {
-                  setError(null);
-                  setSuccess(null);
-                  try {
-                    await sendPasswordResetEmail(auth, email);
-                    setSuccess('Un email de réinitialisation a été envoyé à votre adresse.');
-                  } catch {
-                    setError('Erreur lors de l’envoi de l’email de réinitialisation.');
-                  }
-                }}
-              >
-                Réinitialiser mon mot de passe
-              </button>
-            </>
-          )}
-          {!hasPasswordProvider && isSocialLogin && (
-            <div className="w-full border-t border-blue-100 my-6 pt-6">
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h2a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-blue-700">
-                      Vous utilisez la connexion avec {isGoogleUser ? 'Google' : 'GitHub'}. Pour modifier votre mot de passe, veuillez vous connecter directement sur votre compte {isGoogleUser ? 'Google' : 'GitHub'}.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {(error || success) && (
-            <div className={`mt-6 text-center text-sm font-medium ${error ? 'text-red-600' : 'text-green-600'}`}>{error || success}</div>
-          )}
-          {providerError && (
-            <div className="mt-6 text-center text-sm font-medium text-orange-600">{providerError}</div>
-          )}
 
-          {/* Section de suppression de compte */}
-          <div className="w-full border-t border-red-100 my-6 pt-6">
-            <h3 className="text-lg font-semibold text-red-700 mb-3">Zone dangereuse</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              La suppression de votre compte est irréversible. Toutes vos données seront définitivement supprimées.
-              {hasPasswordProvider && ' Un mot de passe sera également demandé.'}
-            </p>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={saving}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Suppression en cours...
-                </>
-              ) : (
-                'Supprimer définitivement mon compte'
-              )}
-            </button>
+            {/* Section Sécurité */}
+            {hasPasswordProvider && (
+              <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
+                <h2 className="text-base font-semibold text-gray-900 mb-5">Sécurité</h2>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Minimum 6 caractères"
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      disabled={saving || password.length < 6}
+                    >
+                      Changer le mot de passe
+                    </button>
+                    <button
+                      type="button"
+                      className="px-5 py-2 text-sm text-blue-700 underline hover:text-blue-900 transition-colors"
+                      onClick={async () => {
+                        setError(null);
+                        setSuccess(null);
+                        try {
+                          await sendPasswordResetEmail(auth, email);
+                          setSuccess('Email de réinitialisation envoyé.');
+                        } catch {
+                          setError("Erreur lors de l'envoi de l'email.");
+                        }
+                      }}
+                    >
+                      Réinitialiser par email
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {!hasPasswordProvider && isSocialLogin && (
+              <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
+                <h2 className="text-base font-semibold text-gray-900 mb-3">Sécurité</h2>
+                <p className="text-sm text-gray-600">
+                  Vous utilisez la connexion {isGoogleUser ? 'Google' : 'GitHub'}. La gestion du mot de passe se fait directement sur votre compte {isGoogleUser ? 'Google' : 'GitHub'}.
+                </p>
+              </div>
+            )}
+
+            {/* Zone danger */}
+            <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
+              <h2 className="text-base font-semibold text-red-700 mb-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Zone dangereuse
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                La suppression de votre compte est irréversible. Toutes vos données seront définitivement supprimées.
+              </p>
+              <button
+                onClick={() => setDeleteModalOpen(true)}
+                disabled={saving}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Supprimer mon compte
+              </button>
+            </div>
+
           </div>
-        <PasswordConfirmModal
-          open={modalOpen}
-          onClose={() => { setModalOpen(false); setModalError(null); setPendingAction(null); }}
-          onSubmit={handlePasswordConfirm}
-          loading={modalLoading}
-          error={modalError}
-          label={pendingAction === 'profile'
-            ? 'Veuillez entrer VOTRE mot de passe pour confirmer la modification du profil.'
-            : 'Veuillez entrer VOTRE mot de passe pour changer votre mot de passe.'}
-        />
-        <DeleteAccountModal
-          open={deleteModalOpen}
-          onClose={() => { setDeleteModalOpen(false); setDeleteModalError(null); }}
-          onConfirm={confirmDeleteAccount}
-          requiresPassword={hasPasswordProvider}
-          loading={saving}
-          error={deleteModalError}
-        />
         </div>
       </div>
+
+      <PasswordConfirmModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setModalError(null); setPendingAction(null); }}
+        onSubmit={handlePasswordConfirm}
+        loading={modalLoading}
+        error={modalError}
+        label={pendingAction === 'profile'
+          ? 'Confirmez votre mot de passe pour modifier le profil.'
+          : 'Confirmez votre mot de passe pour le changer.'}
+      />
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setDeleteModalError(null); }}
+        onConfirm={confirmDeleteAccount}
+        requiresPassword={!!hasPasswordProvider}
+        loading={saving}
+        error={deleteModalError}
+      />
     </div>
   );
 };
