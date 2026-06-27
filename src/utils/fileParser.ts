@@ -25,6 +25,7 @@ export interface ParsedAlumniData {
 
 export interface ParseResult {
   data: ParsedAlumniData[];
+  headers: string[];
   errors: Array<{ row: number; message: string }>;
 }
 
@@ -52,6 +53,7 @@ export const parseCSV = (file: File): Promise<ParseResult> => {
         
         resolve({
           data: results.data as ParsedAlumniData[],
+          headers: results.meta.fields || [],
           errors,
         });
       },
@@ -107,6 +109,7 @@ export const parseXLSX = (file: File): Promise<ParseResult> => {
         
         resolve({
           data: parsedData,
+          headers,
           errors: [],
         });
       } catch (error: any) {

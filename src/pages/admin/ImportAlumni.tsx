@@ -9,9 +9,122 @@ import { Recensement } from '../../types/recensement';
 import FileUploader from '../../components/admin/FileUploader';
 import ImportProgress from '../../components/admin/ImportProgress';
 import ImportReport from '../../components/admin/ImportReport';
-import ImportPreviewModal from '../../components/admin/ImportPreviewModal';
-import { parseCSV, parseXLSX, ParsedAlumniData, cleanEmail, extractYearPromo, validateAlumniData } from '../../utils/fileParser';
+import { parseCSV, parseXLSX, cleanEmail, extractYearPromo } from '../../utils/fileParser';
 import { importAlumniFromFile, ImportAlumniData, ImportResult, importEmailsOnly, MinimalImportEntry, EmailImportResult } from '../../services/alumniService';
+
+// ─── Mapping dynamique ───────────────────────────────────────────────────────
+
+interface FieldMapping {
+  email: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  yearPromo: string;
+  city: string;
+  position: string;
+  sectors: string;
+  expertise: string;
+  bio: string;
+}
+
+const EMPTY_MAPPING: FieldMapping = {
+  email: '', firstName: '', lastName: '', displayName: '',
+  yearPromo: '', city: '', position: '', sectors: '', expertise: '', bio: '',
+};
+
+const SYSTEM_FIELDS: Array<{ key: keyof FieldMapping; label: string; required?: boolean; hint?: string }> = [
+  { key: 'email',       label: 'Email',                required: true },
+  { key: 'firstName',   label: 'Prénom',               hint: 'ou utiliser "Nom complet"' },
+  { key: 'lastName',    label: 'Nom de famille',        hint: 'ou utiliser "Nom complet"' },
+  { key: 'displayName', label: 'Nom complet',           hint: 'si prénom+nom dans une seule colonne' },
+  { key: 'yearPromo',   label: 'Année de promotion' },
+  { key: 'city',        label: 'Ville' },
+  { key: 'position',    label: 'Poste occupé / recherché' },
+  { key: 'sectors',     label: 'Domaine(s)' },
+  { key: 'expertise',   label: 'Expertise / précision' },
+  { key: 'bio',         label: 'Bio / Commentaire' },
+];
+
+const AUTO_DETECT_HINTS: Record<keyof FieldMapping, string[]> = {
+  email:       ['mail', 'email', 'e-mail', 'courriel', 'adresse'],
+  firstName:   ['prénom', 'prenom', 'first name', 'firstname', 'given name'],
+  lastName:    ['nom de famille', 'last name', 'lastname', 'surname'],
+  displayName: ['nom complet', 'full name', 'nom et prénom', 'prénom et nom'],
+  yearPromo:   ['promo', 'promotion', 'année', 'year', 'sortie cpc'],
+  city:        ['ville', 'city', 'location', 'localisation'],
+  position:    ['poste', 'position', 'job', 'emploi'],
+  sectors:     ['domaine', 'secteur', 'sector'],
+  expertise:   ['précision', 'expertise', 'spécialité'],
+  bio:         ['bio', 'commentaire', 'about', 'présentation', 'description'],
+};
+
+function autoDetectMapping(headers: string[]): FieldMapping {
+  const mapping: FieldMapping = { ...EMPTY_MAPPING };
+  const lowerHeaders = headers.map(h => h.toLowerCase());
+
+  // "Nom" seul → lastName (pas displayName)
+  for (const [field, hints] of Object.entries(AUTO_DETECT_HINTS) as Array<[keyof FieldMapping, string[]]>) {
+    for (const hint of hints) {
+      const idx = lowerHeaders.findIndex(h => h.includes(hint));
+      if (idx !== -1 && !mapping[field]) {
+        mapping[field] = headers[idx];
+        break;
+      }
+    }
+  }
+  // Si "Nom" détecté comme lastName ET aucun prénom → essayer colonne "Nom" seul comme lastName
+  const nomIdx = lowerHeaders.findIndex(h => h === 'nom');
+  if (nomIdx !== -1 && !mapping.lastName) mapping.lastName = headers[nomIdx];
+
+  return mapping;
+}
+
+function applyMapping(
+  rows: Record<string, any>[],
+  mapping: FieldMapping
+): { data: ImportAlumniData[]; errors: Array<{ row: number; email: string; error: string }> } {
+  const data: ImportAlumniData[] = [];
+  const errors: Array<{ row: number; email: string; error: string }> = [];
+  const parseSectors = (val: string): string[] =>
+    val ? val.split(/,|\set\s/i).map(s => s.trim()).filter(Boolean) : [];
+
+  rows.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const email = cleanEmail(String(row[mapping.email] || ''));
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push({ row: rowNumber, email: email || 'N/A', error: 'Email manquant ou invalide' });
+      return;
+    }
+
+    let name = '';
+    if (mapping.displayName) {
+      name = String(row[mapping.displayName] || '').trim();
+    } else {
+      const first = mapping.firstName ? String(row[mapping.firstName] || '').trim() : '';
+      const last  = mapping.lastName  ? String(row[mapping.lastName]  || '').trim() : '';
+      name = `${first} ${last}`.trim();
+    }
+
+    if (!name) {
+      errors.push({ row: rowNumber, email, error: 'Nom manquant' });
+      return;
+    }
+
+    data.push({
+      name,
+      email,
+      yearPromo: mapping.yearPromo ? extractYearPromo(row[mapping.yearPromo]) : 0,
+      city:      mapping.city      ? String(row[mapping.city]      || '') : '',
+      position:  mapping.position  ? String(row[mapping.position]  || '') : '',
+      sectors:   mapping.sectors   ? parseSectors(String(row[mapping.sectors]   || '')) : [],
+      expertise: mapping.expertise ? [String(row[mapping.expertise] || '')].filter(s => s.trim()) : [],
+      bio:       mapping.bio       ? String(row[mapping.bio]       || '') : '',
+    });
+  });
+
+  return { data, errors };
+}
 
 // ─── Helpers import simplifié ────────────────────────────────────────────────
 
@@ -59,13 +172,15 @@ const ImportAlumni: React.FC = () => {
   // Mode : 'fichier' | 'simplifie'
   const [importMode, setImportMode] = useState<'fichier' | 'simplifie'>('fichier');
 
-  // États mode fichier (existants)
-  const [parsedData, setParsedData] = useState<ParsedAlumniData[]>([]);
+  // États mode fichier
+  const [rawHeaders, setRawHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
+  const [fieldMapping, setFieldMapping] = useState<FieldMapping>({ ...EMPTY_MAPPING });
+  const [fichierStep, setFichierStep] = useState<'upload' | 'mapping' | 'processing' | 'completed'>('upload');
   const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [parseError, setParseError] = useState<string>('');
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [fichierSendEmail, setFichierSendEmail] = useState(false);
 
   // États mode simplifié
@@ -92,98 +207,53 @@ const ImportAlumni: React.FC = () => {
 
   const handleFileSelect = async (file: File) => {
     setParseError('');
-    setParsedData([]);
+    setRawHeaders([]);
+    setRawRows([]);
 
     try {
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
       let result;
 
-      if (fileExtension === '.csv') {
-        result = await parseCSV(file);
-      } else if (fileExtension === '.xlsx') {
-        result = await parseXLSX(file);
-      } else {
-        setParseError('Format de fichier non supporté');
-        return;
-      }
+      if (ext === '.csv') result = await parseCSV(file);
+      else if (ext === '.xlsx') result = await parseXLSX(file);
+      else { setParseError('Format de fichier non supporté'); return; }
 
       if (result.errors.length > 0) {
-        setParseError(`Erreurs de parsing: ${result.errors.length} ligne(s) avec des erreurs`);
+        setParseError(`${result.errors.length} erreur(s) de parsing détectée(s)`);
       }
 
-      setParsedData(result.data);
-      console.log('✅ Fichier parsé:', result.data.length, 'lignes');
-      
-      // Ouvrir automatiquement le modal de prévisualisation
-      if (result.data.length > 0) {
-        setShowPreviewModal(true);
-      }
+      const rows = result.data as Record<string, any>[];
+      setRawHeaders(result.headers);
+      setRawRows(rows);
+      setFieldMapping(autoDetectMapping(result.headers));
+      if (rows.length > 0) setFichierStep('mapping');
     } catch (error: any) {
       setParseError(error.message || 'Erreur lors de la lecture du fichier');
-      console.error('Erreur parsing:', error);
     }
   };
 
   const handleStartImport = async () => {
-    if (parsedData.length === 0) return;
+    if (rawRows.length === 0) return;
 
+    setFichierStep('processing');
     setImportStatus('processing');
-    setImportProgress({ current: 0, total: parsedData.length });
+    setImportProgress({ current: 0, total: rawRows.length });
 
     try {
-      // Transformer les données parsées en ImportAlumniData
-      const dataToImport: ImportAlumniData[] = [];
-      const validationErrors: Array<{ row: number; email: string; error: string }> = [];
+      const { data: dataToImport, errors: validationErrors } = applyMapping(rawRows, fieldMapping);
 
-      parsedData.forEach((row, index) => {
-        const rowNumber = index + 2; // +2 car ligne 1 = headers
-        const validation = validateAlumniData(row);
-
-        if (!validation.valid) {
-          validationErrors.push({
-            row: rowNumber,
-            email: String(row.Mail || 'N/A'),
-            error: validation.errors.join(', '),
-          });
-          return;
-        }
-
-        // Parser les domaines (splitter par virgules et "et")
-        const parseSectors = (domaine: string): string[] => {
-          if (!domaine) return [];
-          return domaine
-            .split(/,|\set\s/i) // Split par virgule OU " et " (case insensitive)
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
-        };
-
-        dataToImport.push({
-          name: `${row.Prénom} ${row.Nom}`.trim(),
-          email: cleanEmail(String(row.Mail)),
-          yearPromo: extractYearPromo(row['Promotion (année de sortie CPC)']),
-          city: row.Ville || '',
-          position: row['Poste Occupé ou Recherché'] || '',
-          sectors: parseSectors(row.Domaine || ''),
-          expertise: row['Précision de votre domaine'] ? [row['Précision de votre domaine']] : [],
-          bio: '', // Pas de mapping depuis Commentaire
-        });
-      });
-
-      // Lancer l'import
       const result = await importAlumniFromFile(
         dataToImport,
         (current, total) => { setImportProgress({ current, total }); },
         { sendActivationEmail: fichierSendEmail }
       );
 
-      // Ajouter les erreurs de validation au résultat
       result.errors.push(...validationErrors);
 
-      // Mettre à jour les stats du recensement lié
       if (recensementId) {
         try {
           await updateRecensementStats(recensementId, {
-            totalForms: recensement?.stats.totalForms ?? parsedData.length,
+            totalForms: recensement?.stats.totalForms ?? rawRows.length,
             newAccounts: result.success,
             updatedAccounts: result.updated,
             alreadyExisted: result.skipped,
@@ -196,6 +266,7 @@ const ImportAlumni: React.FC = () => {
 
       setImportResult(result);
       setImportStatus('completed');
+      setFichierStep('completed');
     } catch (error: any) {
       console.error('Erreur import:', error);
       setImportStatus('error');
@@ -229,18 +300,14 @@ const ImportAlumni: React.FC = () => {
   };
 
   const handleNewImport = () => {
-    setParsedData([]);
+    setRawHeaders([]);
+    setRawRows([]);
+    setFieldMapping({ ...EMPTY_MAPPING });
+    setFichierStep('upload');
     setImportStatus('idle');
     setImportProgress({ current: 0, total: 0 });
     setImportResult(null);
     setParseError('');
-    setShowPreviewModal(false);
-  };
-
-  const handleConfirmImport = () => {
-    if (!canImport) return;
-    setShowPreviewModal(false);
-    handleStartImport();
   };
 
   // ─── Handlers mode simplifié ──────────────────────────────────────────────
@@ -315,20 +382,6 @@ const ImportAlumni: React.FC = () => {
   };
 
   // ──────────────────────────────────────────────────────────────────────────
-
-  // Calculer le nombre de profils valides et invalides
-  const validationStats = parsedData.reduce(
-    (acc, row) => {
-      const validation = validateAlumniData(row);
-      if (validation.valid) {
-        acc.valid++;
-      } else {
-        acc.invalid++;
-      }
-      return acc;
-    },
-    { valid: 0, invalid: 0 }
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -681,140 +734,169 @@ const ImportAlumni: React.FC = () => {
         {/* ─── MODE FICHIER ────────────────────────────────────────────── */}
         {importMode === 'fichier' && <>
 
-        {/* Section 1 : Instructions */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-          <div className="flex items-start gap-3">
-            <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-2">Instructions d'import</h3>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>Formats acceptés : CSV (.csv) et Excel (.xlsx)</li>
-                <li>Taille maximale : 5 MB</li>
-                <li>Les comptes utilisateurs seront créés automatiquement</li>
-                <li>Les profils seront pré-approuvés (status: approved)</li>
-                <li>Les doublons (emails existants) seront ignorés</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2 : Mapping des colonnes */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-600" />
-            Mapping des colonnes
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Champ formulaire</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Champ profil</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Obligatoire</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Exemple</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Nom + Prénom</td>
-                  <td className="px-4 py-3 text-gray-600">name</td>
-                  <td className="px-4 py-3"><span className="text-red-600 font-bold">Oui</span></td>
-                  <td className="px-4 py-3 text-gray-500">John Doe</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Mail</td>
-                  <td className="px-4 py-3 text-gray-600">email</td>
-                  <td className="px-4 py-3"><span className="text-red-600 font-bold">Oui</span></td>
-                  <td className="px-4 py-3 text-gray-500">john@example.com</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Promotion (année de sortie CPC)</td>
-                  <td className="px-4 py-3 text-gray-600">yearPromo</td>
-                  <td className="px-4 py-3"><span className="text-red-600 font-bold">Oui</span></td>
-                  <td className="px-4 py-3 text-gray-500">2022</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Ville</td>
-                  <td className="px-4 py-3 text-gray-600">city</td>
-                  <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">Paris</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Poste Occupé ou Recherché</td>
-                  <td className="px-4 py-3 text-gray-600">position</td>
-                  <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">Développeur Full Stack</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Domaine</td>
-                  <td className="px-4 py-3 text-gray-600">sectors (array)</td>
-                  <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">
-                    <div className="text-xs">
-                      <div>"Informatique, Finance" → ["Informatique", "Finance"]</div>
-                      <div>"Data et IA" → ["Data", "IA"]</div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 text-gray-900">Précision de votre domaine</td>
-                  <td className="px-4 py-3 text-gray-600">expertise (array)</td>
-                  <td className="px-4 py-3 text-gray-500">Non</td>
-                  <td className="px-4 py-3 text-gray-500">React, Node.js</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         {/* Avertissement */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg mb-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-yellow-900 mb-2">⚠️ Points importants</h3>
+        {fichierStep === 'upload' && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-lg mb-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
-                <li>Les comptes seront créés avec des mots de passe aléatoires</li>
-                <li>Les utilisateurs devront utiliser "Mot de passe oublié" pour se connecter</li>
-                <li>L'import prend environ 30-60 secondes par profil (pause de 500ms entre chaque création)</li>
-                <li>Pour 107 profils, comptez environ 50-90 minutes d'import</li>
-                <li>Ne fermez pas cette page pendant l'import</li>
+                <li>Formats acceptés : CSV (.csv) et Excel (.xlsx)</li>
+                <li>Les comptes seront créés avec des mots de passe aléatoires — les alumni devront utiliser "Mot de passe oublié"</li>
+                <li>Comptez ~30–60 s par profil — ne fermez pas cette page</li>
               </ul>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Section 3 : Upload de fichier */}
-        {importStatus === 'idle' && !importResult && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload de fichier</h2>
+        {/* Step 1 : Upload */}
+        {fichierStep === 'upload' && (
+          <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-indigo-600" />
+              Choisir un fichier
+            </h2>
             <FileUploader onFileSelect={handleFileSelect} />
-
-            <div className="mt-4 flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="fichierSendEmail"
-                checked={fichierSendEmail}
-                onChange={e => setFichierSendEmail(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded"
-              />
-              <label htmlFor="fichierSendEmail" className="text-sm text-zinc-700">
-                Envoyer un email d'activation aux nouveaux comptes créés
-              </label>
-            </div>
-
             {parseError && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{parseError}</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Section 4 : Progression */}
-        {importStatus === 'processing' && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Import en cours...</h2>
+        {/* Step 2 : Mapping dynamique */}
+        {fichierStep === 'mapping' && (
+          <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Mapping des colonnes</h2>
+                <p className="text-sm text-zinc-500 mt-0.5">
+                  {rawRows.length} ligne(s) · {rawHeaders.length} colonne(s) détectée(s)
+                </p>
+              </div>
+              <button
+                onClick={() => { setFichierStep('upload'); setRawHeaders([]); setRawRows([]); setFieldMapping({ ...EMPTY_MAPPING }); }}
+                className="text-sm text-zinc-500 hover:text-zinc-700 flex items-center gap-1 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" /> Changer de fichier
+              </button>
+            </div>
+
+            {parseError && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs text-amber-700">{parseError}</p>
+              </div>
+            )}
+
+            {/* Grille mapping */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {SYSTEM_FIELDS.map(({ key, label, required, hint }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-zinc-700 mb-1">
+                    {label}
+                    {required && <span className="text-red-500 ml-1">*</span>}
+                    {hint && <span className="text-zinc-400 font-normal ml-1">({hint})</span>}
+                  </label>
+                  <select
+                    value={fieldMapping[key]}
+                    onChange={e => setFieldMapping(m => ({ ...m, [key]: e.target.value }))}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
+                      required && !fieldMapping[key] ? 'border-red-300 bg-red-50' : 'border-zinc-200'
+                    }`}
+                  >
+                    <option value="">(ignorer)</option>
+                    {rawHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            {/* Messages de validation */}
+            <div className="space-y-1">
+              {!fieldMapping.email && (
+                <p className="text-xs text-red-600 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Colonne Email requise</p>
+              )}
+              {!fieldMapping.displayName && !fieldMapping.firstName && !fieldMapping.lastName && (
+                <p className="text-xs text-red-600 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Mapper Prénom + Nom de famille <strong>ou</strong> Nom complet</p>
+              )}
+              {fieldMapping.email && (fieldMapping.displayName || fieldMapping.firstName || fieldMapping.lastName) && (
+                <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Mapping valide — prêt à importer</p>
+              )}
+            </div>
+
+            {/* Aperçu des 3 premières lignes */}
+            {rawRows.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Aperçu (3 premières lignes)</p>
+                <div className="overflow-x-auto rounded-lg border border-zinc-200">
+                  <table className="w-full text-xs">
+                    <thead className="bg-zinc-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-zinc-600">Email</th>
+                        <th className="px-3 py-2 text-left font-medium text-zinc-600">Nom</th>
+                        <th className="px-3 py-2 text-left font-medium text-zinc-600">Promo</th>
+                        <th className="px-3 py-2 text-left font-medium text-zinc-600">Ville</th>
+                        <th className="px-3 py-2 text-left font-medium text-zinc-600">Poste</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {rawRows.slice(0, 3).map((row, i) => {
+                        const previewEmail = fieldMapping.email ? String(row[fieldMapping.email] || '—') : '—';
+                        let previewName = '—';
+                        if (fieldMapping.displayName) previewName = String(row[fieldMapping.displayName] || '—');
+                        else {
+                          const f = fieldMapping.firstName ? String(row[fieldMapping.firstName] || '') : '';
+                          const l = fieldMapping.lastName  ? String(row[fieldMapping.lastName]  || '') : '';
+                          previewName = `${f} ${l}`.trim() || '—';
+                        }
+                        return (
+                          <tr key={i} className="hover:bg-zinc-50">
+                            <td className="px-3 py-2 font-mono text-zinc-600 max-w-[160px] truncate">{previewEmail}</td>
+                            <td className="px-3 py-2 text-zinc-900">{previewName}</td>
+                            <td className="px-3 py-2 text-zinc-600">{fieldMapping.yearPromo ? String(row[fieldMapping.yearPromo] || '—') : '—'}</td>
+                            <td className="px-3 py-2 text-zinc-600">{fieldMapping.city ? String(row[fieldMapping.city] || '—') : '—'}</td>
+                            <td className="px-3 py-2 text-zinc-600 max-w-[150px] truncate">{fieldMapping.position ? String(row[fieldMapping.position] || '—') : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Options + bouton lancer */}
+            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between gap-4 flex-wrap">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={fichierSendEmail}
+                  onChange={e => setFichierSendEmail(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded"
+                />
+                <span className="text-sm text-zinc-700">Envoyer email d'activation aux nouveaux comptes</span>
+              </label>
+              <button
+                onClick={handleStartImport}
+                disabled={
+                  !fieldMapping.email ||
+                  (!fieldMapping.displayName && !fieldMapping.firstName && !fieldMapping.lastName)
+                }
+                className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Lancer l'import ({rawRows.length} ligne{rawRows.length > 1 ? 's' : ''})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 : Progression */}
+        {fichierStep === 'processing' && (
+          <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Import en cours...</h2>
             <ImportProgress
               current={importProgress.current}
               total={importProgress.total}
@@ -823,25 +905,15 @@ const ImportAlumni: React.FC = () => {
           </div>
         )}
 
-        {/* Section 5 : Rapport */}
-        {importResult && importStatus === 'completed' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Rapport d'import</h2>
+        {/* Step 4 : Rapport */}
+        {fichierStep === 'completed' && importResult && (
+          <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Rapport d'import</h2>
             <ImportReport result={importResult} onNewImport={handleNewImport} />
           </div>
         )}
 
         </> /* fin MODE FICHIER */}
-
-        {/* Modal de prévisualisation */}
-        <ImportPreviewModal
-          isOpen={showPreviewModal}
-          onClose={() => setShowPreviewModal(false)}
-          onConfirm={handleConfirmImport}
-          data={parsedData}
-          validCount={validationStats.valid}
-          errorCount={validationStats.invalid}
-        />
       </div>
     </div>
   );
