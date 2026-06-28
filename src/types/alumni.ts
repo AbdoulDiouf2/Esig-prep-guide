@@ -255,4 +255,5 @@ export interface AlumniStats {
   profilesByYear: Record<number, number>; // Ex: { 2022: 15, 2023: 20 }
   profilesBySector: Record<string, number>; // Ex: { "Tech": 30, "Finance": 10 }
   profilesByCountry: Record<string, number>;
+  profilesByCity: Record<string, number>;
 }

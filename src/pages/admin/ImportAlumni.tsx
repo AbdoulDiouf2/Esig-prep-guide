@@ -86,7 +86,7 @@ function applyMapping(
   const data: ImportAlumniData[] = [];
   const errors: Array<{ row: number; email: string; error: string }> = [];
   const parseSectors = (val: string): string[] =>
-    val ? val.split(/,|\set\s/i).map(s => s.trim()).filter(Boolean) : [];
+    val ? val.split(/,/).map(s => s.trim()).filter(Boolean) : [];
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2;

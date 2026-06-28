@@ -578,6 +578,7 @@ export const getAlumniStats = async (): Promise<AlumniStats> => {
       profilesByYear: {},
       profilesBySector: {},
       profilesByCountry: {},
+      profilesByCity: {},
     };
 
     querySnapshot.forEach((doc) => {
@@ -604,6 +605,12 @@ export const getAlumniStats = async (): Promise<AlumniStats> => {
       if (profile.country) {
         stats.profilesByCountry[profile.country] =
           (stats.profilesByCountry[profile.country] || 0) + 1;
+      }
+
+      // Compter par ville
+      if (profile.city) {
+        stats.profilesByCity[profile.city] =
+          (stats.profilesByCity[profile.city] || 0) + 1;
       }
     });
 

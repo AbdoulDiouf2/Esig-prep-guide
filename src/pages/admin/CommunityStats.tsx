@@ -30,7 +30,22 @@ import {
   Send,
   TrendingUp,
   Download,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+
+interface ContactRequest {
+  id: string;
+  fromName: string;
+  fromEmail: string;
+  toName: string;
+  toEmail: string;
+  subject: string;
+  message: string;
+  status: string;
+  dateCreated: { seconds: number } | null;
+}
 
 interface Stats {
   totalUsers: number;
@@ -78,7 +93,8 @@ const KpiCard: React.FC<{
   icon: React.ReactNode;
   color?: string;
   sub?: string;
-}> = ({ label, value, icon, color = 'blue', sub }) => {
+  onClick?: () => void;
+}> = ({ label, value, icon, color = 'blue', sub, onClick }) => {
   const colorMap: Record<string, string> = {
     blue: 'bg-blue-50 text-blue-700',
     purple: 'bg-purple-50 text-purple-700',
@@ -88,7 +104,10 @@ const KpiCard: React.FC<{
     zinc: 'bg-zinc-50 text-zinc-700',
   };
   return (
-    <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4 flex items-start gap-4">
+    <div
+      className={`bg-white border border-zinc-200 shadow-sm rounded-xl p-4 flex items-start gap-4 ${onClick ? 'cursor-pointer hover:border-blue-300 hover:shadow-md transition-all' : ''}`}
+      onClick={onClick}
+    >
       <div className={`p-2 rounded-lg ${colorMap[color] || colorMap.blue}`}>
         {icon}
       </div>
@@ -96,6 +115,7 @@ const KpiCard: React.FC<{
         <p className="text-2xl font-bold text-blue-900">{value}</p>
         <p className="text-sm text-zinc-500">{label}</p>
         {sub && <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>}
+        {onClick && <p className="text-xs text-blue-500 mt-1">Voir le détail →</p>}
       </div>
     </div>
   );
@@ -177,8 +197,8 @@ function buildExportSections(stats: Stats, approvalRate: number) {
       rows: alumni ? Object.entries(alumni.profilesBySector).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => [k, v]) : [],
     },
     {
-      title: 'Top Pays',
-      rows: alumni ? Object.entries(alumni.profilesByCountry).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => [k, v]) : [],
+      title: 'Top Villes',
+      rows: alumni ? Object.entries(alumni.profilesByCity).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => [k, v]) : [],
     },
     {
       title: 'Répartition par promotion',
@@ -217,6 +237,123 @@ function buildExportSections(stats: Stats, approvalRate: number) {
   ];
 }
 
+// ── Contact Requests Modal ──────────────────────────────────────────────────
+
+const ContactRequestsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [requests, setRequests] = useState<ContactRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDocs(collection(db, 'contactRequests')).then(snap => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as ContactRequest));
+      data.sort((a, b) => (b.dateCreated?.seconds ?? 0) - (a.dateCreated?.seconds ?? 0));
+      setRequests(data);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const formatDate = (ts: { seconds: number } | null) => {
+    if (!ts) return '—';
+    return new Date(ts.seconds * 1000).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const statusColor = (s: string) => {
+    if (s === 'pending') return 'bg-amber-100 text-amber-700';
+    if (s === 'accepted') return 'bg-green-100 text-green-700';
+    if (s === 'rejected') return 'bg-red-100 text-red-700';
+    return 'bg-zinc-100 text-zinc-600';
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+          <h2 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+            <Mail className="w-5 h-5" /> Demandes de contact ({requests.length})
+          </h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+          {loading && (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            </div>
+          )}
+          {!loading && requests.length === 0 && (
+            <p className="text-center text-zinc-400 py-10">Aucune demande de contact</p>
+          )}
+          {requests.map(req => (
+            <div key={req.id} className="border border-zinc-200 rounded-xl overflow-hidden">
+              <button
+                className="w-full flex items-start justify-between px-4 py-3 hover:bg-zinc-50 transition-colors text-left gap-3"
+                onClick={() => setExpanded(expanded === req.id ? null : req.id)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-blue-900 text-sm truncate">{req.subject || '(sans objet)'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(req.status)}`}>
+                      {req.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-zinc-400 mt-0.5">
+                    De <span className="text-zinc-600 font-medium">{req.fromName}</span>
+                    {' → '}
+                    <span className="text-zinc-600 font-medium">{req.toName}</span>
+                    <span className="ml-2">{formatDate(req.dateCreated)}</span>
+                  </div>
+                </div>
+                {expanded === req.id
+                  ? <ChevronUp className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
+                  : <ChevronDown className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
+                }
+              </button>
+
+              {expanded === req.id && (
+                <div className="px-4 pb-4 pt-1 bg-zinc-50 border-t border-zinc-100 space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-zinc-400 mb-0.5">Expéditeur</p>
+                      <p className="font-medium text-zinc-800">{req.fromName}</p>
+                      <p className="text-zinc-500 text-xs">{req.fromEmail}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-400 mb-0.5">Destinataire</p>
+                      <p className="font-medium text-zinc-800">{req.toName}</p>
+                      <p className="text-zinc-500 text-xs">{req.toEmail}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-400 mb-0.5">Objet</p>
+                    <p className="text-zinc-800">{req.subject || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-400 mb-0.5">Message</p>
+                    <p className="text-zinc-700 whitespace-pre-wrap bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs leading-relaxed">
+                      {req.message || '—'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-zinc-400">
+                    <span>ID : <span className="font-mono text-zinc-500">{req.id}</span></span>
+                    <span>Date : {formatDate(req.dateCreated)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 const CommunityStats: React.FC = () => {
@@ -224,6 +361,7 @@ const CommunityStats: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -527,7 +665,7 @@ const CommunityStats: React.FC = () => {
     ? Object.entries(alumni.profilesBySector).sort((a, b) => b[1] - a[1]).slice(0, 5)
     : [];
   const topCountries = alumni
-    ? Object.entries(alumni.profilesByCountry).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    ? Object.entries(alumni.profilesByCity).sort((a, b) => b[1] - a[1]).slice(0, 5)
     : [];
   // Fusion users.yearPromo + alumni.profilesByYear
   const mergedPromos: Record<number, { inscrits: number; profils: number }> = {};
@@ -549,6 +687,8 @@ const CommunityStats: React.FC = () => {
 
   return (
     <div className="space-y-2">
+
+      {showContactModal && <ContactRequestsModal onClose={() => setShowContactModal(false)} />}
 
       {/* ── Barre d'export ── */}
       <div className="flex items-center justify-between mb-2">
@@ -634,7 +774,7 @@ const CommunityStats: React.FC = () => {
         )}
         {topCountries.length > 0 && (
           <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-3">Top 5 Pays</h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-3">Top 5 Villes</h3>
             {topCountries.map(([country, count]) => (
               <TopBar key={country} label={country} count={count} total={alumni?.approvedProfiles ?? 1} color="bg-blue-500" />
             ))}
@@ -675,7 +815,7 @@ const CommunityStats: React.FC = () => {
       <SectionTitle title="Réseau & Engagement alumni" icon={<Heart className="w-5 h-5" />} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <KpiCard label="Recommandations envoyées" value={stats.totalRecommendations} icon={<Send className="w-5 h-5" />} color="purple" />
-        <KpiCard label="Demandes de contact" value={stats.totalContactRequests} icon={<Mail className="w-5 h-5" />} color="blue" />
+        <KpiCard label="Demandes de contact" value={stats.totalContactRequests} icon={<Mail className="w-5 h-5" />} color="blue" onClick={() => setShowContactModal(true)} />
         <KpiCard label="Alumni proposant du mentoring" value={stats.alumniMentoring} icon={<UserCheck className="w-5 h-5" />} color="green" />
         <KpiCard label="Alumni en recherche active" value={stats.alumniSeeking} icon={<TrendingUp className="w-5 h-5" />} color="amber" />
       </div>
