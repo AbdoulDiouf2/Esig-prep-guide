@@ -183,6 +183,12 @@ const MyAlumniProfile: React.FC = () => {
                 </Link>
               )}
               <Link
+                to="/mes-demandes-contact"
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-zinc-300 text-gray-700 bg-white text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5" /> Mes demandes de contact
+              </Link>
+              <Link
                 to="/profile"
                 className="inline-flex items-center gap-1.5 px-4 py-2 border border-zinc-300 text-gray-700 bg-white text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >

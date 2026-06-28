@@ -86,6 +86,7 @@ import Webinars from './pages/Webinars';
 import WebinarDetail from './pages/WebinarDetail';
 import ProposerAtelier from './pages/ProposerAtelier';
 import MesPropositions from './pages/MesPropositions';
+import MesDemandesContact from './pages/MesDemandesContact';
 import UserChat from './pages/UserChat';
 import AcademicResources from './pages/AcademicResources';
 import Ressources from './pages/Ressources';
@@ -711,7 +712,12 @@ function App() {
                     <MesPropositions />
                   </AuthWrapper>
                 } />
-                
+                <Route path="/mes-demandes-contact" element={
+                  <AuthWrapper>
+                    <MesDemandesContact />
+                  </AuthWrapper>
+                } />
+
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
