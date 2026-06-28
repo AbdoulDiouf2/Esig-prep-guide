@@ -910,7 +910,7 @@ const ApplicationsDashboard: React.FC = () => {
       )}
 
       {/* Notification profil alumni approuvé */}
-      {!loadingAlumni && alumniProfile && alumniProfile.status === 'approved' && !isDirector() && !isStaff() && (
+      {!loadingAlumni && alumniProfile && alumniProfile.status === 'approved' && !isDirector() && !isStaff() && !alumniBannerDismissed && (
         <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-md">
           <div className="flex items-start">
             <Bell className="w-5 h-5 text-green-600 mt-0.5 mr-3" />
@@ -919,12 +919,19 @@ const ApplicationsDashboard: React.FC = () => {
                 ✅ Profil alumni validé !
               </h3>
               <p className="mt-1 text-sm text-green-700">
-                Votre profil est maintenant visible dans l'annuaire alumni. 
+                Votre profil est maintenant visible dans l'annuaire alumni.
                 <Link to="/alumni" className="font-medium underline ml-1">
                   Voir l'annuaire →
                 </Link>
               </p>
             </div>
+            <button
+              onClick={dismissAlumniBanner}
+              className="ml-3 text-green-500 hover:text-green-700 transition-colors flex-shrink-0"
+              aria-label="Fermer"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
