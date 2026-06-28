@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper, Mail } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
+import { useUnreadContactRequests } from '../../hooks/useUnreadContactRequests';
 
 const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -11,6 +12,7 @@ const Header: React.FC = () => {
   const canEdit = usePermission('resources.manage');
   const canDirector = usePermission('director.dashboard');
   const canStaff = usePermission('staff.dashboard');
+  const unreadContacts = useUnreadContactRequests();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -171,10 +173,15 @@ const Header: React.FC = () => {
                     isScrolled ? 'text-blue-800' : 'text-white'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
+                  <div className="relative w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
                       {getFirstName(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}
                     </span>
+                    {unreadContacts > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+                        {unreadContacts > 9 ? '9+' : unreadContacts}
+                      </span>
+                    )}
                   </div>
                   <span>{getFirstName(currentUser.displayName || currentUser.email)}</span>
                   <ChevronDown className="w-4 h-4" />
@@ -198,6 +205,20 @@ const Header: React.FC = () => {
                         <span>Mon profil alumni</span>
                       </Link>
                     )}
+                    <Link
+                      to="/mes-demandes-contact"
+                      className="flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    >
+                      <span className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Demandes de contact
+                      </span>
+                      {unreadContacts > 0 && (
+                        <span className="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                          {unreadContacts > 9 ? '9+' : unreadContacts}
+                        </span>
+                      )}
+                    </Link>
                     {canAdmin && (
                       <Link 
                         to="/admin" 

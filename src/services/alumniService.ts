@@ -723,6 +723,7 @@ export const sendContactRequest = async (data: {
       subject: data.subject,
       message: data.message,
       status: 'pending' as const,
+      isRead: false,
       dateCreated: Timestamp.now(),
     };
 

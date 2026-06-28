@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ArrowLeft, Mail, Send, Inbox, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ContactRequest {
@@ -16,6 +16,7 @@ interface ContactRequest {
   subject: string;
   message: string;
   status: string;
+  isRead: boolean;
   dateCreated: { seconds: number } | null;
 }
 
@@ -26,23 +27,42 @@ const formatDate = (ts: { seconds: number } | null) => {
   });
 };
 
-const RequestCard: React.FC<{ req: ContactRequest; side: 'sent' | 'received' }> = ({ req, side }) => {
+const RequestCard: React.FC<{
+  req: ContactRequest;
+  side: 'sent' | 'received';
+  onRead: (id: string) => void;
+}> = ({ req, side, onRead }) => {
   const [open, setOpen] = useState(false);
+
+  const handleToggle = () => {
+    if (!open && side === 'received' && !req.isRead) {
+      onRead(req.id);
+    }
+    setOpen(o => !o);
+  };
+
   return (
-    <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+    <div className={`border rounded-xl overflow-hidden bg-white ${!req.isRead && side === 'received' ? 'border-blue-300 shadow-sm' : 'border-zinc-200'}`}>
       <button
         className="w-full flex items-start justify-between px-4 py-3 hover:bg-zinc-50 transition-colors text-left gap-3"
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
       >
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-blue-900 text-sm truncate">{req.subject || '(sans objet)'}</p>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {side === 'sent'
-              ? <>À <span className="text-zinc-600 font-medium">{req.toName}</span></>
-              : <>De <span className="text-zinc-600 font-medium">{req.fromName}</span></>
-            }
-            <span className="ml-2">{formatDate(req.dateCreated)}</span>
-          </p>
+        <div className="flex-1 min-w-0 flex items-start gap-2">
+          {!req.isRead && side === 'received' && (
+            <span className="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full bg-blue-500" />
+          )}
+          <div className="min-w-0">
+            <p className={`text-sm truncate ${!req.isRead && side === 'received' ? 'font-semibold text-blue-900' : 'font-medium text-blue-900'}`}>
+              {req.subject || '(sans objet)'}
+            </p>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              {side === 'sent'
+                ? <>À <span className="text-zinc-600 font-medium">{req.toName}</span></>
+                : <>De <span className="text-zinc-600 font-medium">{req.fromName}</span></>
+              }
+              <span className="ml-2">{formatDate(req.dateCreated)}</span>
+            </p>
+          </div>
         </div>
         {open ? <ChevronUp className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-1" /> : <ChevronDown className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-1" />}
       </button>
@@ -94,10 +114,7 @@ const MesDemandesContact: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
+    if (!currentUser) { navigate('/login'); return; }
     const load = async () => {
       setLoading(true);
       const col = collection(db, 'contactRequests');
@@ -105,8 +122,8 @@ const MesDemandesContact: React.FC = () => {
         getDocs(query(col, where('toUid', '==', currentUser.uid))),
         getDocs(query(col, where('fromUid', '==', currentUser.uid))),
       ]);
-      const sort = (docs: typeof recSnap) =>
-        docs.docs
+      const sort = (snap: typeof recSnap) =>
+        snap.docs
           .map(d => ({ id: d.id, ...d.data() } as ContactRequest))
           .sort((a, b) => (b.dateCreated?.seconds ?? 0) - (a.dateCreated?.seconds ?? 0));
       setReceived(sort(recSnap));
@@ -116,6 +133,12 @@ const MesDemandesContact: React.FC = () => {
     load();
   }, [currentUser, navigate]);
 
+  const handleRead = async (id: string) => {
+    await updateDoc(doc(db, 'contactRequests', id), { isRead: true });
+    setReceived(prev => prev.map(r => r.id === id ? { ...r, isRead: true } : r));
+  };
+
+  const unreadCount = received.filter(r => !r.isRead).length;
   const list = tab === 'received' ? received : sent;
 
   return (
@@ -129,8 +152,13 @@ const MesDemandesContact: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+          <div className="relative p-2 bg-blue-50 rounded-lg text-blue-700">
             <Mail className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
           </div>
           <div>
             <h1 className="text-xl font-bold text-blue-900">Mes demandes de contact</h1>
@@ -147,8 +175,8 @@ const MesDemandesContact: React.FC = () => {
             <Inbox className="w-4 h-4" />
             Reçues
             {received.length > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === 'received' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
-                {received.length}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === 'received' ? 'bg-white/20 text-white' : unreadCount > 0 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
+                {unreadCount > 0 ? `${unreadCount} non lues` : received.length}
               </span>
             )}
           </button>
@@ -181,7 +209,7 @@ const MesDemandesContact: React.FC = () => {
         ) : (
           <div className="space-y-3">
             {list.map(req => (
-              <RequestCard key={req.id} req={req} side={tab} />
+              <RequestCard key={req.id} req={req} side={tab} onRead={handleRead} />
             ))}
           </div>
         )}
