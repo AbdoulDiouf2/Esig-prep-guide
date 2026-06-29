@@ -175,7 +175,7 @@ const DisclaimerBanner = () => {
     sessionStorage.setItem('bannerClosed', 'true');
   };
 
-  if (!isClient || !currentUser || !isVisible) return null;
+  if (!isClient || !currentUser || !isVisible || location.pathname !== '/dashboard') return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 transition-all duration-300 ease-in-out">
