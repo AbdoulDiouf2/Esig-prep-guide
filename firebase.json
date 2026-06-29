@@ -8,8 +8,18 @@
     ],
     "redirects": [
       {
+        "source": "/login",
+        "destination": "https://esig-prep-guide.vercel.app/#/login",
+        "type": 301
+      },
+      {
+        "source": "/reset-password",
+        "destination": "https://esig-prep-guide.vercel.app/#/reset-password",
+        "type": 301
+      },
+      {
         "source": "**",
-        "destination": "https://esig-prep-guide.vercel.app",
+        "destination": "https://esig-prep-guide.vercel.app/#/login",
         "type": 301
       }
     ]
