@@ -51,6 +51,9 @@ const AdminProgressionOverview: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'progressions' | 'visa'>('progressions');
   const [arrivalData, setArrivalData] = useState<Record<string, ArrivalInfo>>({});
+  // Signal "visa/billet" manuel par utilisateur : case "Visa obtenu" ou "Billet d'avion" cochée,
+  // indépendamment du bouton rond de complétion de section (qui peut être décoché entre-temps)
+  const [manualVisaSignals, setManualVisaSignals] = useState<Record<string, boolean>>({});
   const [exporting, setExporting] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const currentYear = new Date().getFullYear();
@@ -87,11 +90,16 @@ const AdminProgressionOverview: React.FC = () => {
     return null;
   }, [guideSections]); // Uniquement guideSections en dépendance
 
-  // Sous-section checkList dédiée "Billet d'avion" (déclencheur de l'unlockCondition sur
-  // "Préparons ton arrivée en France"), retrouvée dynamiquement par titre plutôt que par ID en dur
+  // Sous-sections checkList dédiées "Visa obtenu" / "Billet d'avion" (déclencheurs de l'unlockCondition
+  // sur "Préparons ton arrivée en France"), retrouvées dynamiquement par titre plutôt que par ID en dur
   const billetSubSection = useMemo(() => {
     const allSubSections = guideSections.flatMap(section => section.subSections || []);
     return allSubSections.find(sub => sub.title?.toLowerCase().includes('billet'));
+  }, [guideSections]);
+
+  const visaObtainedSubSection = useMemo(() => {
+    const allSubSections = guideSections.flatMap(section => section.subSections || []);
+    return allSubSections.find(sub => sub.title?.toLowerCase().includes('visa obtenu'));
   }, [guideSections]);
 
   // Fonction pour calculer la progression globale d'un utilisateur
@@ -368,18 +376,25 @@ const AdminProgressionOverview: React.FC = () => {
     // Fonction pour récupérer les données d'arrivée depuis les sous-sections
     const fetchArrivalData = async (usersList: UserDoc[], progressions: { userId: string, completedSections: string[] }[]) => {
       const arrivalInfo: Record<string, ArrivalInfo> = {};
-      
-      // Récupérer les données d'arrivée pour les utilisateurs CPS ayant un statut visa (obtenu ou refusé)
-      const usersWithVisaStatus = usersList.filter(user =>
-        (user.status === 'cps' || user.status === 'alumni') &&
-        (getUserVisaStatus(user.uid, progressions) === 'obtained' || getUserVisaStatus(user.uid, progressions) === 'refused')
-      );
-      
-      for (const user of usersWithVisaStatus) {
+      const manualSignals: Record<string, boolean> = {};
+
+      // Tous les CPS/alumni : on a besoin de leurs checkedItems pour détecter les cases
+      // "Visa obtenu"/"Billet d'avion" cochées, indépendamment du bouton rond de section
+      const cpsAndAlumniUsers = usersList.filter(user => user.status === 'cps' || user.status === 'alumni');
+
+      for (const user of cpsAndAlumniUsers) {
         try {
           // Récupérer les données de sous-sections pour l'utilisateur
           const subsectionData = await getUserSubsectionData(user.uid);
-          
+
+          // Signal manuel visa/billet via les checkboxes dédiées, indépendant du bouton rond de section
+          const userCheckItems = subsectionData?.checkItems || {};
+          const visaChecked = visaObtainedSubSection?.items.some(item => userCheckItems[item.id] === true) || false;
+          const billetCheckedManually = billetSubSection?.items.some(item => userCheckItems[item.id] === true) || false;
+          if (visaChecked || billetCheckedManually) {
+            manualSignals[user.uid] = true;
+          }
+
           // Extraire les informations d'arrivée des données de sous-sections
           if (subsectionData && subsectionData.inputValues) {
             // Log pour debug
@@ -599,10 +614,11 @@ const AdminProgressionOverview: React.FC = () => {
       }
       
       setArrivalData(arrivalInfo);
+      setManualVisaSignals(manualSignals);
     };
-    
+
     fetchProgressions();
-  }, [guideSections, getUserVisaStatus, billetSubSection]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
+  }, [guideSections, getUserVisaStatus, billetSubSection, visaObtainedSubSection]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
 
   // Liste dynamique des années de promo disponibles
   const promoYears = useMemo(() => {
@@ -643,10 +659,12 @@ const AdminProgressionOverview: React.FC = () => {
   // Pour l'onglet "progressions", afficher tous les étudiants CPS
   const usersInProgress = cpsUsers;
   
-  // Pour l'onglet "visa & arrivée", filtrer uniquement ceux avec un statut visa
+  // Pour l'onglet "visa & arrivée", afficher les étudiants avec un signal visa/billet :
+  // bouton rond de section (obtenu/refusé) OU case "Visa obtenu"/"Billet d'avion" cochée
+  // (les deux signaux sont indépendants — un étudiant peut décocher le rond sans perdre sa case)
   const usersWithVisaStatus = cpsUsers.filter(user => {
     const status = getUserVisaStatus(user.uid, userProgressions);
-    return status === 'obtained' || status === 'refused';
+    return status === 'obtained' || status === 'refused' || manualVisaSignals[user.uid];
   });
 
   return (
@@ -933,36 +951,40 @@ const AdminProgressionOverview: React.FC = () => {
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                               <Check size={12} /> Obtenu
                             </span>
-                          ) : (
+                          ) : visaStatus === 'refused' ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
                               <X size={12} /> Refusé
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                              En attente
                             </span>
                           )}
                         </td>
                         {/* Arrivée */}
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {visaStatus === 'obtained' ? (
-                            arrival?.hasTicket ? (
-                              <div className="space-y-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Billet acheté</span>
-                                {arrival.arrivalDate && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <Calendar size={12} className="text-blue-500" />
-                                    {arrival.arrivalDate}{arrival.arrivalTime && ` à ${arrival.arrivalTime}`}
-                                    {arrival.airport && <><MapPin size={12} className="text-blue-500 ml-2" />{arrival.airport}</>}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pas encore de billet</span>
-                            )
-                          ) : (
+                          {visaStatus === 'refused' ? (
                             <span className="text-xs text-gray-400 italic">Voyage annulé</span>
+                          ) : arrival?.hasTicket ? (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Billet acheté</span>
+                              {arrival.arrivalDate && (
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Calendar size={12} className="text-blue-500" />
+                                  {arrival.arrivalDate}{arrival.arrivalTime && ` à ${arrival.arrivalTime}`}
+                                  {arrival.airport && <><MapPin size={12} className="text-blue-500 ml-2" />{arrival.airport}</>}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pas encore de billet</span>
                           )}
                         </td>
                         {/* Transport (fusionné) */}
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {visaStatus === 'obtained' ? (
+                          {visaStatus === 'refused' ? (
+                            <span className="text-xs text-gray-400 italic">—</span>
+                          ) : (
                             <div className="space-y-1">
                               {arrival?.hasOwnTransportation ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Transport personnel</span>
@@ -977,8 +999,6 @@ const AdminProgressionOverview: React.FC = () => {
                                 <div className="text-xs text-gray-400">Pas de prise en charge</div>
                               )}
                             </div>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">—</span>
                           )}
                         </td>
                       </tr>
