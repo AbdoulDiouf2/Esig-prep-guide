@@ -87,6 +87,13 @@ const AdminProgressionOverview: React.FC = () => {
     return null;
   }, [guideSections]); // Uniquement guideSections en dépendance
 
+  // Sous-section checkList dédiée "Billet d'avion" (déclencheur de l'unlockCondition sur
+  // "Préparons ton arrivée en France"), retrouvée dynamiquement par titre plutôt que par ID en dur
+  const billetSubSection = useMemo(() => {
+    const allSubSections = guideSections.flatMap(section => section.subSections || []);
+    return allSubSections.find(sub => sub.title?.toLowerCase().includes('billet'));
+  }, [guideSections]);
+
   // Fonction pour calculer la progression globale d'un utilisateur
   const getUserGlobalProgress = useCallback((completedSections: string[]) => {
     if (!guideSections || guideSections.length === 0) return 0;
@@ -383,6 +390,7 @@ const AdminProgressionOverview: React.FC = () => {
             
             const values = subsectionData.inputValues;
             const valuesDate = subsectionData.typedValues;
+            const checkItems = subsectionData.checkItems || {};
             const keys = Object.keys(values || {});
             const keysDate = Object.keys(valuesDate || {});
             
@@ -406,18 +414,17 @@ const AdminProgressionOverview: React.FC = () => {
               wantGroupTransport: false
             };
             
-            // Identifier la clé pour le billet d'avion - spécifiquement item-1750091257560-828 d'après les logs
-            const ticketKey = keys.find(k => {
-                // Clefs spécifiques observées dans les logs
-                if (k === 'item-1750091257560-828' && values[k] === 'Oui') return true;
-                
-                // Recherche générique
-                return (values[k] === 'Oui' || values[k] === 'yes') && 
-                       (k.includes('ticket') || k.includes('billet'));
-            });
-            if (ticketKey) {
+            // Billet d'avion : priorité à la sous-section checkList dédiée "Billet d'avion"
+            // (déclencheur de l'unlockCondition), retrouvée dynamiquement par titre — pas d'ID en dur.
+            // Fallback sur l'ancien item texte legacy pour les données déjà enregistrées avant migration.
+            const billetChecked = billetSubSection?.items.some(item => checkItems[item.id] === true) || false;
+            const ticketKey = keys.find(k =>
+              (values[k] === 'Oui' || values[k] === 'yes') &&
+              (k.includes('ticket') || k.includes('billet'))
+            );
+            if (billetChecked || ticketKey) {
                 info.hasTicket = true;
-                console.log('Billet d\'avion détecté:', ticketKey, values[ticketKey]);
+                console.log('Billet d\'avion détecté via', billetChecked ? 'checkList dédiée' : ticketKey);
             }
             
             // Identifier la clé pour la date d'arrivée - algorithme amélioré
@@ -595,7 +602,7 @@ const AdminProgressionOverview: React.FC = () => {
     };
     
     fetchProgressions();
-  }, [guideSections, getUserVisaStatus]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
+  }, [guideSections, getUserVisaStatus, billetSubSection]); // Ajout de getUserVisaStatus aux dépendances comme recommandé par ESLint
 
   // Liste dynamique des années de promo disponibles
   const promoYears = useMemo(() => {

@@ -649,6 +649,7 @@ const Dashboard: React.FC = () => {
                         <div className="md:flex-shrink-0 mb-4 md:mb-0 md:mr-4">
                           <button
                             onClick={() => toggleSectionCompletion(section.id)}
+                            title="Marquer cette étape comme entièrement terminée pour toi (ne remplace pas les cases à cocher ci-dessous, qui débloquent les étapes suivantes)"
                             className={`w-6 h-6 rounded-full flex items-center justify-center ${
                               completedSections.includes(section.id)
                                 ? 'bg-green-100 text-green-700'
@@ -662,6 +663,11 @@ const Dashboard: React.FC = () => {
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
                             {section.title}
                           </h3>
+                          {section.subSections && section.subSections.length > 0 && (
+                            <p className="text-xs text-gray-400 mb-2 italic">
+                              Le rond ✓ à gauche marque toute cette étape comme terminée pour toi — coche plutôt les cases ci-dessous pour débloquer la suite.
+                            </p>
+                          )}
                           <p className="text-gray-600 mb-4 whitespace-pre-line">{section.content}</p>
                           
                           {/* Sous-sections */}
