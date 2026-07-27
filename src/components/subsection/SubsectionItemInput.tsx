@@ -9,6 +9,7 @@ interface SubsectionItemInputProps {
   typedValue?: TypedValue;
   onChange: (id: string, value: string) => void;
   onChangeTyped?: (id: string, value: TypedValue) => void;
+  disabled?: boolean;
 }
 
 /**
@@ -20,7 +21,8 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
   value = '',
   typedValue,
   onChange,
-  onChangeTyped
+  onChangeTyped,
+  disabled = false
 }) => {
   // État local pour gérer la valeur d'entrée
   const [inputValue, setInputValue] = useState<string>(value);
@@ -68,6 +70,7 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
         onChange={handleTypedChange}
         onChangeTyped={onChangeTyped}
         fieldMetadata={{ options: item.options }}
+        disabled={disabled}
       />
     );
   }
@@ -83,6 +86,7 @@ const SubsectionItemInput: React.FC<SubsectionItemInputProps> = ({
         className="form-control"
         id={item.id}
         value={inputValue}
+        disabled={disabled}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={`Entrez ${item.content.toLowerCase()}`}
       />

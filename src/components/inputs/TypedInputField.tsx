@@ -33,6 +33,7 @@ interface TypedInputFieldProps {
   onBlur?: () => void;
   required?: boolean;
   fieldMetadata?: FieldMetadata;
+  disabled?: boolean;
 }
 
 /**
@@ -48,6 +49,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
   onBlur,
   required = false,
   fieldMetadata,
+  disabled = false,
 }) => {
   // États locaux pour permettre une édition fluide sans validation immédiate
   const [localValue, setLocalValue] = useState<string>('');
@@ -160,6 +162,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
                 type="checkbox"
                 className="sr-only peer"
                 checked={booleanValue}
+                disabled={disabled}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => handleBooleanChange(e.target.checked)}
               />
               <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
@@ -174,6 +177,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="date"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={dateValue}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleDateChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -185,6 +189,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="datetime-local"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={dateTimeValue}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleDateTimeChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -196,6 +201,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="number"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue !== null && localValue !== undefined ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleNumberChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -209,6 +215,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
           <select
             className="form-select w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue !== null && localValue !== undefined ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
           >
@@ -239,6 +246,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
           <select
             className="form-select w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue !== null && localValue !== undefined ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
           >
@@ -255,6 +263,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
           <textarea
             className="form-textarea w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
             rows={4}
@@ -267,6 +276,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="email"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -278,6 +288,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="url"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -290,6 +301,7 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
             type="text"
             className="form-input w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             value={localValue ? String(localValue) : ''}
+            disabled={disabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleTextChange(e.target.value)}
             onBlur={handleBlur}
           />
@@ -367,20 +379,22 @@ const TypedInputField: React.FC<TypedInputFieldProps> = ({
         </div>
         <div className="flex ml-2">
           {/* Bouton de validation (V) - version discrète */}
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={handleValidate}
-            className="px-1 text-xs text-gray-600 hover:text-green-700 focus:outline-none mr-1"
+            disabled={disabled}
+            className="px-1 text-xs text-gray-600 hover:text-green-700 focus:outline-none mr-1 disabled:opacity-40 disabled:cursor-not-allowed"
             title="Valider la valeur"
           >
             ✓
           </button>
-          
+
           {/* Bouton de suppression (X) - version discrète */}
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={handleClear}
-            className="px-1 text-xs text-gray-600 hover:text-red-700 focus:outline-none"
+            disabled={disabled}
+            className="px-1 text-xs text-gray-600 hover:text-red-700 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
             title="Effacer la valeur"
           >
             ✕

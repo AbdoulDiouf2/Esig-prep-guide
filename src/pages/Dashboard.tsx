@@ -16,6 +16,7 @@ import {
 import { ChatNotificationService } from '../services/chatNotificationService';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { isSubSectionUnlocked } from '../utils/unlockCondition';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -26,7 +27,14 @@ const Dashboard: React.FC = () => {
     getGuideSectionsByPhase,
     faqItems
   } = useContent();
-  
+
+  // Toutes les sous-sections du guide (toutes GuideSections confondues), pour résoudre
+  // les conditions de déverrouillage qui référencent une sous-section ailleurs dans le guide
+  const allSubSections = React.useMemo(
+    () => guideSections.flatMap(section => section.subSections || []),
+    [guideSections]
+  );
+
   // Références pour le positionnement de la bulle d'aide
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   
@@ -189,11 +197,15 @@ const Dashboard: React.FC = () => {
     let completedInteractiveItems = 0;
     
     section.subSections.forEach(subSection => {
+      // Ignorer les sous-sections encore verrouillées : leurs items ne comptent pas tant qu'elles ne sont pas débloquées
+      if (!isSubSectionUnlocked(subSection, allSubSections, currentCheckedItems, typedValues, currentInputValues)) {
+        return;
+      }
       // Ne vérifier que les sous-sections interactives
       if (subSection.type === 'checkList' || subSection.type === 'inputField') {
         subSection.items.forEach(item => {
           totalInteractiveItems++;
-          
+
           if (subSection.type === 'checkList' && currentCheckedItems[item.id]) {
             completedInteractiveItems++;
           } else if (subSection.type === 'inputField' && currentInputValues[item.id] && currentInputValues[item.id].trim() !== '') {
@@ -205,7 +217,7 @@ const Dashboard: React.FC = () => {
     
     // Si tous les éléments interactifs sont complétés, marquer la section comme complète
     return totalInteractiveItems > 0 && completedInteractiveItems === totalInteractiveItems;
-  }, [guideSections, completedSections]);
+  }, [guideSections, completedSections, typedValues]);
   
   // Mettre à jour la liste des sections complétées et sauvegarder
   const updateCompletedSections = useCallback(async (sectionId: string) => {
@@ -299,6 +311,12 @@ const Dashboard: React.FC = () => {
   // La fonctionnalité de validation et sauvegarde est désormais gérée directement par handleTypedInput
   // et les composants SubsectionForm et TypedInputField
   
+  // Libellé de la sous-section déclencheuse d'une condition de déverrouillage (message affiché à l'étudiant)
+  const getUnlockTriggerLabel = useCallback((subSectionId: string): string => {
+    const trigger = allSubSections.find(s => s.id === subSectionId);
+    return trigger ? trigger.title : 'une étape précédente';
+  }, [allSubSections]);
+
   const phaseSections = getGuideSectionsByPhase ? getGuideSectionsByPhase(activePhase) : [];
   // const phaseResources = getResourcesByPhase ? getResourcesByPhase(activePhase) : [];
   
@@ -323,12 +341,16 @@ const Dashboard: React.FC = () => {
       // Ajouter les sous-sections interactives au calcul
       if (section.subSections && section.subSections.length > 0) {
         section.subSections.forEach(subSection => {
+          // Ignorer les sous-sections encore verrouillées
+          if (!isSubSectionUnlocked(subSection, allSubSections, checkedItems, typedValues, inputValues)) {
+            return;
+          }
           // Traiter uniquement les sous-sections interactives (checkList et inputField)
           if (subSection.type === 'checkList' || subSection.type === 'inputField') {
             // Chaque item dans ces sous-sections compte dans la progression
             const interactiveItemsCount = subSection.items.length;
             totalComponents += interactiveItemsCount;
-            
+
             // Calculer les items complétés
             if (subSection.type === 'checkList') {
               // Compter les cases cochées
@@ -349,7 +371,7 @@ const Dashboard: React.FC = () => {
         });
       }
     });
-    
+
     // Calculer le pourcentage global
     return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
@@ -374,12 +396,16 @@ const Dashboard: React.FC = () => {
       // Ajouter les sous-sections interactives au calcul
       if (section.subSections && section.subSections.length > 0) {
         section.subSections.forEach(subSection => {
+          // Ignorer les sous-sections encore verrouillées
+          if (!isSubSectionUnlocked(subSection, allSubSections, checkedItems, typedValues, inputValues)) {
+            return;
+          }
           // Traiter uniquement les sous-sections interactives (checkList et inputField)
           if (subSection.type === 'checkList' || subSection.type === 'inputField') {
             // Chaque item dans ces sous-sections compte dans la progression
             const interactiveItemsCount = subSection.items.length;
             totalComponents += interactiveItemsCount;
-            
+
             // Calculer les items complétés
             if (subSection.type === 'checkList') {
               // Compter les cases cochées
@@ -400,7 +426,7 @@ const Dashboard: React.FC = () => {
         });
       }
     });
-    
+
     // Calculer le pourcentage global
     return totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
   };
@@ -641,28 +667,38 @@ const Dashboard: React.FC = () => {
                           {/* Sous-sections */}
                           {section.subSections && section.subSections.length > 0 && (
                             <div className="mt-4 space-y-4">
-                              {section.subSections.map((subSection) => (
-                                <div key={subSection.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                  <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
-                                    {subSection.type === 'bulletList' && <List className="w-4 h-4 text-blue-500 mr-2" />}
-                                    {subSection.type === 'checkList' && <CheckSquare className="w-4 h-4 text-green-500 mr-2" />}
-                                    {subSection.type === 'inputField' && <Type className="w-4 h-4 text-purple-500 mr-2" />}
-                                    {subSection.title}
-                                  </h4>
-                                  
-                                  <div className="ml-1">
-                                    <SubsectionForm
-                                      subSection={subSection}
-                                      checkedItems={checkedItems}
-                                      inputValues={inputValues}
-                                      typedValues={typedValues}
-                                      onCheckChange={(itemId) => handleCheckItemChange(itemId)}
-                                      onInputChange={handleInputChange}
-                                      onTypedValueChange={handleTypedInput}
-                                    />
+                              {section.subSections.map((subSection) => {
+                                const unlocked = isSubSectionUnlocked(subSection, allSubSections, checkedItems, typedValues, inputValues);
+                                return (
+                                  <div key={subSection.id} className={`bg-gray-50 p-4 rounded-lg border border-gray-200 ${!unlocked ? 'opacity-60' : ''}`}>
+                                    <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
+                                      {subSection.type === 'bulletList' && <List className="w-4 h-4 text-blue-500 mr-2" />}
+                                      {subSection.type === 'checkList' && <CheckSquare className="w-4 h-4 text-green-500 mr-2" />}
+                                      {subSection.type === 'inputField' && <Type className="w-4 h-4 text-purple-500 mr-2" />}
+                                      {subSection.title}
+                                    </h4>
+
+                                    {!unlocked && (
+                                      <p className="text-sm text-amber-700 mb-3">
+                                        🔒 Termine d'abord la sous-section « {getUnlockTriggerLabel(subSection.unlockCondition!.subSectionId)} »
+                                      </p>
+                                    )}
+
+                                    <div className="ml-1">
+                                      <SubsectionForm
+                                        subSection={subSection}
+                                        checkedItems={checkedItems}
+                                        inputValues={inputValues}
+                                        typedValues={typedValues}
+                                        onCheckChange={(itemId) => handleCheckItemChange(itemId)}
+                                        onInputChange={handleInputChange}
+                                        onTypedValueChange={handleTypedInput}
+                                        disabled={!unlocked}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                           

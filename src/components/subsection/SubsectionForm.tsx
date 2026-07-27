@@ -41,6 +41,7 @@ interface SubsectionFormProps {
   onCheckChange: (itemId: string) => void;
   onInputChange: (itemId: string, value: string) => void;
   onTypedValueChange?: (itemId: string, value: TypedValue) => void;
+  disabled?: boolean;
 }
 
 /**
@@ -53,7 +54,8 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
   typedValues = {},
   onCheckChange,
   onInputChange,
-  onTypedValueChange
+  onTypedValueChange,
+  disabled = false
 }) => {
   // État local pour les valeurs typées
   const [localTypedValues, setLocalTypedValues] = useState<Record<string, TypedValue>>(typedValues);
@@ -111,9 +113,10 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
               id={`check-${item.id}`}
               className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
               checked={checkedItems[item.id] || false}
+              disabled={disabled}
               onChange={() => onCheckChange(item.id)}
             />
-            <label htmlFor={`check-${item.id}`} className="ml-2 block text-sm text-gray-700">
+            <label htmlFor={`check-${item.id}`} className={`ml-2 block text-sm ${disabled ? 'text-gray-400' : 'text-gray-700'}`}>
               {renderTextWithLinks(item.content)}
             </label>
           </div>
@@ -134,6 +137,7 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
                 typedValue={localTypedValues[item.id]}
                 onChange={onInputChange}
                 onChangeTyped={handleTypedValueChange}
+                disabled={disabled}
               />
             ) : (
               // Interface standard pour la compatibilité avec le système existant
@@ -149,23 +153,26 @@ const SubsectionForm: React.FC<SubsectionFormProps> = ({
                   className="block w-full flex-1 px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 transition-colors duration-300"
                   placeholder="Entrez votre information"
                   value={inputValues[item.id] || ''}
+                  disabled={disabled}
                   onChange={(e) => onInputChange(item.id, e.target.value)}
                 />
                 <div className="flex">
                   {inputValues[item.id] && (
                     <>
-                      <button 
-                        className="p-2 text-green-500 hover:text-green-700 focus:outline-none" 
+                      <button
+                        className="p-2 text-green-500 hover:text-green-700 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                         type="button"
+                        disabled={disabled}
                         aria-label="Valider"
                         title="Valider"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
-                      <button 
-                        className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none" 
+                      <button
+                        className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                         onClick={() => clearInputField(item.id)}
                         type="button"
+                        disabled={disabled}
                         aria-label="Effacer"
                         title="Effacer"
                       >

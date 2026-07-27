@@ -34,12 +34,19 @@ export interface SubSectionItem {
   options?: string[]; // Options pour les champs de type select
 }
 
+// Condition de déverrouillage d'une sous-section : référence une AUTRE sous-section
+// (n'importe où dans le guide) qui doit être entièrement complétée par l'étudiant
+export interface UnlockCondition {
+  subSectionId: string;
+}
+
 // Interface pour les sous-sections
 export interface SubSection {
   id: string;
   title: string;
   type: SubSectionType;
   items: SubSectionItem[];
+  unlockCondition?: UnlockCondition; // absent = toujours débloquée
 }
 
 export interface GuideSection {

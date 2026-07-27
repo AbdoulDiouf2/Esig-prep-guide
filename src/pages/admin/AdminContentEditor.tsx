@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { logAdminActivity } from './adminActivityLog';
-import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem, InputFieldType } from '../../contexts/ContentContext';
+import { useContent, GuidePhase, SubSection, SubSectionType, SubSectionItem, InputFieldType, UnlockCondition } from '../../contexts/ContentContext';
 import { 
   Trash2, Save, ArrowLeft, MoveVertical, Plus, Mail, Check, AlertCircle,
   List, CheckSquare, Type, X, FileEdit, Edit
@@ -72,6 +72,8 @@ const AdminContentEditor: React.FC = () => {
   const [newItemFieldType, setNewItemFieldType] = useState<InputFieldType>('text');
   const [newItemOptions, setNewItemOptions] = useState<string>('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  // Condition de déverrouillage de la sous-section en cours d'édition (id de la sous-section déclencheuse)
+  const [unlockItemId, setUnlockItemId] = useState<string>('');
 
   // États FAQ
   const [question, setQuestion] = useState('');
@@ -385,20 +387,48 @@ const AdminContentEditor: React.FC = () => {
       setNewSubSectionTitle(subSection.title);
       setNewSubSectionType(subSection.type);
       setNewSubSectionItems([...subSection.items]);
+      setUnlockItemId(subSection.unlockCondition?.subSectionId || '');
     } else {
       // Mode création
       setEditingSubSection(null);
       setNewSubSectionTitle('');
       setNewSubSectionType('bulletList');
       setNewSubSectionItems([]);
+      setUnlockItemId('');
     }
     setShowSubSectionModal(true);
   };
-  
+
   const closeSubSectionModal = () => {
     setShowSubSectionModal(false);
     setNewSubSectionTitle('');
     setNewItemContent('');
+    setUnlockItemId('');
+  };
+
+  // Sous-sections utilisables comme déclencheur d'une condition de déverrouillage :
+  // toute sous-section interactive (checkList/inputField) du guide, hors elle-même.
+  type UnlockableSubSection = { id: string; label: string };
+  const getUnlockableSubSections = (): UnlockableSubSection[] => {
+    const result: UnlockableSubSection[] = [];
+    const truncate = (text: string, max: number) => text.length > max ? `${text.slice(0, max - 1)}…` : text;
+
+    const collect = (sectionTitle: string | null, subs: SubSection[]) => {
+      subs.forEach(sub => {
+        if (editingSubSection && sub.id === editingSubSection.id) return;
+        if (sub.type === 'bulletList' || sub.items.length === 0) return;
+        const prefix = sectionTitle ? `${truncate(sectionTitle, 20)} > ` : '';
+        result.push({ id: sub.id, label: `${prefix}${truncate(sub.title, 40)}` });
+      });
+    };
+
+    guideSections
+      .filter(section => section.id !== editSectionId)
+      .forEach(section => collect(section.title, section.subSections || []));
+    // Sous-sections de la section en cours d'édition (état local, à jour même si pas encore sauvegardé)
+    collect(null, subSections);
+
+    return result;
   };
   
   const addItemToSubSection = () => {
@@ -481,13 +511,16 @@ const AdminContentEditor: React.FC = () => {
       return;
     }
     
+    const unlockCondition: UnlockCondition | undefined = unlockItemId ? { subSectionId: unlockItemId } : undefined;
+
     const subSection: SubSection = {
       id: editingSubSection ? editingSubSection.id : Date.now().toString(),
       title: newSubSectionTitle,
       type: newSubSectionType,
-      items: newSubSectionItems
+      items: newSubSectionItems,
+      ...(unlockCondition ? { unlockCondition } : {})
     };
-    
+
     let updatedSubSections: SubSection[];
     
     if (editingSubSection) {
@@ -920,6 +953,11 @@ const AdminContentEditor: React.FC = () => {
                                 {subSection.type === 'checkList' && <CheckSquare className="w-4 h-4 text-green-500 mr-2" />}
                                 {subSection.type === 'inputField' && <Type className="w-4 h-4 text-purple-500 mr-2" />}
                                 <h4 className="text-md font-medium text-gray-800">{subSection.title}</h4>
+                                {subSection.unlockCondition && (
+                                  <span className="ml-2 text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded" title={`Déclencheur: ${subSection.unlockCondition.subSectionId}`}>
+                                    🔒 verrouillée
+                                  </span>
+                                )}
                               </div>
                               <div className="flex space-x-1">
                                 <button 
@@ -1436,6 +1474,25 @@ const AdminContentEditor: React.FC = () => {
                     Aucun élément ajouté. Ajoutez au moins un élément pour continuer.
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Condition de déverrouillage (optionnel)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Cette sous-section restera grisée et inaccessible aux étudiants tant que la sous-section choisie ci-dessous n'est pas entièrement complétée.
+                </p>
+                <select
+                  className="block w-full max-w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 truncate"
+                  value={unlockItemId}
+                  onChange={(e) => setUnlockItemId(e.target.value)}
+                >
+                  <option value="">Aucune (toujours accessible)</option>
+                  {getUnlockableSubSections().map(u => (
+                    <option key={u.id} value={u.id} title={u.label}>{u.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="px-4 py-3 border-t border-gray-200 flex justify-end space-x-3">
