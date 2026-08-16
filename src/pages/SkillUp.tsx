@@ -1174,6 +1174,39 @@ const SkillUp: React.FC = () => {
     if (dashboardSemaine !== 'all') loadDashboardWeekSessions();
   }, [dashboardSemaine, dashboardScope, loadDashboardWeekSessions]);
 
+  // KPI "Binômes actifs" — propre au Dashboard, pas le `binomes` partagé du sous-onglet
+  // Binômes (lui reste sur adminSelectedVague/sa propre semaine). Un binôme n'existe que
+  // pour une semaine donnée : en mode "Toutes les semaines", on retombe sur la semaine
+  // courante comme proxy de "actifs maintenant".
+  const [dashboardBinomesCount, setDashboardBinomesCount] = useState(0);
+  const [dashboardBinomesLoading, setDashboardBinomesLoading] = useState(false);
+
+  const loadDashboardBinomes = useCallback(async () => {
+    const semaineEff = dashboardSemaine !== 'all' ? dashboardSemaine : adminCurrentSemaineNumber;
+    if (semaineEff === null) {
+      setDashboardBinomesCount(0);
+      return;
+    }
+    setDashboardBinomesLoading(true);
+    try {
+      const targets = dashboardScope === 'all' ? dashboardAllVagues.map((v) => v.vagueId) : [dashboardScope];
+      const results = await Promise.all(
+        targets.map((id) => getSkillupBinomes(String(semaineEff), String(id)))
+      );
+      setDashboardBinomesCount(
+        results.reduce((acc, r) => acc + extractList<SkillupBinome>(r, 'binomes').length, 0)
+      );
+    } catch {
+      setDashboardBinomesCount(0);
+    } finally {
+      setDashboardBinomesLoading(false);
+    }
+  }, [dashboardSemaine, dashboardScope, dashboardAllVagues, adminCurrentSemaineNumber]);
+
+  useEffect(() => {
+    loadDashboardBinomes();
+  }, [loadDashboardBinomes]);
+
   const dashboardScopeLabel = useMemo(() => {
     if (dashboardScope === 'all') return 'Toutes les vagues';
     return dashboardAllVagues.find((v) => v.vagueId === dashboardScope)?.vagueNom ?? 'Vague';
@@ -1217,10 +1250,10 @@ const SkillUp: React.FC = () => {
       incompletes,
       autres,
       tauxCompletion,
-      binomesActifs: binomes.length,
+      binomesActifs: dashboardBinomesCount,
       dureeCumulee: formatDuration(totalSeconds),
     };
-  }, [dashboardSessions, dashboardScope, dashboardAllVagues, vaguesAdminList, binomes]);
+  }, [dashboardSessions, dashboardScope, dashboardAllVagues, vaguesAdminList, dashboardBinomesCount]);
 
   // Comparaison entre vagues — sessions totales par vague, uniquement en mode "Toutes les
   // vagues" (une seule barre n'aurait pas de sens en mode vague unique).
