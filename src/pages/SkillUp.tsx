@@ -1037,7 +1037,15 @@ const SkillUp: React.FC = () => {
     setAddCertif('');
     setAddError('');
     setAddSuccess(null);
-  }, []);
+    if (!discordMembersLoaded) loadDiscordMembers();
+  }, [discordMembersLoaded, loadDiscordMembers]);
+
+  // Membres du serveur pas encore rattachés à la vague sélectionnée — seuls candidats
+  // valides pour "Ajouter un membre" (évite le refus API "déjà membre de cette vague").
+  const addMemberOptions = useMemo(
+    () => discordMembers.filter((dm) => !members.some((m) => m.discord_id === dm.discord_id)),
+    [discordMembers, members]
+  );
 
   const handleAddMember = useCallback(async () => {
     if (!addDiscordId.trim() || !addNom.trim()) {
@@ -2712,15 +2720,29 @@ const SkillUp: React.FC = () => {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">ID Discord</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={addDiscordId}
-                    onChange={(e) => setAddDiscordId(e.target.value.trim())}
-                    placeholder="Ex: 123456789012345678"
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Membre Discord</label>
+                  {discordMembersLoading ? (
+                    <div className="text-sm text-zinc-500 py-2">Chargement des membres du serveur...</div>
+                  ) : (
+                    <select
+                      value={addDiscordId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setAddDiscordId(id);
+                        const dm = addMemberOptions.find((m) => m.discord_id === id);
+                        if (dm && !addNom) setAddNom(dm.username);
+                      }}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Sélectionner un membre...</option>
+                      {addMemberOptions.map((dm) => (
+                        <option key={dm.discord_id} value={dm.discord_id}>{dm.username}</option>
+                      ))}
+                    </select>
+                  )}
+                  {discordMembersError && (
+                    <p className="text-xs text-red-600 mt-1">{discordMembersError}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-1">Nom</label>
