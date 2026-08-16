@@ -6,7 +6,6 @@ import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, 
 import { exportTablesToCSV, exportTablesToPDF, type ExportTable } from '../utils/tableExport';
 import {
   getSkillupAccess,
-  getSkillupVagues,
   getSkillupJournal,
   getSkillupBinomeJournal,
   getSkillupBilan,
@@ -35,7 +34,6 @@ import {
   deleteSkillupMySession,
   linkSkillupMemberThread,
   type SkillupAccess,
-  type SkillupVague,
   type SkillupSessionChamp,
   type SkillupMembreChamp,
   type SkillupProfil,
@@ -624,7 +622,12 @@ const SkillUp: React.FC = () => {
   const [selectedSemaine, setSelectedSemaine] = useState<number | null>(null);
   const [currentSemaineNumber, setCurrentSemaineNumber] = useState<number | null>(null);
   const [vagueName, setVagueName] = useState<string | null>(null);
-  const [vagues, setVagues] = useState<SkillupVague[]>([]);
+  // Liste complète des vagues du système (GET /vagues, migrée depuis /members/{discord_id}/vagues
+  // qui ne renvoyait que les vagues auxquelles l'appelant avait personnellement participé) —
+  // source unique pour les deux sélecteurs "Ma vague" (participant) et "Vue admin" (partagé
+  // Membres/Sessions/Binômes/Dashboard). `brouillon` exclue : jamais sélectionnable (aucun
+  // membre ne peut y être rattaché).
+  const [vagues, setVagues] = useState<SkillupVagueAdmin[]>([]);
   const [selectedVague, setSelectedVague] = useState<number | null>(null);
   const [participantLoading, setParticipantLoading] = useState(false);
 
@@ -762,7 +765,7 @@ const SkillUp: React.FC = () => {
   const vagueParamFor = useCallback(
     (vagueId: number | null) => {
       if (vagueId === null) return undefined;
-      const active = vagues.find((v) => v.active);
+      const active = vagues.find((v) => v.statut === 'active');
       return active && active.id === vagueId ? undefined : vagueId;
     },
     [vagues]
@@ -1564,14 +1567,15 @@ const SkillUp: React.FC = () => {
       setAccess(accessResult);
       setActiveTab(accessResult.is_participant ? 'participant' : 'admin');
 
-      // La liste des vagues (pour le sélecteur, participant ET admin) est celle des vagues
-      // auxquelles l'appelant a personnellement participé — pas encore d'endpoint "toutes
-      // les vagues" côté API (cf. catalogue admin §1, pas construit).
-      const vaguesRes = await getSkillupVagues();
+      // Liste complète des vagues du système (GET /vagues) — plus le scope "vagues de
+      // l'appelant" de /members/{discord_id}/vagues (limite historique notée au catalogue
+      // admin §1, maintenant migrée). Brouillon exclue : jamais sélectionnable.
+      const vaguesRes = await getSkillupVaguesAdmin();
       let activeVagueId: number | null = null;
       if ('vagues' in vaguesRes) {
-        setVagues(vaguesRes.vagues);
-        activeVagueId = vaguesRes.vagues.find((v) => v.active)?.id ?? null;
+        const selectables = vaguesRes.vagues.filter((v) => v.statut !== 'brouillon');
+        setVagues(selectables);
+        activeVagueId = selectables.find((v) => v.statut === 'active')?.id ?? null;
       } else {
         setVagues([]);
       }
@@ -1736,7 +1740,7 @@ const SkillUp: React.FC = () => {
                 >
                   {vagues.map((v) => (
                     <option key={v.id} value={v.id}>
-                      {v.nom}{v.active ? ' (active)' : ''}
+                      {v.nom}{v.statut === 'active' ? ' (active)' : ''}
                     </option>
                   ))}
                 </select>
@@ -1900,7 +1904,7 @@ const SkillUp: React.FC = () => {
                 >
                   {vagues.map((v) => (
                     <option key={v.id} value={v.id}>
-                      {v.nom}{v.active ? ' (active)' : ''}
+                      {v.nom}{v.statut === 'active' ? ' (active)' : ''}
                     </option>
                   ))}
                 </select>
