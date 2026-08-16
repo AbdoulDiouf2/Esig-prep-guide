@@ -27,6 +27,7 @@ import {
   addSkillupSalon,
   removeSkillupSalon,
   getSkillupDiscordVoiceChannels,
+  getSkillupDiscordAvatars,
   type SkillupAccess,
   type SkillupVague,
   type SkillupSessionChamp,
@@ -311,6 +312,7 @@ const SkillUp: React.FC = () => {
 
   const [members, setMembers] = useState<SkillupMember[]>([]);
   const [membersError, setMembersError] = useState('');
+  const [discordAvatars, setDiscordAvatars] = useState<Record<string, string>>({});
   const [sessions, setSessions] = useState<SkillupSession[]>([]);
   const [sessionsError, setSessionsError] = useState('');
   const [binomes, setBinomes] = useState<SkillupBinome[]>([]);
@@ -1266,6 +1268,10 @@ const SkillUp: React.FC = () => {
       if (accessResult.is_admin) {
         setAdminSelectedVague(activeVagueId);
         await loadAdminForVague();
+        // Avatars Discord vérifiés (onglet Binômes) — échec silencieux, fallback aux initiales.
+        getSkillupDiscordAvatars()
+          .then((res) => setDiscordAvatars(('avatars' in res && res.avatars) || {}))
+          .catch(() => setDiscordAvatars({}));
       }
     } catch (err) {
       console.error('Erreur chargement SkillUp:', err);
@@ -1947,7 +1953,10 @@ const SkillUp: React.FC = () => {
                           <EmptyState label="Aucun binôme cette semaine" />
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {binomes.map((binome, index) => (
+                            {binomes.map((binome, index) => {
+                              const avatarUrlA = discordAvatars[members.find((m) => m.id === binome.membre_a)?.discord_id ?? ''];
+                              const avatarUrlB = discordAvatars[members.find((m) => m.id === binome.membre_b)?.discord_id ?? ''];
+                              return (
                               <div
                                 key={`${binome.membre_a}-${binome.membre_b}`}
                                 className="relative bg-gradient-to-br from-blue-50 to-purple-50 border border-zinc-200 rounded-xl p-4 pt-8"
@@ -1962,25 +1971,42 @@ const SkillUp: React.FC = () => {
                                 </button>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 min-w-0 flex flex-col items-center gap-1.5 text-center">
-                                    <div
-                                      className={`w-11 h-11 rounded-full ${avatarColor(index * 2)} text-white flex items-center justify-center text-sm font-semibold shadow-sm`}
-                                    >
-                                      {getInitials(binome.nom_a)}
-                                    </div>
+                                    {avatarUrlA ? (
+                                      <img
+                                        src={avatarUrlA}
+                                        alt={binome.nom_a}
+                                        className="w-11 h-11 rounded-full object-cover shadow-sm"
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-11 h-11 rounded-full ${avatarColor(index * 2)} text-white flex items-center justify-center text-sm font-semibold shadow-sm`}
+                                      >
+                                        {getInitials(binome.nom_a)}
+                                      </div>
+                                    )}
                                     <span className="text-sm font-medium text-zinc-900 truncate max-w-full">{binome.nom_a}</span>
                                   </div>
                                   <Users className="w-5 h-5 text-purple-400 flex-shrink-0" />
                                   <div className="flex-1 min-w-0 flex flex-col items-center gap-1.5 text-center">
-                                    <div
-                                      className={`w-11 h-11 rounded-full ${avatarColor(index * 2 + 1)} text-white flex items-center justify-center text-sm font-semibold shadow-sm`}
-                                    >
-                                      {getInitials(binome.nom_b)}
-                                    </div>
+                                    {avatarUrlB ? (
+                                      <img
+                                        src={avatarUrlB}
+                                        alt={binome.nom_b}
+                                        className="w-11 h-11 rounded-full object-cover shadow-sm"
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-11 h-11 rounded-full ${avatarColor(index * 2 + 1)} text-white flex items-center justify-center text-sm font-semibold shadow-sm`}
+                                      >
+                                        {getInitials(binome.nom_b)}
+                                      </div>
+                                    )}
                                     <span className="text-sm font-medium text-zinc-900 truncate max-w-full">{binome.nom_b}</span>
                                   </div>
                                 </div>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

@@ -26,7 +26,8 @@ export type SkillupAction =
   | 'salonsLister'
   | 'salonAjouter'
   | 'salonRetirer'
-  | 'discordVoiceChannels';
+  | 'discordVoiceChannels'
+  | 'discordAvatars';
 
 export type SkillupSessionChamp = 'objectif' | 'bilan' | 'blocages' | 'creneau';
 export type SkillupMembreChamp = 'nom' | 'profil' | 'certif_ou_projet' | 'objectif_vague';
@@ -175,6 +176,15 @@ export const getSkillupDiscordMembers = () =>
 /** Liste les salons vocaux standards du serveur — sert à peupler le sélecteur "Rattacher un salon". */
 export const getSkillupDiscordVoiceChannels = () =>
   callSkillupProxy<{ channels: SkillupDiscordVoiceChannel[] }>('discordVoiceChannels');
+
+/**
+ * Avatars Discord vérifiés (discordId -> discordAvatarUrl), pour l'onglet Binômes (admin).
+ * Passe par la Cloud Function (admin SDK, vérifie is_admin auprès de l'API SkillUp) —
+ * les règles Firestore ne connaissent pas la notion d'admin SkillUp, un accès direct
+ * échouerait pour un admin SkillUp qui n'est pas admin CPS Connect.
+ */
+export const getSkillupDiscordAvatars = () =>
+  callSkillupProxy<{ avatars: Record<string, string> }>('discordAvatars');
 
 export const getSkillupSessions = (vague?: string, semaine?: string) =>
   callSkillupProxy('sessions', { vague, semaine });

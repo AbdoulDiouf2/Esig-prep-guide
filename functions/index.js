@@ -339,6 +339,37 @@ exports.skillupProxy = onRequest(
           canalNom,
           actif,
         } = req.body || {};
+
+        // Avatars Discord vérifiés (onglet Binômes, admin). Ne passe pas par l'API SkillUp —
+        // lit directement Firestore avec les privilèges admin SDK (contourne les règles
+        // Firestore, qui ne connaissent pas la notion d'admin SkillUp). Vérifie d'abord
+        // is_admin auprès de l'API SkillUp elle-même : ne jamais faire confiance au client
+        // pour l'autorisation.
+        if (action === 'discordAvatars') {
+          const accessCheck = await fetch(`${SKILLUP_API_URL.value()}/members/${discordId}/access`, {
+            headers: { 'X-API-Key': SKILLUP_API_KEY.value(), 'X-Discord-Id': discordId },
+          });
+          if (!accessCheck.ok) {
+            res.status(accessCheck.status).send({ error: 'Access check failed' });
+            return;
+          }
+          const accessData = await accessCheck.json();
+          if (!accessData.is_admin) {
+            res.status(403).send({ error: 'Forbidden' });
+            return;
+          }
+          const verifiedSnap = await admin.firestore().collection('alumni').where('discordVerified', '==', true).get();
+          const avatars = {};
+          verifiedSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.discordId && data.discordAvatarUrl) {
+              avatars[data.discordId] = data.discordAvatarUrl;
+            }
+          });
+          res.status(200).send({ avatars });
+          return;
+        }
+
         const actionConfig = SKILLUP_ACTIONS[action];
         if (!actionConfig) {
           res.status(400).send({ error: 'Unknown action' });
@@ -501,7 +532,8 @@ exports.discordOauthCallback = onRequest(
   async (req, res) => {
     const baseUrl = DISCORD_APP_BASE_URL.value();
     const redirectWithError = (reason) => {
-      res.redirect(`${baseUrl}/profile?discord=error&reason=${encodeURIComponent(reason)}`);
+      // App en HashRouter — les routes valides sont en /#/..., pas /...
+      res.redirect(`${baseUrl}/#/profile?discord=error&reason=${encodeURIComponent(reason)}`);
     };
 
     try {
@@ -568,7 +600,7 @@ exports.discordOauthCallback = onRequest(
         { merge: true }
       );
 
-      res.redirect(`${baseUrl}/profile?discord=success`);
+      res.redirect(`${baseUrl}/#/profile?discord=success`);
     } catch (error) {
       logger.error('Error in discordOauthCallback', { error: error.message, stack: error.stack });
       redirectWithError('internal_error');
