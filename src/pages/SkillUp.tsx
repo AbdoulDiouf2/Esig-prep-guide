@@ -315,6 +315,24 @@ const SkillUp: React.FC = () => {
   const [discordAvatars, setDiscordAvatars] = useState<Record<string, string>>({});
   const [sessions, setSessions] = useState<SkillupSession[]>([]);
   const [sessionsError, setSessionsError] = useState('');
+
+  // Filtres tableau Sessions — purement client-side (la semaine est déjà filtrée côté API).
+  const [sessionsFilterMembre, setSessionsFilterMembre] = useState('');
+  const [sessionsFilterSalon, setSessionsFilterSalon] = useState('');
+  const [sessionsFilterDate, setSessionsFilterDate] = useState('');
+
+  const sessionsFiltered = useMemo(() => {
+    return sessions.filter((s) => {
+      if (sessionsFilterMembre && !s.membre_nom?.toLowerCase().includes(sessionsFilterMembre.toLowerCase())) {
+        return false;
+      }
+      if (sessionsFilterSalon && !s.canal_nom?.toLowerCase().includes(sessionsFilterSalon.toLowerCase())) {
+        return false;
+      }
+      if (sessionsFilterDate && s.date !== sessionsFilterDate) return false;
+      return true;
+    });
+  }, [sessions, sessionsFilterMembre, sessionsFilterSalon, sessionsFilterDate]);
   const [binomes, setBinomes] = useState<SkillupBinome[]>([]);
   const [binomesError, setBinomesError] = useState('');
   const [binomesSemaine, setBinomesSemaine] = useState<number | null>(null);
@@ -1970,6 +1988,42 @@ const SkillUp: React.FC = () => {
                           </button>
                         </div>
 
+                        <div className="flex items-center flex-wrap gap-2">
+                          <input
+                            type="text"
+                            value={sessionsFilterMembre}
+                            onChange={(e) => setSessionsFilterMembre(e.target.value)}
+                            placeholder="Filtrer par membre..."
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="text"
+                            value={sessionsFilterSalon}
+                            onChange={(e) => setSessionsFilterSalon(e.target.value)}
+                            placeholder="Filtrer par salon..."
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="date"
+                            value={sessionsFilterDate}
+                            onChange={(e) => setSessionsFilterDate(e.target.value)}
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          {(sessionsFilterMembre || sessionsFilterSalon || sessionsFilterDate) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSessionsFilterMembre('');
+                                setSessionsFilterSalon('');
+                                setSessionsFilterDate('');
+                              }}
+                              className="text-sm text-zinc-500 hover:text-zinc-700"
+                            >
+                              Réinitialiser
+                            </button>
+                          )}
+                        </div>
+
                         {sessionsLoading ? (
                           <div className="py-10 flex justify-center">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
@@ -1978,7 +2032,7 @@ const SkillUp: React.FC = () => {
                           <p className="text-sm text-zinc-600">{sessionsError}</p>
                         ) : (
                           <SessionsTable
-                            sessions={sessions}
+                            sessions={sessionsFiltered}
                             withMember
                             emptyLabel="Aucune session"
                             onEdit={openEdit}
