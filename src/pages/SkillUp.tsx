@@ -1300,22 +1300,33 @@ const SkillUp: React.FC = () => {
     setDashboardAllLoading(true);
     try {
       const targets = vaguesAdminList.filter((v) => v.statut !== 'brouillon');
+      let membresIndisponibles = false;
       const results = await Promise.all(
         targets.map(async (v) => {
-          const [sessionsRes, membersRes] = await Promise.all([
+          // allSettled, pas all : sessions et membres sont deux appels indépendants
+          // (même vague, données non liées) — un échec transitoire sur l'un (ex: 429
+          // Discord sur le check admin de /members, appelé en live à chaque requête,
+          // pas mis en cache contrairement aux rôles) ne doit jamais faire disparaître
+          // les données de l'autre, ni celles des autres vagues du batch.
+          const [sessionsRes, membersRes] = await Promise.allSettled([
             getSkillupSessions(String(v.id)),
             getSkillupMembers(String(v.id)),
           ]);
+          if (membersRes.status === 'rejected') membresIndisponibles = true;
           return {
             vagueId: v.id,
             vagueNom: v.nom,
-            sessions: extractList<SkillupSession>(sessionsRes, 'sessions'),
-            membresCount: extractList<SkillupMember>(membersRes, 'membres').length,
+            sessions:
+              sessionsRes.status === 'fulfilled' ? extractList<SkillupSession>(sessionsRes.value, 'sessions') : [],
+            membresCount:
+              membersRes.status === 'fulfilled' ? extractList<SkillupMember>(membersRes.value, 'membres').length : 0,
           };
         })
       );
       setDashboardAllVagues(results);
-      setDashboardAllError('');
+      setDashboardAllError(
+        membresIndisponibles ? 'Effectif de certaines vagues temporairement indisponible (Discord).' : ''
+      );
     } catch (err) {
       setDashboardAllVagues([]);
       setDashboardAllError(errorMessage(err));
