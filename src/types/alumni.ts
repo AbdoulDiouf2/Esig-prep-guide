@@ -114,6 +114,7 @@ export interface AlumniProfile {
   linkedin?: string;
   github?: string;
   twitter?: string;
+  discordId?: string; // ID Discord (17-19 chiffres), pour lier le profil à SkillUp
 
   // ===== Localisation =====
   city?: string;

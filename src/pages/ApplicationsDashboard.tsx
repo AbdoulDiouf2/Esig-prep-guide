@@ -163,6 +163,13 @@ const ApplicationsDashboard: React.FC = () => {
           roles: ["admin", "editor", "user"]
         },
         {
+          icon: <Zap className="w-8 h-8 text-blue-600" />,
+          title: "SkillUp",
+          description: "Suivi de la vague de coworking Alumni CPS : journal, binôme, bilan hebdomadaire",
+          link: "/skillup",
+          roles: ["admin", "editor", "user"]
+        },
+        {
           icon: <MessageSquare className="w-8 h-8 text-purple-500" />,
           title: "Forum",
           description: "Participez aux discussions avec les autres étudiants et alumni",
@@ -864,7 +871,7 @@ const ApplicationsDashboard: React.FC = () => {
                         Bientôt disponible
                       </span>
                     )}
-                    {(action.title === "Annuaire Alumni" || action.title === "Mon profil Alumni") && (
+                    {action.title === "SkillUp" && (
                       <span className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded mb-2">
                         Nouveau
                       </span>
@@ -1061,7 +1068,7 @@ const ApplicationsDashboard: React.FC = () => {
                     Bientôt disponible
                   </span>
                 )}
-                {(feature.title === "Annuaire Alumni" || feature.title === "Mon profil Alumni") && (
+                {feature.title === "SkillUp" && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">
                     Nouveau
                   </span>

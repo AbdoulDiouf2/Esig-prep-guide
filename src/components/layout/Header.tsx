@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper, Mail } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Settings, Bot, FileText, MessageSquare, Home, Shield, Edit, Grid, Users, Newspaper, Mail, Zap } from 'lucide-react';
 import SuperAdminCheck from '../routes/SuperAdminCheck';
 import { useUnreadContactRequests } from '../../hooks/useUnreadContactRequests';
+import { getSkillupAccess } from '../../services/skillupService';
 
 const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -13,6 +14,29 @@ const Header: React.FC = () => {
   const canDirector = usePermission('director.dashboard');
   const canStaff = usePermission('staff.dashboard');
   const unreadContacts = useUnreadContactRequests();
+  const [canSkillUp, setCanSkillUp] = useState(false);
+
+  // Visibilité de l'onglet SkillUp : pas de permission statique, dépend de la vague active
+  // (participant ou admin) renvoyée par l'API SkillUp via le proxy Cloud Function.
+  useEffect(() => {
+    if (!currentUser) {
+      setCanSkillUp(false);
+      return;
+    }
+    let cancelled = false;
+    getSkillupAccess()
+      .then((result) => {
+        if (cancelled) return;
+        const hasAccess = 'is_participant' in result && (result.is_participant || result.is_admin);
+        setCanSkillUp(hasAccess);
+      })
+      .catch(() => {
+        if (!cancelled) setCanSkillUp(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -255,6 +279,15 @@ const Header: React.FC = () => {
                         <span>Portail staff</span>
                       </Link>
                     )}
+                    {canSkillUp && (
+                      <Link
+                        to="/skillup"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        <span>SkillUp</span>
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="flex items-center w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -443,6 +476,16 @@ const Header: React.FC = () => {
                     >
                       <Users className="w-4 h-4 mr-3 flex-shrink-0" />
                       <span>Portail staff</span>
+                    </Link>
+                  )}
+                  {canSkillUp && (
+                    <Link
+                      to="/skillup"
+                      className="flex items-center py-2.5 text-blue-200 hover:text-white transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Zap className="w-4 h-4 mr-3 flex-shrink-0" />
+                      <span>SkillUp</span>
                     </Link>
                   )}
 

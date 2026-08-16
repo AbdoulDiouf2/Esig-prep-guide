@@ -100,6 +100,7 @@ import AdminNews from './pages/admin/AdminNews';
 import AdminRoleManager from './pages/admin/AdminRoleManager';
 import AdminUserOverrides from './pages/admin/AdminUserOverrides';
 import AcceptInvitation from './pages/AcceptInvitation';
+import SkillUp from './pages/SkillUp';
 
 // Pages légales
 import CGU from './pages/legal/CGU';
@@ -688,6 +689,13 @@ function App() {
                     <PermissionRoute permission="staff.dashboard">
                       <StaffDashboard />
                     </PermissionRoute>
+                  </AuthWrapper>
+                } />
+
+                {/* SkillUp — la page vérifie elle-même l'accès (participant/admin vague active) */}
+                <Route path="/skillup" element={
+                  <AuthWrapper>
+                    <SkillUp />
                   </AuthWrapper>
                 } />
 
