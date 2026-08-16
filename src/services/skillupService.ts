@@ -27,7 +27,12 @@ export type SkillupAction =
   | 'salonAjouter'
   | 'salonRetirer'
   | 'discordVoiceChannels'
-  | 'discordAvatars';
+  | 'discordAvatars'
+  | 'objectifVagueLire'
+  | 'objectifVagueDefinir'
+  | 'sessionCorrigerSelf'
+  | 'sessionSupprimerSelf'
+  | 'membreLierThread';
 
 export type SkillupSessionChamp = 'objectif' | 'bilan' | 'blocages' | 'creneau';
 export type SkillupMembreChamp = 'nom' | 'profil' | 'certif_ou_projet' | 'objectif_vague';
@@ -68,6 +73,7 @@ export interface SkillupMemberEditResult {
   nom: string;
   profil: string;
   certif_ou_projet: string | null;
+  objectif_vague?: string | null;
 }
 
 export interface SkillupDiscordMember {
@@ -116,6 +122,7 @@ async function callSkillupProxy<T>(
     canalId?: string;
     canalNom?: string;
     actif?: string;
+    lienOuId?: string;
   }
 ): Promise<T | SkillupLinkStatus> {
   if (!auth.currentUser) {
@@ -284,6 +291,28 @@ export const getSkillupSalons = (vague?: string, actif?: boolean) =>
 /** Ajoute (ou réactive) un salon de coworking pour une vague. */
 export const addSkillupSalon = (canalId: string, canalNom: string, vague?: string) =>
   callSkillupProxy<SkillupSalon>('salonAjouter', { canalId, canalNom, vague });
+
+/** Lit l'objectif de vague de l'appelant (vague active). */
+export const getSkillupMyObjectif = () => callSkillupProxy<SkillupMemberEditResult>('objectifVagueLire');
+
+/**
+ * Définit/modifie l'objectif de vague de l'appelant. Ne synchronise pas le fil du forum
+ * Discord `objectifs` — champ DB uniquement (cf. `/objectif-vague` sur Discord pour ça).
+ */
+export const setSkillupObjectifVague = (valeur: string) =>
+  callSkillupProxy<SkillupMemberEditResult>('objectifVagueDefinir', { valeur });
+
+/** Corrige une session appartenant à l'appelant (vérifie la propriété côté API). */
+export const patchSkillupMySession = (sessionId: number, champ: SkillupSessionChamp, valeur: string) =>
+  callSkillupProxy('sessionCorrigerSelf', { sessionId, champ, valeur });
+
+/** Supprime une session appartenant à l'appelant. */
+export const deleteSkillupMySession = (sessionId: number) =>
+  callSkillupProxy('sessionSupprimerSelf', { sessionId });
+
+/** Rattache manuellement le post objectif existant d'un membre (admin uniquement). */
+export const linkSkillupMemberThread = (discordId: string, lienOuId: string, vague?: string) =>
+  callSkillupProxy<SkillupMemberEditResult>('membreLierThread', { membreDiscordId: discordId, lienOuId, vague });
 
 /** Désactive un salon de coworking (soft-delete, pas une suppression). */
 export const removeSkillupSalon = (canalId: string, vague?: string) =>

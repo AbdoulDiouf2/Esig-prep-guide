@@ -32,7 +32,7 @@ La V1 de CPS Connect (livrée) est **lecture seule** — elle affiche les mêmes
 
 **Limite historique corrigée :** l'ancien sélecteur de vague (§3/§4) réutilisait `/members/{discord_id}/vagues` (scope "vagues de l'appelant"), pas toutes les vagues du système. `GET /vagues` existe désormais mais **n'a pas encore remplacé** ce sélecteur — reste une piste d'amélioration future (basculer `vagueParamFor`/le dropdown participant+admin sur la nouvelle liste complète), pas fait dans ce lot pour limiter le risque de régression sur un flux déjà stable.
 
-## 2. Gestion des membres ✅ FAIT (ajout/édition — pas lier-thread)
+## 2. Gestion des membres ✅ FAIT
 
 Équivalent Discord : `/membre-ajouter`, `/membre-editer`, `/membre-lier-thread`, `/membres-lister`.
 
@@ -44,8 +44,15 @@ La V1 de CPS Connect (livrée) est **lecture seule** — elle affiche les mêmes
   - API : `PATCH /members/{discord_id}` (`resolve_membre_editer`, nouvelle fonction `update_field` ajoutée dans `bot/db/members.py` — mirroir de celle déjà existante dans `bot/db/sessions.py`).
   - Proxy : action `membreEditer`.
   - Frontend : `editSkillupMember()`, modale d'édition (select champ + input/select selon le champ) via crayon sur chaque ligne du tableau membres.
-- **Lier un thread objectif** — pas fait dans ce lot (cas de rattrapage manuel ponctuel, moins prioritaire que le duo ajout/édition).
+- **Lier un thread objectif** ✅ FAIT (livré après ce lot, doc corrigée) — rattachement manuel d'un post objectif existant (rattrapage pour les membres dont le post a été créé à la main avant l'automatisation `/objectif-vague`).
+  - API : `PATCH /members/{discord_id}/thread-objectif` (`api/routers/admin.py`, `resolve_membre_lier_thread` dans `bot/services/admin_service.py`, réutilise `set_thread_objectif_id` déjà en base ; parseur `parse_thread_id` — accepte un ID brut ou un lien `discord.com/channels/...` — dupliqué depuis `bot/cogs/admin.py::_parse_thread_id`, fonction pure, pour ne pas faire dépendre le service layer de `discord.py`).
+  - Proxy : action `membreLierThread`. Frontend : `linkSkillupMemberThread()`, icône 🔗 sur chaque ligne du tableau membres → modale "Rattacher le post objectif" (un champ texte, lien ou ID).
 - **Lister les membres** ✅ — déjà en lecture (V1).
+- **Définir/modifier son objectif de vague (self-service membre)** ✅ FAIT (livré après ce lot) — sur Discord, `/objectif-vague` permet à un membre de définir son propre objectif sans passer par un admin ; côté web, seul un admin pouvait l'éditer (champ `objectif_vague` via l'éditeur générique de membre). Trou identifié lors du même audit delta.
+  - **Limite de scope assumée** : le bot fait aussi vivre un fil dans le forum Discord `objectifs` (créé/édité automatiquement, `_post_or_edit_objectif` dans `bot/cogs/journal.py`) — ça touche l'API Discord Guild/Forum, disponible uniquement côté process bot (`discord.py` vivant), pas côté process API FastAPI. **CPS Connect ne gère que le champ `objectif_vague` en base**, pas le fil forum — la modale le précise explicitement ("utilise `/objectif-vague` sur Discord si tu veux aussi synchroniser ton post").
+  - API : `GET`/`PATCH /members/{discord_id}/objectif-vague` (`api/routers/journal.py`, `resolve_own_member`/`resolve_objectif_vague_set` dans `bot/services/journal_service.py`, réutilise `update_objectif` déjà en base), protégé par `require_self_or_admin()`.
+  - Proxy : actions `objectifVagueLire`/`objectifVagueDefinir`, mêmes garanties d'identité que les endpoints self-service de sessions (discordId résolu côté proxy, jamais fourni par le client).
+  - Frontend : `getSkillupMyObjectif()`/`setSkillupObjectifVague()`, nouvelle carte "Mon objectif de vague" en haut de l'onglet "Ma vague" (`SkillUp.tsx`), crayon → modale (textarea).
 
 **DM de bienvenue** ✅ — envoyé à l'ajout, best-effort via `send_dm()` (même mécanisme que §3), statut (`dm_ok`) affiché dans la vue recap plutôt que silencieusement ignoré.
 
@@ -78,6 +85,10 @@ La V1 de CPS Connect (livrée) est **lecture seule** — elle affiche les mêmes
   - Proxy : action `sessionSupprimer`.
   - Frontend : `deleteSkillupSession()`, modale de confirmation destructive.
 - **Lister/filtrer les sessions** ✅ — déjà en lecture (V1), boutons d'action (crayon/poubelle) ajoutés par ligne dans la vue admin.
+- **Corriger/supprimer sa propre session (membre)** ✅ FAIT (livré après ce lot) — sur Discord, `/session-corriger` n'est pas admin-only : un membre peut corriger/supprimer ses propres sessions (vérification de propriété, `bot/cogs/session.py:210-227`). La version web n'avait que la variante admin (aucune vérification de propriétaire) — trou identifié lors d'un audit delta Discord ↔ CPS Connect.
+  - API : `PATCH /members/{discord_id}/sessions/{session_id}` et `DELETE /members/{discord_id}/sessions/{session_id}` (`api/routers/journal.py`, `resolve_session_corriger_self`/`resolve_session_supprimer_self` dans `bot/services/journal_service.py`) — vérifie que la session appartient bien à l'appelant sur la vague active avant d'autoriser la modification, protégé par `require_self_or_admin()` (même dépendance que `/journal`/`/bilan`).
+  - Proxy : actions `sessionCorrigerSelf`/`sessionSupprimerSelf` — utilisent le `discordId` résolu côté proxy (Firestore), jamais un id fourni par le client, pour garantir qu'un membre ne peut agir que sur lui-même.
+  - Frontend : `patchSkillupMySession()`/`deleteSkillupMySession()`, crayon/poubelle réutilisés sur la carte "Journal de la semaine" (Ma vague) — même modale que la version admin (`SkillUp.tsx`), un flag `editSessionScope`/`deleteSessionScope` fait bifurquer vers l'endpoint self plutôt qu'admin.
 
 C'est probablement le domaine le plus utile au quotidien pour un admin — corriger une faute de frappe ou un oubli, sans devoir remettre la main sur Discord.
 
@@ -154,7 +165,7 @@ Reprend la logique déjà discutée : une action à la fois, pas les treize d'un
 3. **Gestion des membres** (ajout/édition) ✅ FAIT — moins fréquent, mais complète le tableau de bord.
 4. **Gestion des vagues** et **salons coworking** ✅ FAIT — les plus rares, faits en dernier comme prévu.
 
-**Les 4 priorités du catalogue sont maintenant toutes livrées.** Reste hors périmètre : `/membre-lier-thread` (§2, rattrapage manuel ponctuel) et journal d'audit (§6, jamais évalué comme prioritaire). Export CSV/PDF (§6) et picker Discord live pour les salons (§5) sont désormais faits eux aussi.
+**Les 4 priorités du catalogue sont maintenant toutes livrées.** Un audit delta Discord ↔ CPS Connect (24 commandes bot passées en revue) a ensuite identifié 3 trous restants, tous comblés depuis : `/membre-lier-thread` (§2), `/objectif-vague` en self-service (§2, champ DB uniquement — pas le fil forum, cf. limite de scope documentée), `/session-corriger` en self-service (§4). Reste hors périmètre : journal d'audit (§6, jamais évalué comme prioritaire). Export CSV/PDF (§6) et picker Discord live pour les salons (§5) ont aussi été livrés entre-temps.
 
 ---
 

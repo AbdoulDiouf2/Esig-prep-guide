@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { Column, Bar, Pie } from '@ant-design/plots';
-import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download } from 'lucide-react';
+import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download, Link2 } from 'lucide-react';
 import { exportTablesToCSV, exportTablesToPDF, type ExportTable } from '../utils/tableExport';
 import {
   getSkillupAccess,
@@ -29,6 +29,11 @@ import {
   removeSkillupSalon,
   getSkillupDiscordVoiceChannels,
   getSkillupDiscordAvatars,
+  getSkillupMyObjectif,
+  setSkillupObjectifVague,
+  patchSkillupMySession,
+  deleteSkillupMySession,
+  linkSkillupMemberThread,
   type SkillupAccess,
   type SkillupVague,
   type SkillupSessionChamp,
@@ -404,6 +409,9 @@ const SkillUp: React.FC = () => {
   const [editValeur, setEditValeur] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  // 'admin' = onglet Sessions (Vue admin, aucune vérif de propriétaire) ; 'self' = carte
+  // "Journal de la semaine" (Ma vague, l'appelant ne peut corriger que ses propres sessions).
+  const [editSessionScope, setEditSessionScope] = useState<'admin' | 'self'>('admin');
 
   // Retourne la semaine résolue par l'API (utile côté appelant : /sessions, contrairement à
   // /binomes, ne résout pas de "semaine courante" par défaut — il faut la lui passer explicitement).
@@ -453,12 +461,20 @@ const SkillUp: React.FC = () => {
   const [deletingSession, setDeletingSession] = useState<SkillupSession | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [deleteSessionScope, setDeleteSessionScope] = useState<'admin' | 'self'>('admin');
 
-  const openEdit = useCallback((session: SkillupSession) => {
+  const openEdit = useCallback((session: SkillupSession, scope: 'admin' | 'self' = 'admin') => {
     setEditingSession(session);
+    setEditSessionScope(scope);
     setEditChamp('objectif');
     setEditValeur(session.objectif || '');
     setEditError('');
+  }, []);
+
+  const openDeleteSession = useCallback((session: SkillupSession, scope: 'admin' | 'self' = 'admin') => {
+    setDeletingSession(session);
+    setDeleteSessionScope(scope);
+    setDeleteError('');
   }, []);
 
   const handleEditChampChange = useCallback(
@@ -474,32 +490,44 @@ const SkillUp: React.FC = () => {
     setEditSaving(true);
     setEditError('');
     try {
-      await patchSkillupSession(editingSession.id, editChamp, editValeur);
-      setSessions((prev) =>
-        prev.map((s) => (s.id === editingSession.id ? { ...s, [editChamp]: editValeur } : s))
-      );
+      if (editSessionScope === 'self') {
+        await patchSkillupMySession(editingSession.id, editChamp, editValeur);
+        setJournal((prev) =>
+          prev.map((s) => (s.id === editingSession.id ? { ...s, [editChamp]: editValeur } : s))
+        );
+      } else {
+        await patchSkillupSession(editingSession.id, editChamp, editValeur);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === editingSession.id ? { ...s, [editChamp]: editValeur } : s))
+        );
+      }
       setEditingSession(null);
     } catch (err) {
       setEditError(errorMessage(err));
     } finally {
       setEditSaving(false);
     }
-  }, [editingSession, editChamp, editValeur]);
+  }, [editingSession, editChamp, editValeur, editSessionScope]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deletingSession) return;
     setDeleteSaving(true);
     setDeleteError('');
     try {
-      await deleteSkillupSession(deletingSession.id);
-      setSessions((prev) => prev.filter((s) => s.id !== deletingSession.id));
+      if (deleteSessionScope === 'self') {
+        await deleteSkillupMySession(deletingSession.id);
+        setJournal((prev) => prev.filter((s) => s.id !== deletingSession.id));
+      } else {
+        await deleteSkillupSession(deletingSession.id);
+        setSessions((prev) => prev.filter((s) => s.id !== deletingSession.id));
+      }
       setDeletingSession(null);
     } catch (err) {
       setDeleteError(errorMessage(err));
     } finally {
       setDeleteSaving(false);
     }
-  }, [deletingSession]);
+  }, [deletingSession, deleteSessionScope]);
 
   useEffect(() => {
     if (!definingBinome || !defineSemaine) {
@@ -631,6 +659,50 @@ const SkillUp: React.FC = () => {
 
   const [binomesSelectedSemaine, setBinomesSelectedSemaine] = useState<number | null>(null);
   const [binomesLoading, setBinomesLoading] = useState(false);
+
+  // Objectif de vague — indépendant de la navigation semaine/vague de "Ma vague" (l'API
+  // ne le résout que sur la vague active, même règle que /objectif-vague sur Discord).
+  const [myObjectif, setMyObjectif] = useState<string | null>(null);
+  const [myObjectifLoading, setMyObjectifLoading] = useState(false);
+  const [myObjectifError, setMyObjectifError] = useState('');
+  const [editingObjectif, setEditingObjectif] = useState(false);
+  const [objectifValeur, setObjectifValeur] = useState('');
+  const [objectifSaving, setObjectifSaving] = useState(false);
+  const [objectifError, setObjectifError] = useState('');
+
+  const loadMyObjectif = useCallback(async () => {
+    setMyObjectifLoading(true);
+    try {
+      const res = await getSkillupMyObjectif();
+      setMyObjectif('objectif_vague' in res ? res.objectif_vague ?? null : null);
+      setMyObjectifError('');
+    } catch (err) {
+      setMyObjectif(null);
+      setMyObjectifError(errorMessage(err));
+    } finally {
+      setMyObjectifLoading(false);
+    }
+  }, []);
+
+  const openEditObjectif = useCallback(() => {
+    setObjectifValeur(myObjectif ?? '');
+    setObjectifError('');
+    setEditingObjectif(true);
+  }, [myObjectif]);
+
+  const handleSaveObjectif = useCallback(async () => {
+    setObjectifSaving(true);
+    setObjectifError('');
+    try {
+      const res = await setSkillupObjectifVague(objectifValeur);
+      setMyObjectif('objectif_vague' in res ? res.objectif_vague ?? objectifValeur : objectifValeur);
+      setEditingObjectif(false);
+    } catch (err) {
+      setObjectifError(errorMessage(err));
+    } finally {
+      setObjectifSaving(false);
+    }
+  }, [objectifValeur]);
 
   const loadParticipant = useCallback(async (semaine?: number, vague?: number) => {
     setParticipantLoading(true);
@@ -1169,6 +1241,37 @@ const SkillUp: React.FC = () => {
     }
   }, [editingMember, editMemberChamp, editMemberValeur, adminSelectedVague, vagueParamFor]);
 
+  const [linkingThreadMember, setLinkingThreadMember] = useState<SkillupMember | null>(null);
+  const [linkThreadValeur, setLinkThreadValeur] = useState('');
+  const [linkThreadSaving, setLinkThreadSaving] = useState(false);
+  const [linkThreadError, setLinkThreadError] = useState('');
+  const [linkThreadSuccess, setLinkThreadSuccess] = useState(false);
+
+  const openLinkThread = useCallback((member: SkillupMember) => {
+    setLinkingThreadMember(member);
+    setLinkThreadValeur('');
+    setLinkThreadError('');
+    setLinkThreadSuccess(false);
+  }, []);
+
+  const handleSaveLinkThread = useCallback(async () => {
+    if (!linkingThreadMember || !linkThreadValeur.trim()) return;
+    setLinkThreadSaving(true);
+    setLinkThreadError('');
+    try {
+      await linkSkillupMemberThread(
+        linkingThreadMember.discord_id,
+        linkThreadValeur.trim(),
+        vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
+      );
+      setLinkThreadSuccess(true);
+    } catch (err) {
+      setLinkThreadError(errorMessage(err));
+    } finally {
+      setLinkThreadSaving(false);
+    }
+  }, [linkingThreadMember, linkThreadValeur, adminSelectedVague, vagueParamFor]);
+
   // Sélecteur de portée du Dashboard — un vrai menu déroulant, entièrement indépendant du
   // sélecteur de vague partagé par Membres/Sessions/Binômes : n'importe quelle vague non-
   // brouillon directement, ou "Toutes les vagues". Une seule source de données pour les
@@ -1479,6 +1582,7 @@ const SkillUp: React.FC = () => {
         setSelectedSemaine(null);
         setSelectedVague(activeVagueId);
         await loadParticipant();
+        loadMyObjectif();
       }
 
       if (accessResult.is_admin) {
@@ -1495,7 +1599,7 @@ const SkillUp: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadParticipant, loadAdminForVague]);
+  }, [loadParticipant, loadMyObjectif, loadAdminForVague]);
 
   useEffect(() => {
     loadAll();
@@ -1667,6 +1771,31 @@ const SkillUp: React.FC = () => {
               </button>
             </div>
 
+            <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-1">Mon objectif de vague</div>
+                  {myObjectifLoading ? (
+                    <div className="text-sm text-zinc-400">Chargement...</div>
+                  ) : myObjectifError ? (
+                    <div className="text-sm text-zinc-500">{myObjectifError}</div>
+                  ) : myObjectif ? (
+                    <p className="text-sm text-zinc-700 whitespace-pre-line">{myObjectif}</p>
+                  ) : (
+                    <p className="text-sm text-zinc-400 italic">Aucun objectif défini</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={openEditObjectif}
+                  className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-blue-700 transition-colors shrink-0"
+                  aria-label="Modifier mon objectif de vague"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-5">
               <h2 className="font-semibold text-blue-900 mb-4">Journal de la semaine</h2>
               {participantLoading ? (
@@ -1676,7 +1805,13 @@ const SkillUp: React.FC = () => {
               ) : journalError ? (
                 <p className="text-sm text-zinc-600">{journalError}</p>
               ) : (
-                <SessionsTable sessions={journal} withMember={false} emptyLabel="Aucune session cette semaine" />
+                <SessionsTable
+                  sessions={journal}
+                  withMember={false}
+                  emptyLabel="Aucune session cette semaine"
+                  onEdit={(session) => openEdit(session, 'self')}
+                  onDelete={(session) => openDeleteSession(session, 'self')}
+                />
               )}
             </div>
 
@@ -2053,6 +2188,14 @@ const SkillUp: React.FC = () => {
                                         >
                                           <Pencil className="w-4 h-4" />
                                         </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => openLinkThread(member)}
+                                          className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-blue-700 transition-colors"
+                                          aria-label={`Rattacher le post objectif de ${member.nom}`}
+                                        >
+                                          <Link2 className="w-4 h-4" />
+                                        </button>
                                       </td>
                                     </tr>
                                   ))}
@@ -2230,7 +2373,7 @@ const SkillUp: React.FC = () => {
                             withMember
                             emptyLabel="Aucune session"
                             onEdit={openEdit}
-                            onDelete={setDeletingSession}
+                            onDelete={openDeleteSession}
                           />
                         )}
                       </div>
@@ -2714,6 +2857,54 @@ const SkillUp: React.FC = () => {
         </div>
       )}
 
+      {editingObjectif && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h2 className="text-base font-semibold text-blue-900">Mon objectif de vague</h2>
+              <button onClick={() => setEditingObjectif(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {objectifError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  {objectifError}
+                </div>
+              )}
+              <textarea
+                value={objectifValeur}
+                onChange={(e) => setObjectifValeur(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ton objectif pour cette vague..."
+              />
+              <p className="text-xs text-zinc-500">
+                Le fil du forum Discord <code>objectifs</code> n'est pas mis à jour automatiquement — utilise{' '}
+                <code>/objectif-vague</code> sur Discord si tu veux aussi synchroniser ton post.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingObjectif(false)}
+                  className="px-4 py-2 text-sm text-gray-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveObjectif}
+                  disabled={objectifSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {objectifSaving ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {definingBinome && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
@@ -3039,6 +3230,72 @@ const SkillUp: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {linkingThreadMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+                <Link2 className="w-4 h-4" /> Rattacher le post objectif de {linkingThreadMember.nom}
+              </h2>
+              <button onClick={() => setLinkingThreadMember(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {linkThreadSuccess ? (
+              <div className="px-6 py-5 space-y-4">
+                <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+                  Post objectif rattaché.
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLinkingThreadMember(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-5 space-y-4">
+                {linkThreadError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {linkThreadError}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Lien ou ID du post</label>
+                  <input
+                    type="text"
+                    value={linkThreadValeur}
+                    onChange={(e) => setLinkThreadValeur(e.target.value)}
+                    placeholder="https://discord.com/channels/... ou ID brut"
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLinkingThreadMember(null)}
+                    className="px-4 py-2 text-sm text-gray-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveLinkThread}
+                    disabled={linkThreadSaving || !linkThreadValeur.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {linkThreadSaving ? 'Rattachement...' : 'Rattacher'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

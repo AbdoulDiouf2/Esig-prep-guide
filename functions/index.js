@@ -209,6 +209,32 @@ const SKILLUP_ACTIONS = {
   discordVoiceChannels: { method: 'GET', path: () => '/discord/voice-channels' },
   sessions: { method: 'GET', path: () => '/sessions' },
   binomes: { method: 'GET', path: () => '/binomes' },
+  objectifVagueLire: {
+    method: 'GET',
+    path: (discordId) => `/members/${discordId}/objectif-vague`,
+  },
+  objectifVagueDefinir: {
+    method: 'PATCH',
+    path: (discordId) => `/members/${discordId}/objectif-vague`,
+    body: (params) => ({ valeur: params.valeur }),
+  },
+  sessionCorrigerSelf: {
+    method: 'PATCH',
+    path: (discordId, params) => `/members/${discordId}/sessions/${params.sessionId}`,
+    body: (params) => ({ champ: params.champ, valeur: params.valeur }),
+  },
+  sessionSupprimerSelf: {
+    method: 'DELETE',
+    path: (discordId, params) => `/members/${discordId}/sessions/${params.sessionId}`,
+  },
+  membreLierThread: {
+    method: 'PATCH',
+    path: (_discordId, params) => `/members/${params.membreDiscordId}/thread-objectif`,
+    body: (params) => ({
+      lien_ou_id: params.lienOuId,
+      ...(params.vague ? { vague: Number(params.vague) } : {}),
+    }),
+  },
   sessionCorriger: {
     method: 'PATCH',
     path: (_discordId, params) => `/sessions/${params.sessionId}`,
@@ -338,6 +364,7 @@ exports.skillupProxy = onRequest(
           canalId,
           canalNom,
           actif,
+          lienOuId,
         } = req.body || {};
 
         // Avatars Discord vérifiés (onglet Binômes, admin). Ne passe pas par l'API SkillUp —
@@ -403,6 +430,7 @@ exports.skillupProxy = onRequest(
           vagueId,
           canalId,
           canalNom,
+          lienOuId,
         };
         const url = `${SKILLUP_API_URL.value()}${actionConfig.path(discordId, actionParams)}${queryString ? `?${queryString}` : ''}`;
 
