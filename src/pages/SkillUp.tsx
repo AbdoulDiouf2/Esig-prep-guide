@@ -323,16 +323,22 @@ const SkillUp: React.FC = () => {
 
   const sessionsFiltered = useMemo(() => {
     return sessions.filter((s) => {
-      if (sessionsFilterMembre && !s.membre_nom?.toLowerCase().includes(sessionsFilterMembre.toLowerCase())) {
-        return false;
-      }
-      if (sessionsFilterSalon && !s.canal_nom?.toLowerCase().includes(sessionsFilterSalon.toLowerCase())) {
-        return false;
-      }
+      if (sessionsFilterMembre && s.membre_nom !== sessionsFilterMembre) return false;
+      if (sessionsFilterSalon && s.canal_nom !== sessionsFilterSalon) return false;
       if (sessionsFilterDate && s.date !== sessionsFilterDate) return false;
       return true;
     });
   }, [sessions, sessionsFilterMembre, sessionsFilterSalon, sessionsFilterDate]);
+
+  // Options des menus déroulants — dérivées des sessions actuellement chargées (semaine/vague).
+  const sessionsMembresOptions = useMemo(
+    () => Array.from(new Set(sessions.map((s) => s.membre_nom).filter((v): v is string => Boolean(v)))).sort(),
+    [sessions]
+  );
+  const sessionsSalonsOptions = useMemo(
+    () => Array.from(new Set(sessions.map((s) => s.canal_nom).filter((v): v is string => Boolean(v)))).sort(),
+    [sessions]
+  );
   const [binomes, setBinomes] = useState<SkillupBinome[]>([]);
   const [binomesError, setBinomesError] = useState('');
   const [binomesSemaine, setBinomesSemaine] = useState<number | null>(null);
@@ -1989,20 +1995,26 @@ const SkillUp: React.FC = () => {
                         </div>
 
                         <div className="flex items-center flex-wrap gap-2">
-                          <input
-                            type="text"
+                          <select
                             value={sessionsFilterMembre}
                             onChange={(e) => setSessionsFilterMembre(e.target.value)}
-                            placeholder="Filtrer par membre..."
-                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="text"
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Tous les membres</option>
+                            {sessionsMembresOptions.map((m) => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                          <select
                             value={sessionsFilterSalon}
                             onChange={(e) => setSessionsFilterSalon(e.target.value)}
-                            placeholder="Filtrer par salon..."
-                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Tous les salons</option>
+                            {sessionsSalonsOptions.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
                           <input
                             type="date"
                             value={sessionsFilterDate}
