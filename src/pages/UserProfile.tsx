@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext';
 import {
   updateProfile, updatePassword, reauthenticateWithCredential,
@@ -10,11 +10,13 @@ import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { STATUS_OPTIONS, getStatusLabel } from '../constants/statusOptions';
 import {
   Shield, User, GraduationCap, MapPin, Mail, Calendar,
-  ExternalLink, CheckCircle, Lock, AlertTriangle, Users, LayoutDashboard
+  ExternalLink, CheckCircle, Lock, AlertTriangle, Users, LayoutDashboard, MessageCircle
 } from 'lucide-react';
 import PasswordConfirmModal from '../components/PasswordConfirmModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
 import ProfileCoverHeader from '../components/profile/ProfileCoverHeader';
+import { getAlumniProfile } from '../services/alumniService';
+import { connectDiscordAccount } from '../services/discordAuthService';
 
 const UserProfile: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,6 +27,11 @@ const UserProfile: React.FC = () => {
   const [pendingPassword, setPendingPassword] = useState<string>('');
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [discordVerified, setDiscordVerified] = useState(false);
+  const [discordUsername, setDiscordUsername] = useState<string | undefined>(undefined);
+  const [discordConnecting, setDiscordConnecting] = useState(false);
+  const [discordError, setDiscordError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [photoURL, setPhotoURL] = useState(currentUser?.photoURL || '');
   const [email] = useState(currentUser?.email || '');
@@ -71,6 +78,47 @@ const UserProfile: React.FC = () => {
     };
     fetchUserData();
   }, [currentUser]);
+
+  useEffect(() => {
+    const fetchDiscordStatus = async () => {
+      if (!currentUser) return;
+      try {
+        const alumniProfile = await getAlumniProfile(currentUser.uid);
+        setDiscordVerified(alumniProfile?.discordVerified === true);
+        setDiscordUsername(alumniProfile?.discordUsername);
+      } catch (e) {
+        console.error('Erreur chargement statut Discord:', e);
+      }
+    };
+    fetchDiscordStatus();
+  }, [currentUser]);
+
+  useEffect(() => {
+    const discordResult = searchParams.get('discord');
+    if (!discordResult) return;
+    if (discordResult === 'success') {
+      setSuccess('Discord connecté avec succès !');
+    } else {
+      setDiscordError('La connexion à Discord a échoué. Réessaie.');
+    }
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('discord');
+      next.delete('reason');
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleConnectDiscord = async () => {
+    setDiscordError(null);
+    setDiscordConnecting(true);
+    try {
+      await connectDiscordAccount();
+    } catch (e) {
+      setDiscordError(e instanceof Error ? e.message : 'Impossible de démarrer la connexion Discord.');
+      setDiscordConnecting(false);
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -275,6 +323,43 @@ const UserProfile: React.FC = () => {
                   {isGoogleUser ? 'Connexion Google' : hasPasswordProvider ? 'Connexion email' : 'Connexion GitHub'}
                 </li>
               </ul>
+            </div>
+
+            {/* Discord */}
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Discord</h2>
+              {discordError && (
+                <p className="text-xs text-red-600 mb-3">{discordError}</p>
+              )}
+              {discordVerified ? (
+                <div className="space-y-3">
+                  <p className="flex items-center gap-2 text-sm text-gray-700">
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                    Connecté en tant que <span className="font-medium">@{discordUsername}</span>
+                  </p>
+                  <button
+                    onClick={handleConnectDiscord}
+                    disabled={discordConnecting}
+                    className="text-sm text-blue-700 hover:text-blue-900 transition-colors disabled:opacity-50"
+                  >
+                    {discordConnecting ? 'Redirection...' : 'Reconnecter un autre compte'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Connecte ton compte Discord pour accéder à SkillUp.
+                  </p>
+                  <button
+                    onClick={handleConnectDiscord}
+                    disabled={discordConnecting}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-[#5865F2] hover:bg-[#4752c4] transition-colors disabled:opacity-50"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    {discordConnecting ? 'Redirection...' : 'Connecter mon Discord'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Liens rapides */}

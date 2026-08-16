@@ -16,6 +16,7 @@ const cors = require('cors')({origin: true}); // Ajout de CORS
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
+const crypto = require('crypto');
 
 // Initialiser dayjs avec les plugins
 dayjs.extend(utc);
@@ -30,6 +31,11 @@ admin.initializeApp();
 // Secrets pour l'intégration SkillUp (jamais commités, config via `firebase functions:secrets:set`)
 const SKILLUP_API_URL = defineSecret('SKILLUP_API_URL');
 const SKILLUP_API_KEY = defineSecret('SKILLUP_API_KEY');
+const DISCORD_CLIENT_ID = defineSecret('DISCORD_CLIENT_ID');
+const DISCORD_CLIENT_SECRET = defineSecret('DISCORD_CLIENT_SECRET');
+const DISCORD_REDIRECT_URI = defineSecret('DISCORD_REDIRECT_URI');
+const DISCORD_OAUTH_STATE_SECRET = defineSecret('DISCORD_OAUTH_STATE_SECRET');
+const DISCORD_APP_BASE_URL = defineSecret('DISCORD_APP_BASE_URL');
 
 // Exporter la fonction de mise à jour des statuts de webinaires
 exports.checkAndUpdateWebinarStatus = onSchedule(
@@ -301,9 +307,13 @@ exports.skillupProxy = onRequest(
         const decodedToken = await admin.auth().verifyIdToken(token);
 
         const alumniSnap = await admin.firestore().collection('alumni').doc(decodedToken.uid).get();
-        const discordId = alumniSnap.exists ? alumniSnap.data().discordId : undefined;
+        const alumniData = alumniSnap.exists ? alumniSnap.data() : {};
+        const discordId = alumniData.discordId;
+        const discordVerified = alumniData.discordVerified === true;
 
-        if (!discordId) {
+        // Migration Option B : un discordId non vérifié (ancienne saisie manuelle) ne
+        // compte plus comme "lié" — il faut reconnecter via OAuth pour prouver l'identité.
+        if (!discordId || !discordVerified) {
           res.status(200).send({ linked: false });
           return;
         }
@@ -386,5 +396,182 @@ exports.skillupProxy = onRequest(
         res.status(500).send({ error: error.message || 'Internal server error' });
       }
     });
+  }
+);
+
+// ===== Discord OAuth (liaison vérifiée du compte Discord, cf. docs/Connexion_Discord_OAuth_CPS_Connect.md) =====
+// Scope demandé : `identify` uniquement. Ne sert jamais à décider qui est admin/participant
+// SkillUp — cette décision reste exclusivement celle de l'API SkillUp (`GET /members/{id}/access`).
+
+const DISCORD_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes pour compléter le flux
+
+function signDiscordState(payload, secret) {
+  const json = JSON.stringify(payload);
+  const b64 = Buffer.from(json).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(b64).digest('base64url');
+  return `${b64}.${sig}`;
+}
+
+function verifyDiscordState(state, secret) {
+  const [b64, sig] = String(state || '').split('.');
+  if (!b64 || !sig) return null;
+  const expectedSig = crypto.createHmac('sha256', secret).update(b64).digest('base64url');
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return null;
+  }
+  const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
+  if (!payload.exp || Date.now() > payload.exp) return null;
+  return payload;
+}
+
+/**
+ * Authentifiée (Bearer Firebase). Renvoie l'URL d'autorisation Discord à laquelle
+ * rediriger le navigateur, avec un `state` signé encodant l'uid pour que le callback
+ * (redirect HTTP sans token Firebase) sache pour qui écrire le lien.
+ */
+exports.discordOauthInitiate = onRequest(
+  {
+    invoker: 'public',
+    secrets: [DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI, DISCORD_OAUTH_STATE_SECRET],
+  },
+  async (req, res) => {
+    return cors(req, res, async () => {
+      if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+      }
+      if (req.method !== 'POST') {
+        res.status(405).send({ error: 'Method Not Allowed' });
+        return;
+      }
+      try {
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.split('Bearer ')[1];
+        if (!token) {
+          res.status(401).send({ error: 'Unauthorized' });
+          return;
+        }
+        const decodedToken = await admin.auth().verifyIdToken(token);
+
+        const state = signDiscordState(
+          {
+            uid: decodedToken.uid,
+            nonce: crypto.randomBytes(16).toString('hex'),
+            exp: Date.now() + DISCORD_STATE_TTL_MS,
+          },
+          DISCORD_OAUTH_STATE_SECRET.value()
+        );
+
+        const params = new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID.value(),
+          redirect_uri: DISCORD_REDIRECT_URI.value(),
+          response_type: 'code',
+          scope: 'identify',
+          state,
+          prompt: 'consent',
+        });
+
+        res.status(200).send({ url: `https://discord.com/api/oauth2/authorize?${params.toString()}` });
+      } catch (error) {
+        logger.error('Error in discordOauthInitiate', { error: error.message, stack: error.stack });
+        res.status(500).send({ error: error.message || 'Internal server error' });
+      }
+    });
+  }
+);
+
+/**
+ * Callback public appelé par Discord après autorisation (`code` + `state` en query params).
+ * Vérifie `state`, échange `code` contre un token, récupère l'identité Discord vérifiée,
+ * écrit alumni/{uid} et redirige vers /profile.
+ */
+exports.discordOauthCallback = onRequest(
+  {
+    invoker: 'public',
+    secrets: [
+      DISCORD_CLIENT_ID,
+      DISCORD_CLIENT_SECRET,
+      DISCORD_REDIRECT_URI,
+      DISCORD_OAUTH_STATE_SECRET,
+      DISCORD_APP_BASE_URL,
+    ],
+  },
+  async (req, res) => {
+    const baseUrl = DISCORD_APP_BASE_URL.value();
+    const redirectWithError = (reason) => {
+      res.redirect(`${baseUrl}/profile?discord=error&reason=${encodeURIComponent(reason)}`);
+    };
+
+    try {
+      const { code, state, error: discordError } = req.query;
+
+      if (discordError) {
+        redirectWithError(String(discordError));
+        return;
+      }
+      if (!code || !state) {
+        redirectWithError('missing_params');
+        return;
+      }
+
+      const statePayload = verifyDiscordState(String(state), DISCORD_OAUTH_STATE_SECRET.value());
+      if (!statePayload) {
+        redirectWithError('invalid_state');
+        return;
+      }
+
+      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID.value(),
+          client_secret: DISCORD_CLIENT_SECRET.value(),
+          grant_type: 'authorization_code',
+          code: String(code),
+          redirect_uri: DISCORD_REDIRECT_URI.value(),
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        logger.error('discordOauthCallback: token exchange failed', { status: tokenResponse.status });
+        redirectWithError('token_exchange_failed');
+        return;
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      const meResponse = await fetch('https://discord.com/api/users/@me', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!meResponse.ok) {
+        logger.error('discordOauthCallback: /users/@me failed', { status: meResponse.status });
+        redirectWithError('discord_user_fetch_failed');
+        return;
+      }
+
+      const discordUser = await meResponse.json();
+      const discordAvatarUrl = discordUser.avatar
+        ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+        : undefined;
+
+      await admin.firestore().collection('alumni').doc(statePayload.uid).set(
+        {
+          discordId: discordUser.id,
+          discordUsername: discordUser.global_name || discordUser.username,
+          discordAvatarUrl: discordAvatarUrl || admin.firestore.FieldValue.delete(),
+          discordLinkedAt: new Date().toISOString(),
+          discordVerified: true,
+        },
+        { merge: true }
+      );
+
+      res.redirect(`${baseUrl}/profile?discord=success`);
+    } catch (error) {
+      logger.error('Error in discordOauthCallback', { error: error.message, stack: error.stack });
+      redirectWithError('internal_error');
+    }
   }
 );

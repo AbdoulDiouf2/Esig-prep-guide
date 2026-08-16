@@ -114,7 +114,11 @@ export interface AlumniProfile {
   linkedin?: string;
   github?: string;
   twitter?: string;
-  discordId?: string; // ID Discord (17-19 chiffres), pour lier le profil à SkillUp
+  discordId?: string; // ID Discord (17-19 chiffres), vérifié via OAuth une fois discordVerified=true
+  discordUsername?: string; // username/global_name Discord, récupéré via OAuth
+  discordAvatarUrl?: string; // avatar Discord, stocké mais pas affiché en V1
+  discordLinkedAt?: string; // horodatage ISO de la liaison OAuth
+  discordVerified?: boolean; // true seulement si obtenu via le flux OAuth (pas une saisie manuelle)
 
   // ===== Localisation =====
   city?: string;

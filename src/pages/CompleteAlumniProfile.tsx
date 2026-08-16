@@ -91,7 +91,6 @@ const CompleteAlumniProfile: React.FC = () => {
         linkedin: data.linkedin,
         github: data.github,
         twitter: data.twitter,
-        discordId: data.discordId,
         city: data.city,
         country: data.country,
         // Nouveaux champs enrichis
@@ -310,7 +309,6 @@ const CompleteAlumniProfile: React.FC = () => {
             linkedin: alumniProfile.linkedin,
             github: alumniProfile.github,
             twitter: alumniProfile.twitter,
-            discordId: alumniProfile.discordId,
             city: alumniProfile.city,
             country: alumniProfile.country,
             // Nouveaux champs enrichis
@@ -333,6 +331,7 @@ const CompleteAlumniProfile: React.FC = () => {
           onSubmit={handleSubmit}
           // onPhotoUpload={handlePhotoUpload}
           loading={loading}
+          discordStatus={{ verified: alumniProfile.discordVerified, username: alumniProfile.discordUsername }}
         />
 
         {/* Bouton de soumission pour validation (uniquement si status = draft) */}

@@ -64,7 +64,6 @@ interface AlumniProfileFormData {
   linkedin?: string;
   github?: string;
   twitter?: string;
-  discordId?: string;
 
   // Localisation
   city?: string;
@@ -76,6 +75,8 @@ interface AlumniProfileFormProps {
   onSubmit: (data: AlumniProfileFormData) => void | Promise<void>;
   // onPhotoUpload?: (file: File) => Promise<string>; // Désactivé temporairement
   loading?: boolean;
+  // Statut de liaison Discord (lecture seule ici — la connexion se fait sur /profile)
+  discordStatus?: { verified?: boolean; username?: string };
 }
 
 const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
@@ -83,6 +84,7 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   onSubmit,
   // onPhotoUpload, // Désactivé temporairement
   loading = false,
+  discordStatus,
 }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<AlumniProfileFormData>({
@@ -121,12 +123,9 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
     linkedin: initialData?.linkedin,
     github: initialData?.github,
     twitter: initialData?.twitter,
-    discordId: initialData?.discordId,
     city: initialData?.city,
     country: initialData?.country,
   });
-
-  const [discordIdError, setDiscordIdError] = useState('');
 
   const [newSector, setNewSector] = useState('');
   const [newExpertise, setNewExpertise] = useState('');
@@ -461,12 +460,6 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.discordId && !/^\d{17,19}$/.test(formData.discordId)) {
-      setDiscordIdError('L\'ID Discord doit contenir entre 17 et 19 chiffres.');
-      return;
-    }
-    setDiscordIdError('');
-
     // Nettoyer les données undefined avant la soumission
     const cleanedData = {
       ...formData,
@@ -480,7 +473,6 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
       linkedin: formData.linkedin || undefined,
       github: formData.github || undefined,
       twitter: formData.twitter || undefined,
-      discordId: formData.discordId || undefined,
       city: formData.city || undefined,
       country: formData.country || undefined,
     };
@@ -1329,38 +1321,33 @@ const AlumniProfileForm: React.FC<AlumniProfileFormProps> = ({
           </div>
 
           <div>
-            <label htmlFor="discordId" className="block text-sm font-medium text-gray-700 mb-1">
-              ID Discord
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Discord
             </label>
-            <div className="relative">
-              <input
-                id="discordId"
-                type="text"
-                inputMode="numeric"
-                value={formData.discordId || ''}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, discordId: e.target.value.trim() }));
-                  if (discordIdError) setDiscordIdError('');
-                }}
-                placeholder="Ex: 123456789012345678"
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {formData.discordId && (
+            {discordStatus?.verified ? (
+              <p className="text-sm text-gray-700">
+                Connecté en tant que <span className="font-medium">@{discordStatus.username}</span>.{' '}
                 <button
                   type="button"
-                  onClick={() => { setFormData(prev => ({ ...prev, discordId: undefined })); setDiscordIdError(''); }}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => navigate('/profile')}
+                  className="text-blue-700 hover:underline"
                 >
-                  <X className="w-4 h-4" />
+                  Gérer la connexion
                 </button>
-              )}
-            </div>
-            {discordIdError && (
-              <p className="text-xs text-red-600 mt-1">{discordIdError}</p>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Connecte ton Discord depuis{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/profile')}
+                  className="text-blue-700 hover:underline"
+                >
+                  ton profil
+                </button>{' '}
+                pour accéder à SkillUp.
+              </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Pour lier ton profil à SkillUp. Mode développeur Discord activé → clic droit sur ton profil → "Copier l'identifiant".
-            </p>
           </div>
 
           <div>

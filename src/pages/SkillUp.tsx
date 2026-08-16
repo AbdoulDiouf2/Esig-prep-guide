@@ -1319,10 +1319,10 @@ const SkillUp: React.FC = () => {
           <p className="text-zinc-600 text-sm mb-6">
             {linked
               ? "Cet onglet n'est accessible qu'aux participants et admins de la vague active."
-              : 'Lie ton compte Discord depuis ton profil alumni pour accéder à SkillUp.'}
+              : 'Lie ton compte Discord depuis ton profil pour accéder à SkillUp.'}
           </p>
           <Link
-            to={linked ? '/' : '/edit-alumni-profile'}
+            to={linked ? '/' : '/profile'}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 transition-colors"
           >
             {linked ? "Retour à l'accueil" : 'Lier mon compte Discord'}
