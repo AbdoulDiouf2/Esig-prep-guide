@@ -320,15 +320,19 @@ const SkillUp: React.FC = () => {
   const [sessionsFilterMembre, setSessionsFilterMembre] = useState('');
   const [sessionsFilterSalon, setSessionsFilterSalon] = useState('');
   const [sessionsFilterDate, setSessionsFilterDate] = useState('');
+  const [sessionsFilterCreneau, setSessionsFilterCreneau] = useState('');
+  const [sessionsFilterStatut, setSessionsFilterStatut] = useState('');
 
   const sessionsFiltered = useMemo(() => {
     return sessions.filter((s) => {
       if (sessionsFilterMembre && s.membre_nom !== sessionsFilterMembre) return false;
       if (sessionsFilterSalon && s.canal_nom !== sessionsFilterSalon) return false;
       if (sessionsFilterDate && s.date !== sessionsFilterDate) return false;
+      if (sessionsFilterCreneau && s.creneau !== sessionsFilterCreneau) return false;
+      if (sessionsFilterStatut && s.statut !== sessionsFilterStatut) return false;
       return true;
     });
-  }, [sessions, sessionsFilterMembre, sessionsFilterSalon, sessionsFilterDate]);
+  }, [sessions, sessionsFilterMembre, sessionsFilterSalon, sessionsFilterDate, sessionsFilterCreneau, sessionsFilterStatut]);
 
   // Options des menus déroulants — dérivées des sessions actuellement chargées (semaine/vague).
   const sessionsMembresOptions = useMemo(
@@ -337,6 +341,14 @@ const SkillUp: React.FC = () => {
   );
   const sessionsSalonsOptions = useMemo(
     () => Array.from(new Set(sessions.map((s) => s.canal_nom).filter((v): v is string => Boolean(v)))).sort(),
+    [sessions]
+  );
+  const sessionsCreneauxOptions = useMemo(
+    () => Array.from(new Set(sessions.map((s) => s.creneau).filter((v): v is string => Boolean(v)))).sort(),
+    [sessions]
+  );
+  const sessionsStatutsOptions = useMemo(
+    () => Array.from(new Set(sessions.map((s) => s.statut).filter((v): v is string => Boolean(v)))).sort(),
     [sessions]
   );
   const [binomes, setBinomes] = useState<SkillupBinome[]>([]);
@@ -2021,13 +2033,35 @@ const SkillUp: React.FC = () => {
                             onChange={(e) => setSessionsFilterDate(e.target.value)}
                             className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
-                          {(sessionsFilterMembre || sessionsFilterSalon || sessionsFilterDate) && (
+                          <select
+                            value={sessionsFilterCreneau}
+                            onChange={(e) => setSessionsFilterCreneau(e.target.value)}
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Tous les créneaux</option>
+                            {sessionsCreneauxOptions.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={sessionsFilterStatut}
+                            onChange={(e) => setSessionsFilterStatut(e.target.value)}
+                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Tous les statuts</option>
+                            {sessionsStatutsOptions.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          {(sessionsFilterMembre || sessionsFilterSalon || sessionsFilterDate || sessionsFilterCreneau || sessionsFilterStatut) && (
                             <button
                               type="button"
                               onClick={() => {
                                 setSessionsFilterMembre('');
                                 setSessionsFilterSalon('');
                                 setSessionsFilterDate('');
+                                setSessionsFilterCreneau('');
+                                setSessionsFilterStatut('');
                               }}
                               className="text-sm text-zinc-500 hover:text-zinc-700"
                             >
