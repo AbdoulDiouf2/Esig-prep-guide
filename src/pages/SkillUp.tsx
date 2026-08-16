@@ -1087,6 +1087,14 @@ const SkillUp: React.FC = () => {
   // deux cas (`dashboardAllVagues`, sessions+membres par vague), chargée une fois.
   const [dashboardScope, setDashboardScope] = useState<number | 'all'>('all');
   const dashboardScopeDefaulted = useRef(false);
+
+  // Filtre semaine du Dashboard — indépendant de Sessions/Binômes. Défaut sur la semaine
+  // courante (résolue via adminCurrentSemaineNumber, cf. loadAdminForVague), une seule fois.
+  const [dashboardSemaine, setDashboardSemaine] = useState<number | 'all'>('all');
+  const dashboardSemaineDefaulted = useRef(false);
+  const [dashboardWeekSessions, setDashboardWeekSessions] = useState<SkillupSession[]>([]);
+  const [dashboardWeekLoading, setDashboardWeekLoading] = useState(false);
+  const [dashboardWeekError, setDashboardWeekError] = useState('');
   const [dashboardAllVagues, setDashboardAllVagues] = useState<
     { vagueId: number; vagueNom: string; sessions: SkillupSession[]; membresCount: number }[]
   >([]);
@@ -1138,16 +1146,48 @@ const SkillUp: React.FC = () => {
     if (active) setDashboardScope(active.id);
   }, [vaguesAdminList]);
 
+  useEffect(() => {
+    if (dashboardSemaineDefaulted.current || adminCurrentSemaineNumber === null) return;
+    dashboardSemaineDefaulted.current = true;
+    setDashboardSemaine(adminCurrentSemaineNumber);
+  }, [adminCurrentSemaineNumber]);
+
+  const loadDashboardWeekSessions = useCallback(async () => {
+    if (dashboardSemaine === 'all') return;
+    setDashboardWeekLoading(true);
+    try {
+      const targets = dashboardScope === 'all' ? dashboardAllVagues.map((v) => v.vagueId) : [dashboardScope];
+      const results = await Promise.all(
+        targets.map((id) => getSkillupSessions(String(id), String(dashboardSemaine)))
+      );
+      setDashboardWeekSessions(results.flatMap((r) => extractList<SkillupSession>(r, 'sessions')));
+      setDashboardWeekError('');
+    } catch (err) {
+      setDashboardWeekSessions([]);
+      setDashboardWeekError(errorMessage(err));
+    } finally {
+      setDashboardWeekLoading(false);
+    }
+  }, [dashboardSemaine, dashboardScope, dashboardAllVagues]);
+
+  useEffect(() => {
+    if (dashboardSemaine !== 'all') loadDashboardWeekSessions();
+  }, [dashboardSemaine, dashboardScope, loadDashboardWeekSessions]);
+
   const dashboardScopeLabel = useMemo(() => {
     if (dashboardScope === 'all') return 'Toutes les vagues';
     return dashboardAllVagues.find((v) => v.vagueId === dashboardScope)?.vagueNom ?? 'Vague';
   }, [dashboardScope, dashboardAllVagues]);
 
   // Sessions "à plat" selon la portée choisie — source unique pour stats + graphiques.
+  // Le filtre semaine, quand actif, remplace entièrement cette liste par le résultat déjà
+  // filtré côté API (dashboardWeekSessions) — les sessions n'ont pas de champ `semaine`
+  // exploitable côté client.
   const dashboardSessions = useMemo(() => {
+    if (dashboardSemaine !== 'all') return dashboardWeekSessions;
     if (dashboardScope === 'all') return dashboardAllVagues.flatMap((v) => v.sessions);
     return dashboardAllVagues.find((v) => v.vagueId === dashboardScope)?.sessions ?? [];
-  }, [dashboardScope, dashboardAllVagues]);
+  }, [dashboardScope, dashboardAllVagues, dashboardSemaine, dashboardWeekSessions]);
 
   // Métriques et graphiques du Dashboard — calculés côté frontend à partir de ce que
   // /sessions et /members renvoient déjà pour chaque vague non-brouillon. Pas de nouvel
@@ -1572,31 +1612,49 @@ const SkillUp: React.FC = () => {
                           <h2 className="font-semibold text-blue-900">
                             Dashboard <span className="text-zinc-400 font-normal">— {dashboardScopeLabel}</span>
                           </h2>
-                          <select
-                            value={dashboardScope}
-                            onChange={(e) => setDashboardScope(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            disabled={dashboardAllLoading}
-                            className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="all">Toutes les vagues</option>
-                            {[...vaguesAdminList]
-                              .filter((v) => v.statut !== 'brouillon')
-                              .sort((a, b) => b.date_debut.localeCompare(a.date_debut))
-                              .map((v) => (
-                                <option key={v.id} value={v.id}>
-                                  {v.nom}{v.statut === 'active' ? ' (active)' : ''}
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={dashboardScope}
+                              onChange={(e) => setDashboardScope(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                              disabled={dashboardAllLoading}
+                              className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="all">Toutes les vagues</option>
+                              {[...vaguesAdminList]
+                                .filter((v) => v.statut !== 'brouillon')
+                                .sort((a, b) => b.date_debut.localeCompare(a.date_debut))
+                                .map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.nom}{v.statut === 'active' ? ' (active)' : ''}
+                                  </option>
+                                ))}
+                            </select>
+                            <select
+                              value={dashboardSemaine}
+                              onChange={(e) => setDashboardSemaine(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                              disabled={dashboardWeekLoading}
+                              className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="all">Toutes les semaines</option>
+                              {Array.from(
+                                { length: Math.max(adminCurrentSemaineNumber ?? 1, typeof dashboardSemaine === 'number' ? dashboardSemaine : 1) },
+                                (_, i) => i + 1
+                              ).map((s) => (
+                                <option key={s} value={s}>
+                                  Semaine {s}{adminCurrentSemaineNumber === s ? ' (courante)' : ''}
                                 </option>
                               ))}
-                          </select>
+                            </select>
+                          </div>
                         </div>
 
-                        {dashboardAllError && (
+                        {(dashboardAllError || dashboardWeekError) && (
                           <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                            {dashboardAllError}
+                            {dashboardAllError || dashboardWeekError}
                           </div>
                         )}
 
-                        {dashboardAllLoading ? (
+                        {dashboardAllLoading || dashboardWeekLoading ? (
                           <div className="py-10 flex justify-center">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
                           </div>
