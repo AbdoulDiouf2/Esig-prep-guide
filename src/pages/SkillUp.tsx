@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { Column, Bar, Pie } from '@ant-design/plots';
-import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
+import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download } from 'lucide-react';
+import { exportTablesToCSV, exportTablesToPDF, type ExportTable } from '../utils/tableExport';
 import {
   getSkillupAccess,
   getSkillupVagues,
@@ -281,6 +282,49 @@ const SessionsTable: React.FC<{
           ))}
         </tbody>
       </table>
+    </div>
+  );
+};
+
+/** Bouton "Exporter" générique — dropdown CSV/PDF, respecte les données déjà filtrées passées en `tables`. */
+const ExportButtons: React.FC<{
+  tables: ExportTable[];
+  filenamePrefix: string;
+  pdfTitle: string;
+  pdfSubtitle?: string;
+  disabled?: boolean;
+}> = ({ tables, filenamePrefix, pdfTitle, pdfSubtitle, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const isEmpty = tables.every((t) => t.rows.length === 0);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        disabled={disabled || isEmpty}
+        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-zinc-600 border border-zinc-300 rounded-md hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        <Download className="w-3.5 h-3.5" /> Exporter
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-32 bg-white border border-zinc-200 rounded-md shadow-lg z-10 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => { exportTablesToCSV(`${filenamePrefix}.csv`, tables); setOpen(false); }}
+            className="block w-full text-left px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50"
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => { exportTablesToPDF(`${filenamePrefix}.pdf`, pdfTitle, pdfSubtitle ?? '', tables); setOpen(false); }}
+            className="block w-full text-left px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50"
+          >
+            PDF
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -1339,6 +1383,61 @@ const SkillUp: React.FC = () => {
       .map(([creneau, count]) => ({ creneau, count }));
   }, [dashboardSessions]);
 
+  // Export Dashboard (CSV + PDF) — reflète la portée vague + le filtre semaine actifs,
+  // puisque toutes les données sources (dashboardStats, ...Data) en découlent déjà.
+  const dashboardExportTables = useMemo<ExportTable[]>(() => {
+    const tables: ExportTable[] = [
+      {
+        title: 'Indicateurs',
+        headers: ['Indicateur', 'Valeur'],
+        rows: [
+          ['Membres', dashboardStats.totalMembres],
+          ['Vagues', dashboardStats.nombreVagues],
+          ['Sessions totales', dashboardStats.totalSessions],
+          ['Sessions complètes', dashboardStats.completes],
+          ['Sessions incomplètes', dashboardStats.incompletes],
+          ['Sessions autres', dashboardStats.autres],
+          ['Taux de complétion', `${dashboardStats.tauxCompletion}%`],
+          ['Binômes actifs', dashboardStats.binomesActifs],
+          ['Durée cumulée', dashboardStats.dureeCumulee],
+        ],
+      },
+      {
+        title: 'Sessions par jour',
+        headers: ['Date', 'Sessions'],
+        rows: sessionsParJourData.map((d) => [d.date, d.count]),
+      },
+      {
+        title: 'Sessions par membre',
+        headers: ['Membre', 'Sessions'],
+        rows: sessionsParMembreData.map((d) => [d.membre, d.count]),
+      },
+      {
+        title: 'Répartition par statut',
+        headers: ['Statut', 'Sessions'],
+        rows: statutRepartitionData.map((d) => [d.statut, d.count]),
+      },
+      {
+        title: 'Répartition par créneau',
+        headers: ['Créneau', 'Sessions'],
+        rows: creneauRepartitionData.map((d) => [d.creneau, d.count]),
+      },
+    ];
+    if (dashboardScope === 'all' && sessionsParVagueData.length > 1) {
+      tables.push({
+        title: 'Comparaison par vague',
+        headers: ['Vague', 'Sessions'],
+        rows: sessionsParVagueData.map((d) => [d.vague, d.count]),
+      });
+    }
+    return tables;
+  }, [dashboardStats, sessionsParJourData, sessionsParMembreData, statutRepartitionData, creneauRepartitionData, dashboardScope, sessionsParVagueData]);
+
+  const dashboardExportSubtitle = useMemo(() => {
+    const semaineLabel = dashboardSemaine === 'all' ? 'Toutes les semaines' : `Semaine ${dashboardSemaine}`;
+    return `${dashboardScopeLabel} — ${semaineLabel}`;
+  }, [dashboardScopeLabel, dashboardSemaine]);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -1722,6 +1821,13 @@ const SkillUp: React.FC = () => {
                                 </option>
                               ))}
                             </select>
+                            <ExportButtons
+                              tables={dashboardExportTables}
+                              filenamePrefix="skillup-dashboard"
+                              pdfTitle="Dashboard SkillUp"
+                              pdfSubtitle={dashboardExportSubtitle}
+                              disabled={dashboardAllLoading || dashboardWeekLoading}
+                            />
                           </div>
                         </div>
 
@@ -1884,6 +1990,25 @@ const SkillUp: React.FC = () => {
                             >
                               Ajouter un membre
                             </button>
+                            <ExportButtons
+                              tables={
+                                membersViewMode === 'vague'
+                                  ? [{
+                                      title: 'Membres de la vague',
+                                      headers: ['Nom', 'Profil', 'Certification / Projet', 'ID Discord'],
+                                      rows: members.map((m) => [m.nom, m.profil, m.certif_ou_projet ?? '', m.discord_id]),
+                                    }]
+                                  : [{
+                                      title: 'Membres du serveur Discord',
+                                      headers: ['Pseudo Discord', 'ID Discord', 'Inscrit à la vague'],
+                                      rows: discordMembers.map((dm) => [
+                                        dm.username, dm.discord_id, vagueDiscordIds.has(dm.discord_id) ? 'Oui' : 'Non',
+                                      ]),
+                                    }]
+                              }
+                              filenamePrefix={membersViewMode === 'vague' ? 'skillup-membres-vague' : 'skillup-membres-serveur'}
+                              pdfTitle={membersViewMode === 'vague' ? 'Membres de la vague' : 'Membres du serveur Discord'}
+                            />
                           </div>
                         </div>
 
@@ -2076,6 +2201,21 @@ const SkillUp: React.FC = () => {
                               Réinitialiser
                             </button>
                           )}
+                          <div className="ml-auto">
+                            <ExportButtons
+                              tables={[{
+                                title: 'Sessions',
+                                headers: ['Date', 'Créneau', 'Membre', 'Statut', 'Salon', 'Objectif', 'Bilan', 'Blocages'],
+                                rows: sessionsFiltered.map((s) => [
+                                  formatDate(s.date), s.creneau, s.membre_nom ?? '', s.statut,
+                                  s.canal_nom ?? '', s.objectif ?? '', s.bilan ?? '', s.blocages ?? '',
+                                ]),
+                              }]}
+                              filenamePrefix="skillup-sessions"
+                              pdfTitle="Sessions SkillUp"
+                              pdfSubtitle={`${sessionsFiltered.length} session(s) — filtres actifs pris en compte`}
+                            />
+                          </div>
                         </div>
 
                         {sessionsLoading ? (
@@ -2133,13 +2273,25 @@ const SkillUp: React.FC = () => {
                           <h2 className="font-semibold text-blue-900">
                             Binômes {binomesSemaine !== null ? `— semaine ${binomesSemaine}` : ''}
                           </h2>
-                          <button
-                            type="button"
-                            onClick={openDefineBinome}
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
-                          >
-                            Définir un binôme
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={openDefineBinome}
+                              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
+                            >
+                              Définir un binôme
+                            </button>
+                            <ExportButtons
+                              tables={[{
+                                title: 'Binômes',
+                                headers: ['Membre A', 'Membre B'],
+                                rows: binomes.map((b) => [b.nom_a, b.nom_b]),
+                              }]}
+                              filenamePrefix={`skillup-binomes-semaine-${binomesSemaine ?? 'courante'}`}
+                              pdfTitle="Binômes SkillUp"
+                              pdfSubtitle={binomesSemaine !== null ? `Semaine ${binomesSemaine}` : ''}
+                            />
+                          </div>
                         </div>
 
                         {binomesLoading ? (
@@ -2219,13 +2371,24 @@ const SkillUp: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between mb-4">
                             <h2 className="font-semibold text-blue-900">Vagues</h2>
-                            <button
-                              type="button"
-                              onClick={openCreateVague}
-                              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
-                            >
-                              Créer une vague
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={openCreateVague}
+                                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
+                              >
+                                Créer une vague
+                              </button>
+                              <ExportButtons
+                                tables={[{
+                                  title: 'Vagues',
+                                  headers: ['Nom', 'Début', 'Fin', 'Statut'],
+                                  rows: vaguesAdminList.map((v) => [v.nom, v.date_debut, v.date_fin, v.statut]),
+                                }]}
+                                filenamePrefix="skillup-vagues"
+                                pdfTitle="Vagues SkillUp"
+                              />
+                            </div>
                           </div>
                           {vagueActionError && (
                             <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
@@ -2303,13 +2466,24 @@ const SkillUp: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between mb-4">
                             <h2 className="font-semibold text-blue-900">Salons de coworking</h2>
-                            <button
-                              type="button"
-                              onClick={openAddSalon}
-                              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
-                            >
-                              Rattacher un salon
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={openAddSalon}
+                                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
+                              >
+                                Rattacher un salon
+                              </button>
+                              <ExportButtons
+                                tables={[{
+                                  title: 'Salons de coworking',
+                                  headers: ['Salon', 'ID', 'Vague', 'Statut'],
+                                  rows: salonsList.map((s) => [s.canal_nom, s.canal_id, s.wave_nom, s.actif ? 'actif' : 'inactif']),
+                                }]}
+                                filenamePrefix="skillup-salons"
+                                pdfTitle="Salons de coworking SkillUp"
+                              />
+                            </div>
                           </div>
                           {salonsLoading ? (
                             <div className="py-10 flex justify-center">

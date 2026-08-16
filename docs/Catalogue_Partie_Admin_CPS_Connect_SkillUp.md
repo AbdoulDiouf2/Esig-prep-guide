@@ -98,6 +98,16 @@ C'est probablement le domaine le plus utile au quotidien pour un admin — corri
 - **Membres déjà en binôme désactivés** dans le sélecteur "Définir un binôme" — check live contre `/binomes?semaine=` de la semaine tapée.
 - **Badge "En binôme avec X"** sur l'onglet membre (exploite `partenaire_nom`, déjà renvoyé par `/binome-journal` mais jamais affiché avant).
 - **Retours à la ligne préservés** (`whitespace-pre-line`) dans les colonnes objectif/bilan/blocages, ignorés par défaut en HTML.
+- **Avatars Discord vérifiés sur les cards binômes** — ne passe pas par l'API SkillUp : la Cloud Function proxy (action `discordAvatars`) vérifie `is_admin` auprès de l'API SkillUp puis lit directement Firestore (`alumni`, `discordVerified == true`) avec les privilèges admin SDK, contourne les règles Firestore (qui ne connaissent pas la notion d'admin SkillUp). Croisé côté frontend par `discord_id`.
+- **Dashboard — sélecteur de portée par défaut sur la vague active** — au premier chargement seulement (pas d'écrasement si l'admin repasse sur "Toutes les vagues" ensuite).
+- **Dashboard — filtre semaine** ajouté (indépendant du sélecteur vague), défaut sur la semaine courante (résolue via `adminCurrentSemaineNumber`, même mécanisme que Sessions/Binômes). Sessions n'ayant pas de champ `semaine` exploitable côté client, le filtre refetch `/sessions` avec le paramètre `semaine` par vague concernée.
+- **Dashboard — chart comparaison masqué si non pertinent** : "Sessions totales par vague" (mode "Toutes les vagues") ne s'affiche plus si une seule vague a des données — message "Pas assez de vagues avec des données pour comparer" à la place.
+- **Dashboard — KPI "Binômes actifs" scopé dynamiquement** : recalculé selon la portée vague + semaine choisies (au lieu de réutiliser l'état statique du sous-onglet Binômes), avec la semaine courante comme proxy en mode "Toutes les semaines" (un binôme n'existe que pour une semaine donnée).
+- **Dashboard — statut delta et couleurs stables** : `STATUT_COLORS` (lookup + fallback gris) au lieu d'un mapping 2 couleurs codé en dur — gère n'importe quelle valeur de statut. Sous-carte "X complètes · Y incomplètes · Z autres" sous le taux de complétion.
+- **Sessions — filtres tableau** : membre, salon, créneau, statut (dropdowns, options dérivées des sessions actuellement affichées) + date (input natif), bouton "Réinitialiser". Purement client-side, la semaine/vague reste filtrée côté API en amont.
+- **Ajouter un membre — dropdown au lieu de saisie ID manuelle** : liste les membres du serveur Discord (`getSkillupDiscordMembers`), exclut ceux déjà rattachés à la vague sélectionnée, pré-remplit le nom à la sélection.
+- **`GET /sessions` — bug de troncature à 50 lignes corrigé** : `bot/db/sessions.py::list_filtered` défaut historique `limit=50` (dimensionné pour tenir dans un message Discord) était hérité tel quel côté API web. `resolve_sessions_lister` prend désormais un `limit` explicite, l'API web passe `limit=2000` (`api/routers/admin.py`) — le chemin Discord (`/sessions-lister`) garde `limit=50` par défaut, inchangé.
+- **`VITE_SKILLUP_PROXY_URL` migré en `.env`** (`VITE_SKILLUP_PROXY_URL`) au lieu d'une constante en dur dans `skillupService.ts` — même convention que les autres URLs de Cloud Functions du projet.
 
 ## 5. Gestion des salons de coworking ✅ FAIT
 
@@ -113,7 +123,7 @@ C'est probablement le domaine le plus utile au quotidien pour un admin — corri
   - API : `GET /salons` (`resolve_salons_lister`, réutilise `list_channels`).
   - Frontend : `getSkillupSalons()`, tableau (salon/ID/vague/statut) dans le sous-onglet "Vagues".
 
-**Non fait dans ce lot :** pas de picker Discord live pour choisir un salon vocal existant (`interaction.guild.voice_channels` côté bot n'a pas d'équivalent simple côté API sans client `discord.py` vivant — aurait nécessité un nouvel appel REST Discord dédié). L'admin saisit l'ID et le nom du salon à la main, en les récupérant depuis Discord (mode développeur). Usage restant ponctuel (une fois par vague, à la configuration initiale) — la saisie manuelle a été jugée suffisante plutôt que de construire un sélecteur pour un geste aussi rare.
+**Picker Discord live** ✅ FAIT (livré après ce lot, doc corrigée) — l'hypothèse initiale ("saisie manuelle suffisante") a été abandonnée. `GET /discord/voice-channels` (`api/routers/admin.py`, `get_voice_channels()` dans `api/discord_client.py`, filtre `type == 2`, cache 300s même schéma que `get_guild_members()`). Proxy : action `discordVoiceChannels`. Frontend : `getSkillupDiscordVoiceChannels()`, modale renommée "Rattacher un salon à la vague" — dropdown des salons vocaux du serveur, exclut ceux déjà rattachés (actifs) à la vague active. Ajout d'une section "Tous les salons vocaux du serveur" (lecture seule, badges rattaché/non-rattaché), distincte du tableau "Salons de coworking".
 
 ---
 
@@ -122,7 +132,7 @@ C'est probablement le domaine le plus utile au quotidien pour un admin — corri
 Des capacités qui n'existent nulle part côté bot, mais qui ont du sens **uniquement** dans un dashboard visuel :
 
 - **Vue synthétique / statistiques** ✅ FAIT — cf. Dashboard sous §4 (cartes chiffres + 4 graphiques). "Membres les moins actifs" (repérer qui décroche) pas encore isolé comme métrique dédiée — le graphique "Sessions par membre" permet de le repérer visuellement, mais pas de tri/alerte automatique.
-- **Export de données** (CSV) — mentionné comme backlog dès le cahier des charges d'origine du bot, jamais construit. Un bouton "Exporter" côté CPS Connect serait plus naturel qu'une commande Discord pour ce genre de besoin.
+- **Export de données (CSV + PDF)** ✅ FAIT — élargi au-delà du CSV initialement envisagé : bouton "Exporter" (dropdown CSV/PDF, `src/utils/tableExport.ts`, `papaparse`/`jsPDF`+`jspdf-autotable`, déjà des dépendances du projet) sur **chaque tableau** de la Vue admin (Membres — vague et serveur, Sessions, Binômes, Vagues, Salons) **et** sur le Dashboard (indicateurs + les 4 répartitions + comparaison par vague si pertinente). Respecte toujours les filtres/portée actifs au moment de l'export (scope vague, semaine, filtres membre/salon/créneau/statut du tableau Sessions) — jamais un export "toutes données" qui ignorerait ce que l'admin regarde à l'écran. Composant générique `ExportButtons` réutilisé partout, pas une implémentation par tableau.
 - **Journal d'audit des actions admin** — qui a fait quoi, quand, depuis CPS Connect. Sur Discord, la traçabilité existe implicitement (les logs des commandes restent visibles dans le salon). Depuis un dashboard web, si aucune trace n'est gardée, une action destructive (suppression de session, par exemple) devient plus difficile à investiguer après coup. À voir si c'est un vrai besoin ou une sur-ingénierie pour 8-10 utilisateurs.
 
 ---
@@ -144,7 +154,7 @@ Reprend la logique déjà discutée : une action à la fois, pas les treize d'un
 3. **Gestion des membres** (ajout/édition) ✅ FAIT — moins fréquent, mais complète le tableau de bord.
 4. **Gestion des vagues** et **salons coworking** ✅ FAIT — les plus rares, faits en dernier comme prévu.
 
-**Les 4 priorités du catalogue sont maintenant toutes livrées.** Reste hors périmètre : `/membre-lier-thread` (§2, rattrapage manuel ponctuel), picker Discord live pour les salons (§5, saisie manuelle jugée suffisante), export CSV et journal d'audit (§6, jamais évalués comme prioritaires).
+**Les 4 priorités du catalogue sont maintenant toutes livrées.** Reste hors périmètre : `/membre-lier-thread` (§2, rattrapage manuel ponctuel) et journal d'audit (§6, jamais évalué comme prioritaire). Export CSV/PDF (§6) et picker Discord live pour les salons (§5) sont désormais faits eux aussi.
 
 ---
 
