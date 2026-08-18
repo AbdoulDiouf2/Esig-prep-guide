@@ -2150,7 +2150,7 @@ const SkillUp: React.FC = () => {
                                     }]
                                   : [{
                                       title: 'Membres du serveur Discord',
-                                      headers: ['Pseudo Discord', 'ID Discord', 'Inscrit à la vague'],
+                                      headers: ['Nom', 'ID Discord', 'Inscrit à la vague'],
                                       rows: discordMembers.map((dm) => [
                                         dm.username, dm.discord_id, vagueDiscordIds.has(dm.discord_id) ? 'Oui' : 'Non',
                                       ]),
@@ -2231,7 +2231,7 @@ const SkillUp: React.FC = () => {
                             <table className="min-w-full divide-y divide-zinc-200">
                               <thead className="bg-zinc-50">
                                 <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Pseudo Discord</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Nom</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">ID Discord</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Statut</th>
                                 </tr>
