@@ -382,6 +382,13 @@ exports.skillupProxy = onRequest(
           canalNom,
           actif,
           lienOuId,
+          dateSession,
+          creneau,
+          heureDebut,
+          heureFin,
+          objectif,
+          bilan,
+          blocages,
         } = req.body || {};
 
         // Avatars Discord vérifiés (onglet Binômes, admin). Ne passe pas par l'API SkillUp —
@@ -451,6 +458,13 @@ exports.skillupProxy = onRequest(
           canalId,
           canalNom,
           lienOuId,
+          dateSession,
+          creneau,
+          heureDebut,
+          heureFin,
+          objectif,
+          bilan,
+          blocages,
         };
         const url = `${SKILLUP_API_URL.value()}${actionConfig.path(discordId, actionParams)}${queryString ? `?${queryString}` : ''}`;
 
