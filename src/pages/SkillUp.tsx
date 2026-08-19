@@ -1256,16 +1256,8 @@ const SkillUp: React.FC = () => {
 
   const handleCreateSession = useCallback(async () => {
     const creneauFinal = createSessionCreneau === '__autre__' ? createSessionCreneauAutre.trim() : createSessionCreneau;
-    if (
-      !createSessionDiscordId ||
-      !createSessionDate ||
-      !creneauFinal ||
-      !createSessionHeureDebut ||
-      !createSessionHeureFin ||
-      !createSessionObjectif.trim() ||
-      !createSessionBilan.trim()
-    ) {
-      setCreateSessionError('Membre, date, créneau, heures, objectif et bilan sont obligatoires.');
+    if (!createSessionDiscordId || !createSessionDate || !creneauFinal || !createSessionHeureDebut) {
+      setCreateSessionError('Membre, date, créneau et heure de début sont obligatoires.');
       return;
     }
     setCreateSessionSaving(true);
@@ -1277,15 +1269,18 @@ const SkillUp: React.FC = () => {
         createSessionDate,
         creneauFinal,
         createSessionHeureDebut,
-        createSessionHeureFin,
-        createSessionObjectif.trim(),
-        createSessionBilan.trim(),
+        createSessionHeureFin.trim() || undefined,
+        createSessionObjectif.trim() || undefined,
+        createSessionBilan.trim() || undefined,
         canal?.canal_id,
         canal?.canal_nom,
         createSessionBlocages.trim() || undefined,
         vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
       );
-      await loadSessionsFiltered();
+      await loadSessionsFiltered(
+        sessionsSelectedSemaine ?? adminCurrentSemaineNumber ?? undefined,
+        vagueParamFor(adminSelectedVague)
+      );
       await loadAllSessions(vagueParamFor(adminSelectedVague));
       setCreateSessionSuccess({ id: 'id' in result ? result.id : 0 });
     } catch (err) {
@@ -1307,6 +1302,8 @@ const SkillUp: React.FC = () => {
     salonsList,
     adminSelectedVague,
     vagueParamFor,
+    sessionsSelectedSemaine,
+    adminCurrentSemaineNumber,
     loadSessionsFiltered,
     loadAllSessions,
   ]);
@@ -3352,7 +3349,7 @@ const SkillUp: React.FC = () => {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Membre</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Membre <span className="text-red-500">*</span></label>
                     <select
                       value={createSessionDiscordId}
                       onChange={(e) => setCreateSessionDiscordId(e.target.value)}
@@ -3380,7 +3377,7 @@ const SkillUp: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Date</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Date <span className="text-red-500">*</span></label>
                     <input
                       type="date"
                       value={createSessionDate}
@@ -3389,7 +3386,7 @@ const SkillUp: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Créneau</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Créneau <span className="text-red-500">*</span></label>
                     <select
                       value={createSessionCreneau}
                       onChange={(e) => setCreateSessionCreneau(e.target.value)}
@@ -3413,7 +3410,7 @@ const SkillUp: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure début</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure début <span className="text-red-500">*</span></label>
                     <input
                       type="time"
                       value={createSessionHeureDebut}
@@ -3422,7 +3419,7 @@ const SkillUp: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure fin</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure fin (optionnel)</label>
                     <input
                       type="time"
                       value={createSessionHeureFin}
@@ -3432,7 +3429,7 @@ const SkillUp: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">Objectif</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Objectif (optionnel)</label>
                   <textarea
                     value={createSessionObjectif}
                     onChange={(e) => setCreateSessionObjectif(e.target.value)}
@@ -3441,7 +3438,7 @@ const SkillUp: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">Bilan</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Bilan (optionnel — sinon statut "incomplète")</label>
                   <textarea
                     value={createSessionBilan}
                     onChange={(e) => setCreateSessionBilan(e.target.value)}
