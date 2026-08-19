@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { Column, Bar, Pie } from '@ant-design/plots';
-import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download, Link2 } from 'lucide-react';
+import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download, Link2, Clock } from 'lucide-react';
 import { exportTablesToCSV, exportTablesToPDF, type ExportTable } from '../utils/tableExport';
 import {
   getSkillupAccess,
@@ -17,6 +17,7 @@ import {
   defineSkillupBinome,
   removeSkillupBinome,
   addSkillupMember,
+  createSkillupSession,
   editSkillupMember,
   getSkillupDiscordMembers,
   getSkillupVaguesAdmin,
@@ -66,6 +67,11 @@ interface SkillupMember {
 }
 
 const SKILLUP_PROFILS: SkillupProfil[] = ['étudiant', "demandeur d'emploi", 'cadre', 'alternant', 'autre'];
+const SKILLUP_CRENEAUX = ['5h-7h', '19h-21h', '21h-23h'];
+// Tri numérique par heure de début — un tri alphabétique classerait "19h-21h" avant
+// "5h-7h" (comparaison de chaînes), ce qui n'a aucun sens pour des horaires.
+const sortCreneaux = (creneaux: string[]) =>
+  [...creneaux].sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
 
 // Couleurs fixes pour les statuts connus du donut "Répartition par statut" — tout statut
 // inattendu (fallback géré au niveau de l'appel) reste visible en gris plutôt que de casser
@@ -391,7 +397,7 @@ const SkillUp: React.FC = () => {
     [sessions]
   );
   const sessionsCreneauxOptions = useMemo(
-    () => Array.from(new Set(sessions.map((s) => s.creneau).filter((v): v is string => Boolean(v)))).sort(),
+    () => sortCreneaux(Array.from(new Set(sessions.map((s) => s.creneau).filter((v): v is string => Boolean(v))))),
     [sessions]
   );
   const sessionsStatutsOptions = useMemo(
@@ -656,6 +662,23 @@ const SkillUp: React.FC = () => {
   const [allSessions, setAllSessions] = useState<SkillupSession[]>([]);
   const [allSessionsError, setAllSessionsError] = useState('');
   const [allSessionsLoading, setAllSessionsLoading] = useState(false);
+
+  // Tous les créneaux déjà vus en base (toutes vagues/semaines chargées) + les créneaux
+  // standards — le rattrapage doit pouvoir réutiliser un créneau historique hors liste
+  // fixe (ex. "17h-19h") sans forcer une saisie manuelle à chaque fois.
+  const createSessionCreneauOptions = useMemo(
+    () =>
+      sortCreneaux(
+        Array.from(
+          new Set([
+            ...SKILLUP_CRENEAUX,
+            ...allSessions.map((s) => s.creneau),
+            ...sessions.map((s) => s.creneau),
+          ].filter((v): v is string => Boolean(v)))
+        )
+      ),
+    [allSessions, sessions]
+  );
 
   const [sessionsSelectedSemaine, setSessionsSelectedSemaine] = useState<number | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -1192,6 +1215,98 @@ const SkillUp: React.FC = () => {
       setAddSaving(false);
     }
   }, [addDiscordId, addNom, addProfil, addCertif, adminSelectedVague, vagueParamFor, loadMembers]);
+
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [createSessionDiscordId, setCreateSessionDiscordId] = useState('');
+  const [createSessionDate, setCreateSessionDate] = useState('');
+  const [createSessionCreneau, setCreateSessionCreneau] = useState<string>(SKILLUP_CRENEAUX[0]);
+  const [createSessionCreneauAutre, setCreateSessionCreneauAutre] = useState('');
+  const [createSessionHeureDebut, setCreateSessionHeureDebut] = useState('');
+  const [createSessionHeureFin, setCreateSessionHeureFin] = useState('');
+  const [createSessionObjectif, setCreateSessionObjectif] = useState('');
+  const [createSessionBilan, setCreateSessionBilan] = useState('');
+  const [createSessionBlocages, setCreateSessionBlocages] = useState('');
+  const [createSessionCanalId, setCreateSessionCanalId] = useState('');
+  const [createSessionSaving, setCreateSessionSaving] = useState(false);
+  const [createSessionError, setCreateSessionError] = useState('');
+  const [createSessionSuccess, setCreateSessionSuccess] = useState<{ id: number } | null>(null);
+
+  const openCreateSession = useCallback(() => {
+    setCreatingSession(true);
+    setCreateSessionDiscordId('');
+    setCreateSessionDate('');
+    setCreateSessionCreneau(SKILLUP_CRENEAUX[0]);
+    setCreateSessionCreneauAutre('');
+    setCreateSessionHeureDebut('');
+    setCreateSessionHeureFin('');
+    setCreateSessionObjectif('');
+    setCreateSessionBilan('');
+    setCreateSessionBlocages('');
+    setCreateSessionCanalId('');
+    setCreateSessionError('');
+    setCreateSessionSuccess(null);
+    if (!salonsLoaded) {
+      loadSalonsAdmin();
+      setSalonsLoaded(true);
+    }
+  }, [salonsLoaded, loadSalonsAdmin]);
+
+  const handleCreateSession = useCallback(async () => {
+    const creneauFinal = createSessionCreneau === '__autre__' ? createSessionCreneauAutre.trim() : createSessionCreneau;
+    if (
+      !createSessionDiscordId ||
+      !createSessionDate ||
+      !creneauFinal ||
+      !createSessionHeureDebut ||
+      !createSessionHeureFin ||
+      !createSessionObjectif.trim() ||
+      !createSessionBilan.trim()
+    ) {
+      setCreateSessionError('Membre, date, créneau, heures, objectif et bilan sont obligatoires.');
+      return;
+    }
+    setCreateSessionSaving(true);
+    setCreateSessionError('');
+    try {
+      const canal = salonsList.find((s) => s.canal_id === createSessionCanalId);
+      const result = await createSkillupSession(
+        createSessionDiscordId,
+        createSessionDate,
+        creneauFinal,
+        createSessionHeureDebut,
+        createSessionHeureFin,
+        createSessionObjectif.trim(),
+        createSessionBilan.trim(),
+        canal?.canal_id,
+        canal?.canal_nom,
+        createSessionBlocages.trim() || undefined,
+        vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
+      );
+      await loadSessionsFiltered();
+      await loadAllSessions(vagueParamFor(adminSelectedVague));
+      setCreateSessionSuccess({ id: 'id' in result ? result.id : 0 });
+    } catch (err) {
+      setCreateSessionError(errorMessage(err));
+    } finally {
+      setCreateSessionSaving(false);
+    }
+  }, [
+    createSessionDiscordId,
+    createSessionDate,
+    createSessionCreneau,
+    createSessionCreneauAutre,
+    createSessionHeureDebut,
+    createSessionHeureFin,
+    createSessionObjectif,
+    createSessionBilan,
+    createSessionBlocages,
+    createSessionCanalId,
+    salonsList,
+    adminSelectedVague,
+    vagueParamFor,
+    loadSessionsFiltered,
+    loadAllSessions,
+  ]);
 
   const [editingMember, setEditingMember] = useState<SkillupMember | null>(null);
   const [editMemberChamp, setEditMemberChamp] = useState<SkillupMembreChamp>('profil');
@@ -2359,7 +2474,14 @@ const SkillUp: React.FC = () => {
                               Réinitialiser
                             </button>
                           )}
-                          <div className="ml-auto">
+                          <div className="ml-auto flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={openCreateSession}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition-colors"
+                            >
+                              <Clock className="w-4 h-4" /> Créer une session
+                            </button>
                             <ExportButtons
                               tables={[{
                                 title: 'Sessions',
@@ -3169,6 +3291,170 @@ const SkillUp: React.FC = () => {
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {addSaving ? 'Ajout...' : 'Ajouter'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {creatingSession && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Créer une session (rattrapage)
+              </h2>
+              <button onClick={() => setCreatingSession(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {createSessionSuccess ? (
+              <div className="px-6 py-5 space-y-4">
+                <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+                  Session #{createSessionSuccess.id} créée.
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreatingSession(false)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-5 space-y-4">
+                {createSessionError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {createSessionError}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Membre</label>
+                    <select
+                      value={createSessionDiscordId}
+                      onChange={(e) => setCreateSessionDiscordId(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {members.map((m) => (
+                        <option key={m.discord_id} value={m.discord_id}>{m.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Salon (optionnel)</label>
+                    <select
+                      value={createSessionCanalId}
+                      onChange={(e) => setCreateSessionCanalId(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Aucun</option>
+                      {salonsList.filter((s) => s.actif).map((s) => (
+                        <option key={s.canal_id} value={s.canal_id}>{s.canal_nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={createSessionDate}
+                      onChange={(e) => setCreateSessionDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Créneau</label>
+                    <select
+                      value={createSessionCreneau}
+                      onChange={(e) => setCreateSessionCreneau(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {createSessionCreneauOptions.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      <option value="__autre__">Autre...</option>
+                    </select>
+                    {createSessionCreneau === '__autre__' && (
+                      <input
+                        type="text"
+                        value={createSessionCreneauAutre}
+                        onChange={(e) => setCreateSessionCreneauAutre(e.target.value)}
+                        placeholder="Ex: 17h-19h"
+                        className="w-full mt-2 px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure début</label>
+                    <input
+                      type="time"
+                      value={createSessionHeureDebut}
+                      onChange={(e) => setCreateSessionHeureDebut(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Heure fin</label>
+                    <input
+                      type="time"
+                      value={createSessionHeureFin}
+                      onChange={(e) => setCreateSessionHeureFin(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Objectif</label>
+                  <textarea
+                    value={createSessionObjectif}
+                    onChange={(e) => setCreateSessionObjectif(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Bilan</label>
+                  <textarea
+                    value={createSessionBilan}
+                    onChange={(e) => setCreateSessionBilan(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Blocages (optionnel)</label>
+                  <textarea
+                    value={createSessionBlocages}
+                    onChange={(e) => setCreateSessionBlocages(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreatingSession(false)}
+                    className="px-4 py-2 text-sm text-gray-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateSession}
+                    disabled={createSessionSaving}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {createSessionSaving ? 'Création...' : 'Créer'}
                   </button>
                 </div>
               </div>

@@ -32,7 +32,8 @@ export type SkillupAction =
   | 'objectifVagueDefinir'
   | 'sessionCorrigerSelf'
   | 'sessionSupprimerSelf'
-  | 'membreLierThread';
+  | 'membreLierThread'
+  | 'sessionCreer';
 
 export type SkillupSessionChamp = 'objectif' | 'bilan' | 'blocages' | 'creneau';
 export type SkillupMembreChamp = 'nom' | 'profil' | 'certif_ou_projet' | 'objectif_vague';
@@ -56,6 +57,18 @@ export interface SkillupLinkStatus {
 export interface SkillupBinomeAction {
   message: string;
   dm_echecs: string[];
+}
+
+export interface SkillupSessionCreerResult {
+  id: number;
+  date: string;
+  creneau: string;
+  statut: string;
+  debut: string;
+  fin: string | null;
+  objectif: string;
+  bilan: string | null;
+  blocages: string | null;
 }
 
 export interface SkillupMembreAjouterResult {
@@ -123,6 +136,13 @@ async function callSkillupProxy<T>(
     canalNom?: string;
     actif?: string;
     lienOuId?: string;
+    dateSession?: string;
+    creneau?: string;
+    heureDebut?: string;
+    heureFin?: string;
+    objectif?: string;
+    bilan?: string;
+    blocages?: string;
   }
 ): Promise<T | SkillupLinkStatus> {
   if (!auth.currentUser) {
@@ -229,6 +249,38 @@ export const removeSkillupBinome = (semaine: number, membreDiscordId: string, va
   callSkillupProxy<SkillupBinomeAction>('binomeRetirer', {
     semaine: String(semaine),
     membreDiscordId,
+    vague,
+  });
+
+/**
+ * Crée une session déjà clôturée pour un membre (admin uniquement) — rattrapage
+ * pour couvrir une séance qui n'a pas pu être saisie par le membre lui-même
+ * (ex. avant l'arrivée du bot sur le serveur).
+ */
+export const createSkillupSession = (
+  discordId: string,
+  dateSession: string,
+  creneau: string,
+  heureDebut: string,
+  heureFin: string,
+  objectif: string,
+  bilan: string,
+  canalId?: string,
+  canalNom?: string,
+  blocages?: string,
+  vague?: string
+) =>
+  callSkillupProxy<SkillupSessionCreerResult>('sessionCreer', {
+    membreDiscordId: discordId,
+    dateSession,
+    creneau,
+    heureDebut,
+    heureFin,
+    objectif,
+    bilan,
+    canalId,
+    canalNom,
+    blocages,
     vague,
   });
 

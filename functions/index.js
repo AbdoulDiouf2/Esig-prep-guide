@@ -258,6 +258,23 @@ const SKILLUP_ACTIONS = {
     method: 'DELETE',
     path: () => '/binomes',
   },
+  sessionCreer: {
+    method: 'POST',
+    path: () => '/sessions',
+    body: (params) => ({
+      discord_id: params.membreDiscordId,
+      date_session: params.dateSession,
+      creneau: params.creneau,
+      heure_debut: params.heureDebut,
+      heure_fin: params.heureFin,
+      objectif: params.objectif,
+      bilan: params.bilan,
+      canal_id: params.canalId || null,
+      canal_nom: params.canalNom || null,
+      blocages: params.blocages || null,
+      ...(params.vague ? { vague: Number(params.vague) } : {}),
+    }),
+  },
   membreAjouter: {
     method: 'POST',
     path: () => '/members',
