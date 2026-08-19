@@ -360,6 +360,7 @@ const SkillUp: React.FC = () => {
   const [binomeJournal, setBinomeJournal] = useState<SkillupSession[]>([]);
   const [binomeJournalError, setBinomeJournalError] = useState('');
   const [binomePartnerName, setBinomePartnerName] = useState<string | null>(null);
+  const [binomePartnerDiscordId, setBinomePartnerDiscordId] = useState<string | null>(null);
   const [bilan, setBilan] = useState<SkillupBilan | null>(null);
   const [bilanError, setBilanError] = useState('');
 
@@ -751,16 +752,18 @@ const SkillUp: React.FC = () => {
     if (binomeRes.status === 'fulfilled') {
       setBinomeJournal(extractList<SkillupSession>(binomeRes.value, 'sessions'));
       setBinomeJournalError('');
-      const partenaire =
-        binomeRes.value && typeof binomeRes.value === 'object' && 'partenaire_nom' in binomeRes.value
-          ? (binomeRes.value as { partenaire_nom: string }).partenaire_nom
-          : null;
+      const isBinomeShape = (v: unknown): v is { partenaire_nom: string; partenaire_discord_id?: string } =>
+        Boolean(v && typeof v === 'object' && 'partenaire_nom' in v);
+      const partenaire = isBinomeShape(binomeRes.value) ? binomeRes.value.partenaire_nom : null;
+      const partenaireId = isBinomeShape(binomeRes.value) ? binomeRes.value.partenaire_discord_id ?? null : null;
       setBinomePartnerName(partenaire);
+      setBinomePartnerDiscordId(partenaireId);
     } else {
       setBinomeJournal([]);
       setBinomeJournalError(errorMessage(binomeRes.reason));
       // Pas de binôme cette semaine (ou erreur) : pas de partenaire à afficher.
       setBinomePartnerName(null);
+      setBinomePartnerDiscordId(null);
     }
 
     if (bilanRes.status === 'fulfilled') {
@@ -1718,7 +1721,11 @@ const SkillUp: React.FC = () => {
       if (accessResult.is_admin) {
         setAdminSelectedVague(activeVagueId);
         await loadAdminForVague();
-        // Avatars Discord vérifiés (onglet Binômes) — échec silencieux, fallback aux initiales.
+      }
+
+      if (accessResult.is_participant || accessResult.is_admin) {
+        // Avatars Discord vérifiés (onglet Binômes admin + carte binôme self-service) —
+        // échec silencieux, fallback aux initiales.
         getSkillupDiscordAvatars()
           .then((res) => setDiscordAvatars(('avatars' in res && res.avatars) || {}))
           .catch(() => setDiscordAvatars({}));
@@ -1946,12 +1953,23 @@ const SkillUp: React.FC = () => {
             </div>
 
             <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-3">
                 <h2 className="font-semibold text-blue-900">Journal de mon binôme</h2>
                 {!participantLoading && binomePartnerName && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    <Users className="w-3 h-3" /> En binôme avec {binomePartnerName}
-                  </span>
+                  <div className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-gradient-to-br from-blue-50 to-purple-50 border border-zinc-200">
+                    {discordAvatars[binomePartnerDiscordId ?? ''] ? (
+                      <img
+                        src={discordAvatars[binomePartnerDiscordId ?? '']}
+                        alt={binomePartnerName}
+                        className="w-7 h-7 rounded-full object-cover shadow-sm"
+                      />
+                    ) : (
+                      <div className={`w-7 h-7 rounded-full ${avatarColor(0)} text-white flex items-center justify-center text-[11px] font-semibold shadow-sm`}>
+                        {getInitials(binomePartnerName)}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-zinc-900">{binomePartnerName}</span>
+                  </div>
                 )}
               </div>
               {participantLoading ? (

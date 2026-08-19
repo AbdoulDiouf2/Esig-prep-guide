@@ -398,7 +398,10 @@ exports.skillupProxy = onRequest(
             return;
           }
           const accessData = await accessCheck.json();
-          if (!accessData.is_admin) {
+          // Avatars Discord = infos publiques (déjà visibles à quiconque est sur le
+          // serveur) — accessible à tout participant SkillUp, pas seulement aux admins
+          // (sert aussi à afficher l'avatar du binôme en vue self-service).
+          if (!accessData.is_participant && !accessData.is_admin) {
             res.status(403).send({ error: 'Forbidden' });
             return;
           }
