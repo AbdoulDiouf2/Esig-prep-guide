@@ -1129,6 +1129,15 @@ const SkillUp: React.FC = () => {
   }, [bilanMembreDiscordId, bilanSemaineNum, bilanEffectiveVagueId]);
 
   useEffect(() => {
+    if (!bilanMembreDiscordId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBilanMembreDiscordId('');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [bilanMembreDiscordId]);
+
+  useEffect(() => {
     loadBilansSemaineAll(bilanSemaineNum);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bilanSemaineNum, bilanEffectiveVagueId]);
@@ -3170,7 +3179,7 @@ const SkillUp: React.FC = () => {
                                   {bilansSemaineAll.map((b) => (
                                     <tr key={b.discord_id} className={`hover:bg-zinc-50 ${b.discord_id === bilanMembreDiscordId ? 'bg-blue-50/50' : ''}`}>
                                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-zinc-900">{b.nom}</td>
-                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-md truncate">
+                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-md whitespace-pre-line">
                                         {b.texte ? b.texte : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
@@ -3199,8 +3208,14 @@ const SkillUp: React.FC = () => {
       </div>
 
       {bilanMembreDiscordId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => setBilanMembreDiscordId('')}
+        >
+          <div
+            className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-white">
               <h2 className="text-base font-semibold text-blue-900">
                 {members.find((m) => m.discord_id === bilanMembreDiscordId)?.nom ?? 'Membre'}
