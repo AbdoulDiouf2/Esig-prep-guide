@@ -210,23 +210,23 @@ const SKILLUP_ACTIONS = {
   // car l'appelant est admin, même si la cible n'est pas lui). Sert à alimenter le
   // panneau "à copier" du bilan hebdo/vague admin, pas à pré-remplir automatiquement.
   bilanInfoAdmin: { method: 'GET', path: (discordId, p) => `/members/${p.membreDiscordId}/bilan` },
-  bilansSemaineListerAdmin: { method: 'GET', path: () => '/admin/bilans-semaine' },
+  bilansSemaineListerAdmin: { method: 'GET', path: () => '/bilans-semaine' },
   bilanSemaineLire: {
     method: 'GET',
-    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-semaine`,
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,
   },
   bilanSemaineEcrire: {
     method: 'PUT',
-    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-semaine`,
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,
     body: (params) => ({ valeur: params.valeur }),
   },
   bilanVagueLire: {
     method: 'GET',
-    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-vague`,
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-vague`,
   },
   bilanVagueEcrire: {
     method: 'PUT',
-    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-vague`,
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-vague`,
     body: (params) => ({ valeur: params.valeur }),
   },
   members: { method: 'GET', path: () => '/members' },

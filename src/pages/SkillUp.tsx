@@ -985,6 +985,15 @@ const SkillUp: React.FC = () => {
   // texte libre, l'admin rédige lui-même.
   const [bilanMembreDiscordId, setBilanMembreDiscordId] = useState('');
   const [bilanSemaineNum, setBilanSemaineNum] = useState(1);
+  // Se cale une seule fois sur la semaine courante de la vague dès qu'elle est connue
+  // (même pattern que dashboardSemaineDefaulted) — évite d'afficher "semaine 1" par
+  // défaut alors que la vague en est à sa semaine 4.
+  const bilanSemaineDefaulted = useRef(false);
+  useEffect(() => {
+    if (bilanSemaineDefaulted.current || adminCurrentSemaineNumber === null) return;
+    bilanSemaineDefaulted.current = true;
+    setBilanSemaineNum(adminCurrentSemaineNumber);
+  }, [adminCurrentSemaineNumber]);
 
   const [bilanInfoSemaine, setBilanInfoSemaine] = useState<SkillupBilanInfo | null>(null);
   const [bilanInfoSemaineLoading, setBilanInfoSemaineLoading] = useState(false);
