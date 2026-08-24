@@ -2578,8 +2578,11 @@ const SkillUp: React.FC = () => {
                                 membersViewMode === 'vague'
                                   ? [{
                                       title: 'Membres de la vague',
-                                      headers: ['Nom', 'Profil', 'Certification / Projet', 'Objectif de vague', 'ID Discord'],
-                                      rows: members.map((m) => [m.nom, m.profil, m.certif_ou_projet ?? '', m.objectif_vague ?? '', m.discord_id]),
+                                      headers: ['Nom', 'Profil', 'Certification / Projet', 'Objectif de vague', 'Post objectif rattaché', 'ID Discord'],
+                                      rows: members.map((m) => [
+                                        m.nom, m.profil, m.certif_ou_projet ?? '', m.objectif_vague ?? '',
+                                        m.thread_objectif_id ?? '', m.discord_id,
+                                      ]),
                                     }]
                                   : [{
                                       title: 'Membres du serveur Discord',
@@ -2648,6 +2651,7 @@ const SkillUp: React.FC = () => {
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Profil</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Certification / Projet</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Objectif de vague</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Post objectif</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">ID Discord</th>
                                     <th className="px-4 py-2 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
                                   </tr>
@@ -2664,6 +2668,20 @@ const SkillUp: React.FC = () => {
                                       <td className="px-4 py-3 text-sm text-zinc-700">{member.certif_ou_projet || '—'}</td>
                                       <td className="px-4 py-3 text-sm text-zinc-700 max-w-sm whitespace-pre-line">
                                         {member.objectif_vague ? member.objectif_vague : <span className="text-zinc-400 italic">Non défini</span>}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        {member.thread_objectif_id ? (
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="inline-flex items-center w-fit px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                              Rattaché
+                                            </span>
+                                            <span className="text-xs font-mono text-zinc-400">{member.thread_objectif_id}</span>
+                                          </div>
+                                        ) : (
+                                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-600">
+                                            Non rattaché
+                                          </span>
+                                        )}
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-xs font-mono text-zinc-400">{member.discord_id}</td>
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
