@@ -3270,6 +3270,7 @@ const SkillUp: React.FC = () => {
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Début</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Fin</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Statut</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Bilan collectif</th>
                                     <th className="px-4 py-2 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
                                   </tr>
                                 </thead>
@@ -3292,35 +3293,45 @@ const SkillUp: React.FC = () => {
                                           {v.statut}
                                         </span>
                                       </td>
-                                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                                        {v.statut === 'brouillon' && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleActivateVague(v.id)}
-                                            disabled={vagueActionLoadingId === v.id}
-                                            className="px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
-                                          >
-                                            {vagueActionLoadingId === v.id ? '...' : 'Activer'}
-                                          </button>
-                                        )}
-                                        {v.statut === 'active' && (
-                                          <button
-                                            type="button"
-                                            onClick={() => { setClosingVague(v); setCloseVagueError(''); }}
-                                            className="px-2.5 py-1 text-xs font-medium text-red-700 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
-                                          >
-                                            Clôturer
-                                          </button>
-                                        )}
+                                      <td className="px-4 py-3 whitespace-nowrap">
                                         <button
                                           type="button"
                                           onClick={() => openLinkThreadVague(v)}
-                                          className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-blue-700 transition-colors"
-                                          aria-label={`Rattacher le thread de bilan collectif de ${v.nom}`}
-                                          title={v.thread_bilan_collectif_id ? 'Thread de bilan collectif rattaché' : 'Rattacher le thread de bilan collectif'}
+                                          className="group inline-flex items-center gap-1.5"
                                         >
-                                          <Link2 className={`w-4 h-4 ${v.thread_bilan_collectif_id ? 'text-green-600' : ''}`} />
+                                          {v.thread_bilan_collectif_id ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 group-hover:bg-green-200 transition-colors">
+                                              <Link2 className="w-3 h-3" /> Rattaché
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200 transition-colors">
+                                              <Link2 className="w-3 h-3" /> Non rattaché
+                                            </span>
+                                          )}
                                         </button>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          {v.statut === 'brouillon' && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleActivateVague(v.id)}
+                                              disabled={vagueActionLoadingId === v.id}
+                                              className="px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                                            >
+                                              {vagueActionLoadingId === v.id ? '...' : 'Activer'}
+                                            </button>
+                                          )}
+                                          {v.statut === 'active' && (
+                                            <button
+                                              type="button"
+                                              onClick={() => { setClosingVague(v); setCloseVagueError(''); }}
+                                              className="px-2.5 py-1 text-xs font-medium text-red-700 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                                            >
+                                              Clôturer
+                                            </button>
+                                          )}
+                                        </div>
                                       </td>
                                     </tr>
                                   ))}
