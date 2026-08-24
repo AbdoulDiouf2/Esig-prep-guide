@@ -1044,6 +1044,8 @@ const SkillUp: React.FC = () => {
   const [bilanSemaineLoading, setBilanSemaineLoading] = useState(false);
   const [bilanSemaineSaving, setBilanSemaineSaving] = useState(false);
   const [bilanSemaineError, setBilanSemaineError] = useState('');
+  const [bilanSemainePoster, setBilanSemainePoster] = useState(true);
+  const [bilanSemainePosteResult, setBilanSemainePosteResult] = useState<boolean | null>(null);
 
   const [bilanVagueTexte, setBilanVagueTexte] = useState('');
   const [bilanVagueLoading, setBilanVagueLoading] = useState(false);
@@ -1080,6 +1082,7 @@ const SkillUp: React.FC = () => {
       setBilanInfoSemaineLoading(true);
       setBilanSemaineLoading(true);
       setBilanSemaineError('');
+      setBilanSemainePosteResult(null);
       try {
         const [info, texte] = await Promise.all([
           getSkillupBilanInfoAdmin(discordId, String(bilanEffectiveVagueId), String(semaine)),
@@ -1147,15 +1150,23 @@ const SkillUp: React.FC = () => {
     if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
     setBilanSemaineSaving(true);
     setBilanSemaineError('');
+    setBilanSemainePosteResult(null);
     try {
-      await setSkillupBilanSemaine(bilanMembreDiscordId, String(bilanEffectiveVagueId), String(bilanSemaineNum), bilanSemaineTexte);
+      const res = await setSkillupBilanSemaine(
+        bilanMembreDiscordId,
+        String(bilanEffectiveVagueId),
+        String(bilanSemaineNum),
+        bilanSemaineTexte,
+        bilanSemainePoster
+      );
+      setBilanSemainePosteResult(bilanSemainePoster ? res.poste_discord ?? false : null);
       loadBilansSemaineAll(bilanSemaineNum);
     } catch (err) {
       setBilanSemaineError(errorMessage(err));
     } finally {
       setBilanSemaineSaving(false);
     }
-  }, [bilanMembreDiscordId, bilanSemaineNum, bilanSemaineTexte, bilanEffectiveVagueId, loadBilansSemaineAll]);
+  }, [bilanMembreDiscordId, bilanSemaineNum, bilanSemaineTexte, bilanEffectiveVagueId, bilanSemainePoster, loadBilansSemaineAll]);
 
   const handleSaveBilanVague = useCallback(async () => {
     if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
@@ -3414,6 +3425,17 @@ const SkillUp: React.FC = () => {
                 {bilanSemaineError && (
                   <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanSemaineError}</div>
                 )}
+                {bilanSemainePosteResult !== null && (
+                  bilanSemainePosteResult ? (
+                    <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+                      Bilan posté dans le post objectif Discord du membre.
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
+                      Bilan enregistré, mais pas posté sur Discord (pas de post objectif rattaché, ou échec du post).
+                    </div>
+                  )
+                )}
                 <textarea
                   value={bilanSemaineTexte}
                   onChange={(e) => setBilanSemaineTexte(e.target.value)}
@@ -3422,6 +3444,15 @@ const SkillUp: React.FC = () => {
                   placeholder="Bilan de la semaine — rédigé à la main par l'admin."
                   className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <label className="flex items-center gap-2 text-sm text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={bilanSemainePoster}
+                    onChange={(e) => setBilanSemainePoster(e.target.checked)}
+                    className="rounded border-zinc-300 text-blue-700 focus:ring-blue-500"
+                  />
+                  Poster ce bilan dans le post objectif Discord du membre
+                </label>
                 <div className="flex justify-end">
                   <button
                     type="button"

@@ -153,6 +153,7 @@ async function callSkillupProxy<T>(
     objectif?: string;
     bilan?: string;
     blocages?: string;
+    poster?: string;
   }
 ): Promise<T | SkillupLinkStatus> {
   if (!auth.currentUser) {
@@ -228,6 +229,7 @@ export interface SkillupBilanTexte {
   texte: string;
   ecrit_par_discord_id: string;
   updated_at: string;
+  poste_discord?: boolean | null;
 }
 
 export interface SkillupBilanMembre {
@@ -251,8 +253,13 @@ export const getSkillupBilansSemaineAdmin = (semaine: string, vague?: string) =>
 export const getSkillupBilanSemaine = (membreDiscordId: string, vague: string, semaine: string) =>
   callSkillupProxy<SkillupBilanTexte | null>('bilanSemaineLire', { membreDiscordId, vague, semaine });
 
-export const setSkillupBilanSemaine = (membreDiscordId: string, vague: string, semaine: string, valeur: string) =>
-  callSkillupProxy<SkillupBilanTexte>('bilanSemaineEcrire', { membreDiscordId, vague, semaine, valeur });
+export const setSkillupBilanSemaine = (
+  membreDiscordId: string,
+  vague: string,
+  semaine: string,
+  valeur: string,
+  poster: boolean = true
+) => callSkillupProxy<SkillupBilanTexte>('bilanSemaineEcrire', { membreDiscordId, vague, semaine, valeur, poster: String(poster) });
 
 /** Bilan de synthèse de vague rédigé à la main par l'admin pour un membre. */
 export const getSkillupBilanVague = (membreDiscordId: string, vague: string) =>

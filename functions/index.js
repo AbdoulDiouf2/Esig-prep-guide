@@ -218,7 +218,7 @@ const SKILLUP_ACTIONS = {
   bilanSemaineEcrire: {
     method: 'PUT',
     path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,
-    body: (params) => ({ valeur: params.valeur }),
+    body: (params) => ({ valeur: params.valeur, poster: params.poster !== 'false' }),
   },
   bilanVagueLire: {
     method: 'GET',
@@ -422,6 +422,7 @@ exports.skillupProxy = onRequest(
           objectif,
           bilan,
           blocages,
+          poster,
         } = req.body || {};
 
         // Avatars Discord vérifiés (onglet Binômes, admin). Ne passe pas par l'API SkillUp —
@@ -498,6 +499,7 @@ exports.skillupProxy = onRequest(
           objectif,
           bilan,
           blocages,
+          poster,
         };
         const url = `${SKILLUP_API_URL.value()}${actionConfig.path(discordId, actionParams)}${queryString ? `?${queryString}` : ''}`;
 
