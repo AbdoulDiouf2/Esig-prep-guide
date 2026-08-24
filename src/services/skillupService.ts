@@ -305,6 +305,8 @@ export interface SkillupAiSettings {
   model: string;
   updated_by_discord_id: string | null;
   updated_at: string | null;
+  /** Providers dont une clé API est présente sur le serveur (jamais la clé elle-même). */
+  configured_providers: SkillupAiProvider[];
 }
 
 export const getSkillupAiSettings = () => callSkillupProxy<SkillupAiSettings>('aiSettingsLire');

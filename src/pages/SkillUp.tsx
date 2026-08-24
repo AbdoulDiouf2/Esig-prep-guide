@@ -3539,9 +3539,26 @@ const SkillUp: React.FC = () => {
                                   disabled={!aiSettingsForm.enabled}
                                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                                 >
-                                  <option value="anthropic">Anthropic (Claude)</option>
-                                  <option value="groq">Groq</option>
+                                  <option value="anthropic">
+                                    Anthropic (Claude) {aiSettings && !aiSettings.configured_providers.includes('anthropic') ? '— clé non configurée' : ''}
+                                  </option>
+                                  <option value="groq">
+                                    Groq {aiSettings && !aiSettings.configured_providers.includes('groq') ? '— clé non configurée' : ''}
+                                  </option>
                                 </select>
+                                {aiSettings && (
+                                  <p className="mt-1 text-xs text-zinc-500">
+                                    Clés API configurées sur le serveur : {aiSettings.configured_providers.length > 0
+                                      ? aiSettings.configured_providers.join(', ')
+                                      : 'aucune'}
+                                  </p>
+                                )}
+                                {aiSettings && !aiSettings.configured_providers.includes(aiSettingsForm.provider) && (
+                                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-xs">
+                                    Aucune clé API n'est configurée pour ce provider sur le serveur (`.env`) — la
+                                    génération échouera tant qu'elle n'est pas ajoutée.
+                                  </div>
+                                )}
                               </div>
 
                               <div>
