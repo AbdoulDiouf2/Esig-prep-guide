@@ -40,6 +40,9 @@ import {
   getSkillupBilanSemaineSuggestion,
   getSkillupBilanVagueSuggestion,
   getSkillupAiSettings,
+  linkSkillupVagueThreadBilanCollectif,
+  getSkillupBilanCollectifSemaine,
+  setSkillupBilanCollectifSemaine,
   setSkillupAiSettings,
   getSkillupAiModels,
   getSkillupBilansSemaineAdmin,
@@ -1114,6 +1117,55 @@ const SkillUp: React.FC = () => {
     loadBilansVagueAll();
   }, [loadBilansVagueAll]);
 
+  // Bilan collectif hebdomadaire — ressenti exprimé oralement par les membres en
+  // réunion, transcrit par l'admin. Pas de résumé informatif ni de suggestion IA
+  // (rien en base ne capture ce ressenti), juste un texte libre + option de poster.
+  const [bilanCollectifTexte, setBilanCollectifTexte] = useState('');
+  const [bilanCollectifLoading, setBilanCollectifLoading] = useState(false);
+  const [bilanCollectifSaving, setBilanCollectifSaving] = useState(false);
+  const [bilanCollectifError, setBilanCollectifError] = useState('');
+  const [bilanCollectifPoster, setBilanCollectifPoster] = useState(true);
+  const [bilanCollectifPosteResult, setBilanCollectifPosteResult] = useState<boolean | null>(null);
+
+  const loadBilanCollectif = useCallback(async () => {
+    if (bilanEffectiveVagueId === null) return;
+    setBilanCollectifLoading(true);
+    setBilanCollectifError('');
+    setBilanCollectifPosteResult(null);
+    try {
+      const texte = await getSkillupBilanCollectifSemaine(String(bilanEffectiveVagueId), String(bilanSemaineNum));
+      setBilanCollectifTexte(texte?.texte ?? '');
+    } catch (err) {
+      setBilanCollectifError(errorMessage(err));
+    } finally {
+      setBilanCollectifLoading(false);
+    }
+  }, [bilanEffectiveVagueId, bilanSemaineNum]);
+
+  useEffect(() => {
+    loadBilanCollectif();
+  }, [loadBilanCollectif]);
+
+  const handleSaveBilanCollectif = useCallback(async () => {
+    if (bilanEffectiveVagueId === null) return;
+    setBilanCollectifSaving(true);
+    setBilanCollectifError('');
+    setBilanCollectifPosteResult(null);
+    try {
+      const res = await setSkillupBilanCollectifSemaine(
+        String(bilanEffectiveVagueId),
+        String(bilanSemaineNum),
+        bilanCollectifTexte,
+        bilanCollectifPoster
+      );
+      setBilanCollectifPosteResult(bilanCollectifPoster ? res.poste_discord ?? false : null);
+    } catch (err) {
+      setBilanCollectifError(errorMessage(err));
+    } finally {
+      setBilanCollectifSaving(false);
+    }
+  }, [bilanEffectiveVagueId, bilanSemaineNum, bilanCollectifTexte, bilanCollectifPoster]);
+
   const loadBilanSemaineData = useCallback(
     async (discordId: string, semaine: number) => {
       if (!discordId || bilanEffectiveVagueId === null) return;
@@ -1707,6 +1759,34 @@ const SkillUp: React.FC = () => {
       setLinkThreadSaving(false);
     }
   }, [linkingThreadMember, linkThreadValeur, adminSelectedVague, vagueParamFor]);
+
+  const [linkingThreadVague, setLinkingThreadVague] = useState<SkillupVagueAdmin | null>(null);
+  const [linkThreadVagueValeur, setLinkThreadVagueValeur] = useState('');
+  const [linkThreadVagueSaving, setLinkThreadVagueSaving] = useState(false);
+  const [linkThreadVagueError, setLinkThreadVagueError] = useState('');
+  const [linkThreadVagueSuccess, setLinkThreadVagueSuccess] = useState(false);
+
+  const openLinkThreadVague = useCallback((vague: SkillupVagueAdmin) => {
+    setLinkingThreadVague(vague);
+    setLinkThreadVagueValeur('');
+    setLinkThreadVagueError('');
+    setLinkThreadVagueSuccess(false);
+  }, []);
+
+  const handleSaveLinkThreadVague = useCallback(async () => {
+    if (!linkingThreadVague || !linkThreadVagueValeur.trim()) return;
+    setLinkThreadVagueSaving(true);
+    setLinkThreadVagueError('');
+    try {
+      const updated = await linkSkillupVagueThreadBilanCollectif(linkingThreadVague.id, linkThreadVagueValeur.trim());
+      setVaguesAdminList((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      setLinkThreadVagueSuccess(true);
+    } catch (err) {
+      setLinkThreadVagueError(errorMessage(err));
+    } finally {
+      setLinkThreadVagueSaving(false);
+    }
+  }, [linkingThreadVague, linkThreadVagueValeur]);
 
   // Synchro objectif de vague — récupère le contenu réel du post objectif Discord déjà
   // rattaché (thread_objectif_id) et l'écrit dans objectif_vague. Utile pour les membres
@@ -3232,6 +3312,15 @@ const SkillUp: React.FC = () => {
                                             Clôturer
                                           </button>
                                         )}
+                                        <button
+                                          type="button"
+                                          onClick={() => openLinkThreadVague(v)}
+                                          className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-blue-700 transition-colors"
+                                          aria-label={`Rattacher le thread de bilan collectif de ${v.nom}`}
+                                          title={v.thread_bilan_collectif_id ? 'Thread de bilan collectif rattaché' : 'Rattacher le thread de bilan collectif'}
+                                        >
+                                          <Link2 className={`w-4 h-4 ${v.thread_bilan_collectif_id ? 'text-green-600' : ''}`} />
+                                        </button>
                                       </td>
                                     </tr>
                                   ))}
@@ -3385,6 +3474,58 @@ const SkillUp: React.FC = () => {
                     label: 'Bilans',
                     children: (
                       <div className="pt-2 space-y-6">
+                        <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
+                          <h3 className="font-semibold text-blue-900 mb-1">
+                            Bilan collectif — semaine {bilanSemaineNum}
+                          </h3>
+                          <p className="text-sm text-zinc-500 mb-3">
+                            Ressenti exprimé oralement par les membres en réunion (productivité, ambiance,
+                            fonctionnement du groupe) — transcrit à la main, aucune donnée à agréger ici.
+                          </p>
+                          {bilanCollectifError && (
+                            <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanCollectifError}</div>
+                          )}
+                          {bilanCollectifPosteResult !== null && (
+                            bilanCollectifPosteResult ? (
+                              <div className="mb-3 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+                                Bilan posté dans le thread de bilan collectif Discord.
+                              </div>
+                            ) : (
+                              <div className="mb-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
+                                Bilan enregistré, mais pas posté sur Discord (thread non rattaché — onglet Vagues —
+                                ou échec du post).
+                              </div>
+                            )
+                          )}
+                          <textarea
+                            value={bilanCollectifTexte}
+                            onChange={(e) => setBilanCollectifTexte(e.target.value)}
+                            disabled={bilanCollectifLoading}
+                            rows={6}
+                            placeholder="Bilan collectif de la semaine — rédigé à la main par l'admin."
+                            className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <label className="flex items-center gap-2 text-sm text-zinc-700 mt-2">
+                            <input
+                              type="checkbox"
+                              checked={bilanCollectifPoster}
+                              onChange={(e) => setBilanCollectifPoster(e.target.checked)}
+                              className="rounded border-zinc-300 text-blue-700 focus:ring-blue-500"
+                            />
+                            Poster ce bilan dans le thread de bilan collectif Discord
+                          </label>
+                          <div className="flex justify-end mt-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveBilanCollectif}
+                              disabled={bilanCollectifSaving || bilanCollectifLoading}
+                              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
+                            >
+                              {bilanCollectifSaving ? 'Enregistrement…' : 'Enregistrer'}
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
                             <h3 className="font-semibold text-blue-900">Bilans hebdomadaires — tous les membres</h3>
@@ -4590,6 +4731,72 @@ const SkillUp: React.FC = () => {
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {linkThreadSaving ? 'Rattachement...' : 'Rattacher'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {linkingThreadVague && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+                <Link2 className="w-4 h-4" /> Rattacher le thread de bilan collectif de {linkingThreadVague.nom}
+              </h2>
+              <button onClick={() => setLinkingThreadVague(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {linkThreadVagueSuccess ? (
+              <div className="px-6 py-5 space-y-4">
+                <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+                  Thread rattaché.
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLinkingThreadVague(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-5 space-y-4">
+                {linkThreadVagueError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {linkThreadVagueError}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Lien ou ID du thread</label>
+                  <input
+                    type="text"
+                    value={linkThreadVagueValeur}
+                    onChange={(e) => setLinkThreadVagueValeur(e.target.value)}
+                    placeholder="https://discord.com/channels/... ou ID brut"
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLinkingThreadVague(null)}
+                    className="px-4 py-2 text-sm text-gray-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveLinkThreadVague}
+                    disabled={linkThreadVagueSaving || !linkThreadVagueValeur.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {linkThreadVagueSaving ? 'Rattachement...' : 'Rattacher'}
                   </button>
                 </div>
               </div>

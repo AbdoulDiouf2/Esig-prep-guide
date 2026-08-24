@@ -34,6 +34,9 @@ export type SkillupAction =
   | 'sessionSupprimerSelf'
   | 'membreLierThread'
   | 'membreObjectifSync'
+  | 'vagueLierThreadBilanCollectif'
+  | 'bilanCollectifSemaineLire'
+  | 'bilanCollectifSemaineEcrire'
   | 'membresObjectifSyncAll'
   | 'sessionCreer'
   | 'bilanTexteSemaineSelf'
@@ -122,6 +125,7 @@ export interface SkillupVagueAdmin {
   date_debut: string;
   date_fin: string;
   statut: 'brouillon' | 'active' | 'cloturee' | string;
+  thread_bilan_collectif_id: string | null;
 }
 
 export interface SkillupSalon {
@@ -492,6 +496,20 @@ export const deleteSkillupMySession = (sessionId: number) =>
 /** Rattache manuellement le post objectif existant d'un membre (admin uniquement). */
 export const linkSkillupMemberThread = (discordId: string, lienOuId: string, vague?: string) =>
   callSkillupProxy<SkillupMemberEditResult>('membreLierThread', { membreDiscordId: discordId, lienOuId, vague });
+
+/** Rattache le thread Discord du bilan collectif hebdomadaire d'une vague (ex.
+ * "Bilans hebdos" dans le forum objectifs) — admin uniquement. */
+export const linkSkillupVagueThreadBilanCollectif = (vagueId: number, lienOuId: string) =>
+  callSkillupProxy<SkillupVagueAdmin>('vagueLierThreadBilanCollectif', { vagueId, lienOuId });
+
+/** Bilan collectif hebdomadaire de la vague — ressenti exprimé oralement par les
+ * membres en réunion, transcrit par l'admin. Pas de résumé informatif ni de
+ * suggestion IA pour ce niveau (rien en base ne capture ce ressenti). */
+export const getSkillupBilanCollectifSemaine = (vague: string, semaine: string) =>
+  callSkillupProxy<SkillupBilanTexte | null>('bilanCollectifSemaineLire', { vague, semaine });
+
+export const setSkillupBilanCollectifSemaine = (vague: string, semaine: string, valeur: string, poster: boolean = true) =>
+  callSkillupProxy<SkillupBilanTexte>('bilanCollectifSemaineEcrire', { vague, semaine, valeur, poster: String(poster) });
 
 /** Récupère le contenu réel du post objectif Discord déjà rattaché et l'écrit dans
  * objectif_vague — pour les membres dont le post existait avant l'automatisation. */

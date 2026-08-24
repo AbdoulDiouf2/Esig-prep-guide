@@ -283,6 +283,17 @@ const SKILLUP_ACTIONS = {
     method: 'POST',
     path: (_discordId, params) => `/members/${params.membreDiscordId}/objectif-vague/sync`,
   },
+  vagueLierThreadBilanCollectif: {
+    method: 'PATCH',
+    path: (_discordId, params) => `/vagues/${params.vagueId}/thread-bilan-collectif`,
+    body: (params) => ({ lien_ou_id: params.lienOuId }),
+  },
+  bilanCollectifSemaineLire: { method: 'GET', path: () => '/bilan-collectif-semaine' },
+  bilanCollectifSemaineEcrire: {
+    method: 'PUT',
+    path: () => '/bilan-collectif-semaine',
+    body: (params) => ({ valeur: params.valeur, poster: params.poster !== 'false' }),
+  },
   membresObjectifSyncAll: {
     method: 'POST',
     path: () => '/objectifs-vague/sync',
