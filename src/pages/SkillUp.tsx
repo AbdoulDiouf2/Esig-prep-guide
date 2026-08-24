@@ -39,6 +39,8 @@ import {
   getSkillupBilanTexteSemaine,
   getSkillupBilanSemaineSuggestion,
   getSkillupBilanVagueSuggestion,
+  getSkillupAiSettings,
+  setSkillupAiSettings,
   getSkillupBilansSemaineAdmin,
   getSkillupBilansVagueAdmin,
   getSkillupBilanInfoAdmin,
@@ -59,6 +61,8 @@ import {
   type SkillupBilanTexte,
   type SkillupBilanMembre,
   type SkillupObjectifSyncResult,
+  type SkillupAiSettings,
+  type SkillupAiProvider,
 } from '../services/skillupService';
 
 interface SkillupSession {
@@ -86,6 +90,20 @@ interface SkillupMember {
 }
 
 const SKILLUP_PROFILS: SkillupProfil[] = ['étudiant', "demandeur d'emploi", 'cadre', 'alternant', 'autre'];
+
+// Listes indicatives (pas exhaustives — les catalogues des providers évoluent) : la
+// valeur "custom" en modèle libre couvre le cas où le modèle voulu n'y figure pas.
+const AI_MODELS_BY_PROVIDER: Record<SkillupAiProvider, { value: string; label: string }[]> = {
+  anthropic: [
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (rapide, pas cher)' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 (qualité supérieure)' },
+  ],
+  groq: [
+    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' },
+    { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' },
+    { value: 'gemma2-9b-it', label: 'Gemma2 9B IT' },
+  ],
+};
 const SKILLUP_CRENEAUX = ['5h-7h', '19h-21h', '21h-23h'];
 // Tri numérique par heure de début — un tri alphabétique classerait "19h-21h" avant
 // "5h-7h" (comparaison de chaînes), ce qui n'a aucun sens pour des horaires.
@@ -1747,6 +1765,57 @@ const SkillUp: React.FC = () => {
       setBulkSyncingObjectifs(false);
     }
   }, [adminSelectedVague, vagueParamFor, loadMembers]);
+
+  // Réglages de l'assistant IA (suggestion de bilans) — chargés une fois, modifiables
+  // dans l'onglet Paramètres. `aiSettings.enabled` gate aussi les boutons "Générer une
+  // suggestion (IA)" dans le modal bilan.
+  const [aiSettings, setAiSettingsState] = useState<SkillupAiSettings | null>(null);
+  const [aiSettingsLoading, setAiSettingsLoading] = useState(false);
+  const [aiSettingsError, setAiSettingsError] = useState('');
+  const [aiSettingsSaving, setAiSettingsSaving] = useState(false);
+  const [aiSettingsForm, setAiSettingsForm] = useState<{ enabled: boolean; provider: SkillupAiProvider; model: string; customModel: boolean }>({
+    enabled: true,
+    provider: 'anthropic',
+    model: AI_MODELS_BY_PROVIDER.anthropic[0].value,
+    customModel: false,
+  });
+
+  const loadAiSettings = useCallback(async () => {
+    setAiSettingsLoading(true);
+    setAiSettingsError('');
+    try {
+      const res = await getSkillupAiSettings();
+      setAiSettingsState(res);
+      const knownModels = AI_MODELS_BY_PROVIDER[res.provider].map((m) => m.value);
+      setAiSettingsForm({
+        enabled: res.enabled,
+        provider: res.provider,
+        model: res.model,
+        customModel: !knownModels.includes(res.model),
+      });
+    } catch (err) {
+      setAiSettingsError(errorMessage(err));
+    } finally {
+      setAiSettingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAiSettings();
+  }, [loadAiSettings]);
+
+  const handleSaveAiSettings = useCallback(async () => {
+    setAiSettingsSaving(true);
+    setAiSettingsError('');
+    try {
+      const res = await setSkillupAiSettings(aiSettingsForm.enabled, aiSettingsForm.provider, aiSettingsForm.model);
+      setAiSettingsState(res);
+    } catch (err) {
+      setAiSettingsError(errorMessage(err));
+    } finally {
+      setAiSettingsSaving(false);
+    }
+  }, [aiSettingsForm]);
 
   // Sélecteur de portée du Dashboard — un vrai menu déroulant, entièrement indépendant du
   // sélecteur de vague partagé par Membres/Sessions/Binômes : n'importe quelle vague non-
@@ -3432,6 +3501,104 @@ const SkillUp: React.FC = () => {
                     children: (
                       <div className="pt-2 space-y-4">
                         <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
+                          <h3 className="font-semibold text-blue-900 mb-1">Assistant IA (suggestion de bilans)</h3>
+                          <p className="text-sm text-zinc-500 mb-3">
+                            Provider et modèle utilisés par le bouton "Générer une suggestion (IA)" dans les
+                            bilans hebdo/vague. Désactiver masque ce bouton partout.
+                          </p>
+
+                          {aiSettingsLoading ? (
+                            <div className="py-4 flex justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
+                            </div>
+                          ) : (
+                            <div className="space-y-3 max-w-md">
+                              <label className="flex items-center gap-2 text-sm text-zinc-700">
+                                <input
+                                  type="checkbox"
+                                  checked={aiSettingsForm.enabled}
+                                  onChange={(e) => setAiSettingsForm((f) => ({ ...f, enabled: e.target.checked }))}
+                                  className="rounded border-zinc-300 text-blue-700 focus:ring-blue-500"
+                                />
+                                Activer l'assistant IA
+                              </label>
+
+                              <div>
+                                <label className="block text-sm font-medium text-zinc-700 mb-1">Provider</label>
+                                <select
+                                  value={aiSettingsForm.provider}
+                                  onChange={(e) => {
+                                    const provider = e.target.value as SkillupAiProvider;
+                                    setAiSettingsForm((f) => ({
+                                      ...f,
+                                      provider,
+                                      model: AI_MODELS_BY_PROVIDER[provider][0].value,
+                                      customModel: false,
+                                    }));
+                                  }}
+                                  disabled={!aiSettingsForm.enabled}
+                                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                  <option value="anthropic">Anthropic (Claude)</option>
+                                  <option value="groq">Groq</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-zinc-700 mb-1">Modèle</label>
+                                <select
+                                  value={aiSettingsForm.customModel ? '__custom__' : aiSettingsForm.model}
+                                  onChange={(e) => {
+                                    if (e.target.value === '__custom__') {
+                                      setAiSettingsForm((f) => ({ ...f, customModel: true, model: '' }));
+                                    } else {
+                                      setAiSettingsForm((f) => ({ ...f, customModel: false, model: e.target.value }));
+                                    }
+                                  }}
+                                  disabled={!aiSettingsForm.enabled}
+                                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                  {AI_MODELS_BY_PROVIDER[aiSettingsForm.provider].map((m) => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                  ))}
+                                  <option value="__custom__">Autre (identifiant personnalisé)</option>
+                                </select>
+                                {aiSettingsForm.customModel && (
+                                  <input
+                                    type="text"
+                                    value={aiSettingsForm.model}
+                                    onChange={(e) => setAiSettingsForm((f) => ({ ...f, model: e.target.value }))}
+                                    disabled={!aiSettingsForm.enabled}
+                                    placeholder="Ex: llama-3.2-90b-vision-preview"
+                                    className="mt-2 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                                  />
+                                )}
+                              </div>
+
+                              {aiSettingsError && (
+                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{aiSettingsError}</div>
+                              )}
+
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={handleSaveAiSettings}
+                                  disabled={aiSettingsSaving || (aiSettingsForm.customModel && !aiSettingsForm.model.trim())}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
+                                >
+                                  {aiSettingsSaving ? 'Enregistrement…' : 'Enregistrer'}
+                                </button>
+                                {aiSettings && !aiSettingsSaving && (
+                                  <span className="text-xs text-zinc-400">
+                                    Actuellement : {aiSettings.enabled ? `${aiSettings.provider} / ${aiSettings.model}` : 'désactivé'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
                           <h3 className="font-semibold text-blue-900 mb-1">Synchroniser les objectifs de vague</h3>
                           <p className="text-sm text-zinc-500 mb-3">
                             Récupère le contenu des posts objectifs Discord déjà rattachés (thread_objectif_id) et
@@ -3516,15 +3683,17 @@ const SkillUp: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
-                  <button
-                    type="button"
-                    onClick={handleSuggestBilanSemaine}
-                    disabled={bilanSemaineSuggesting}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${bilanSemaineSuggesting ? 'animate-spin' : ''}`} />
-                    {bilanSemaineSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
-                  </button>
+                  {aiSettings?.enabled !== false && (
+                    <button
+                      type="button"
+                      onClick={handleSuggestBilanSemaine}
+                      disabled={bilanSemaineSuggesting}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${bilanSemaineSuggesting ? 'animate-spin' : ''}`} />
+                      {bilanSemaineSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
@@ -3596,15 +3765,17 @@ const SkillUp: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
-                  <button
-                    type="button"
-                    onClick={handleSuggestBilanVague}
-                    disabled={bilanVagueSuggesting}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${bilanVagueSuggesting ? 'animate-spin' : ''}`} />
-                    {bilanVagueSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
-                  </button>
+                  {aiSettings?.enabled !== false && (
+                    <button
+                      type="button"
+                      onClick={handleSuggestBilanVague}
+                      disabled={bilanVagueSuggesting}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${bilanVagueSuggesting ? 'animate-spin' : ''}`} />
+                      {bilanVagueSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">

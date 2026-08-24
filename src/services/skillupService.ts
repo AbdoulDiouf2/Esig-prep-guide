@@ -44,6 +44,8 @@ export type SkillupAction =
   | 'bilanSemaineLire'
   | 'bilanSemaineSuggerer'
   | 'bilanVagueSuggerer'
+  | 'aiSettingsLire'
+  | 'aiSettingsEcrire'
   | 'bilanSemaineEcrire'
   | 'bilanVagueLire'
   | 'bilanVagueEcrire';
@@ -158,6 +160,9 @@ async function callSkillupProxy<T>(
     bilan?: string;
     blocages?: string;
     poster?: string;
+    enabled?: string;
+    provider?: string;
+    model?: string;
   }
 ): Promise<T | SkillupLinkStatus> {
   if (!auth.currentUser) {
@@ -291,6 +296,21 @@ export const getSkillupBilanSemaineSuggestion = (membreDiscordId: string, vague:
  * rédigés et des sessions de toute la vague. */
 export const getSkillupBilanVagueSuggestion = (membreDiscordId: string, vague: string) =>
   callSkillupProxy<{ suggestion: string }>('bilanVagueSuggerer', { membreDiscordId, vague });
+
+export type SkillupAiProvider = 'anthropic' | 'groq';
+
+export interface SkillupAiSettings {
+  enabled: boolean;
+  provider: SkillupAiProvider;
+  model: string;
+  updated_by_discord_id: string | null;
+  updated_at: string | null;
+}
+
+export const getSkillupAiSettings = () => callSkillupProxy<SkillupAiSettings>('aiSettingsLire');
+
+export const setSkillupAiSettings = (enabled: boolean, provider: SkillupAiProvider, model: string) =>
+  callSkillupProxy<SkillupAiSettings>('aiSettingsEcrire', { enabled: String(enabled), provider, model });
 
 export const getSkillupMembers = (vague?: string) =>
   callSkillupProxy('members', { vague });
