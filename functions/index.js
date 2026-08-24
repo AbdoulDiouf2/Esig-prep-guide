@@ -204,6 +204,31 @@ const SKILLUP_ACTIONS = {
   journal: { method: 'GET', path: (discordId) => `/members/${discordId}/journal` },
   binomeJournal: { method: 'GET', path: (discordId) => `/members/${discordId}/binome-journal` },
   bilan: { method: 'GET', path: (discordId) => `/members/${discordId}/bilan` },
+  bilanTexteSemaineSelf: { method: 'GET', path: (discordId) => `/members/${discordId}/bilan-texte-semaine` },
+  // Résumé informatif (nb sessions, durée, blocages) d'un AUTRE membre — réservé à
+  // l'admin, qui consulte /members/{cible}/bilan via require_self_or_admin (autorisé
+  // car l'appelant est admin, même si la cible n'est pas lui). Sert à alimenter le
+  // panneau "à copier" du bilan hebdo/vague admin, pas à pré-remplir automatiquement.
+  bilanInfoAdmin: { method: 'GET', path: (discordId, p) => `/members/${p.membreDiscordId}/bilan` },
+  bilansSemaineListerAdmin: { method: 'GET', path: () => '/admin/bilans-semaine' },
+  bilanSemaineLire: {
+    method: 'GET',
+    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-semaine`,
+  },
+  bilanSemaineEcrire: {
+    method: 'PUT',
+    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-semaine`,
+    body: (params) => ({ valeur: params.valeur }),
+  },
+  bilanVagueLire: {
+    method: 'GET',
+    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-vague`,
+  },
+  bilanVagueEcrire: {
+    method: 'PUT',
+    path: (discordId, p) => `/admin/members/${p.membreDiscordId}/bilan-vague`,
+    body: (params) => ({ valeur: params.valeur }),
+  },
   members: { method: 'GET', path: () => '/members' },
   discordMembers: { method: 'GET', path: () => '/discord/members' },
   discordVoiceChannels: { method: 'GET', path: () => '/discord/voice-channels' },

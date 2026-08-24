@@ -33,7 +33,14 @@ export type SkillupAction =
   | 'sessionCorrigerSelf'
   | 'sessionSupprimerSelf'
   | 'membreLierThread'
-  | 'sessionCreer';
+  | 'sessionCreer'
+  | 'bilanTexteSemaineSelf'
+  | 'bilanInfoAdmin'
+  | 'bilansSemaineListerAdmin'
+  | 'bilanSemaineLire'
+  | 'bilanSemaineEcrire'
+  | 'bilanVagueLire'
+  | 'bilanVagueEcrire';
 
 export type SkillupSessionChamp = 'objectif' | 'bilan' | 'blocages' | 'creneau';
 export type SkillupMembreChamp = 'nom' | 'profil' | 'certif_ou_projet' | 'objectif_vague';
@@ -192,6 +199,64 @@ export const getSkillupBinomeJournal = (semaine?: string, vague?: string) =>
 
 export const getSkillupBilan = (semaine?: string, vague?: string) =>
   callSkillupProxy('bilan', { semaine, vague });
+
+/** Bilan hebdomadaire rédigé à la main par l'admin pour l'appelant (self-service,
+ * lecture seule) — distinct du résumé informatif `getSkillupBilan`. */
+export const getSkillupBilanTexteSemaine = (semaine: string, vague?: string) =>
+  callSkillupProxy<SkillupBilanTexte | null>('bilanTexteSemaineSelf', { semaine, vague });
+
+export interface SkillupBilanInfo {
+  nom: string;
+  label: string;
+  nb_sessions: number;
+  nb_completes: number;
+  nb_incompletes: number;
+  duree_totale: string;
+  blocages: string[];
+}
+
+/** Résumé informatif (nb sessions, durée, blocages) d'un AUTRE membre, à l'usage de
+ * l'admin — sert de base "à copier" pour rédiger le bilan hebdo/vague, jamais
+ * pré-rempli automatiquement dans le champ libre. */
+export const getSkillupBilanInfoAdmin = (membreDiscordId: string, vague?: string, semaine?: string) =>
+  callSkillupProxy<SkillupBilanInfo>('bilanInfoAdmin', { membreDiscordId, vague, semaine });
+
+export interface SkillupBilanTexte {
+  texte: string;
+  ecrit_par_discord_id: string;
+  updated_at: string;
+}
+
+export interface SkillupBilanMembre {
+  discord_id: string;
+  nom: string;
+  texte: string | null;
+  ecrit_par_discord_id: string | null;
+  updated_at: string | null;
+}
+
+/** Vue d'ensemble admin : bilan hebdo de tous les membres de la vague pour une semaine
+ * donnée (texte à null si pas encore rédigé). */
+export const getSkillupBilansSemaineAdmin = (semaine: string, vague?: string) =>
+  callSkillupProxy<{ wave_nom: string; semaine: number; bilans: SkillupBilanMembre[] }>(
+    'bilansSemaineListerAdmin',
+    { semaine, vague }
+  );
+
+/** Bilan hebdomadaire rédigé à la main par l'admin pour un membre — distinct du
+ * résumé informatif ci-dessus (non stocké, calculé à la volée). */
+export const getSkillupBilanSemaine = (membreDiscordId: string, vague: string, semaine: string) =>
+  callSkillupProxy<SkillupBilanTexte | null>('bilanSemaineLire', { membreDiscordId, vague, semaine });
+
+export const setSkillupBilanSemaine = (membreDiscordId: string, vague: string, semaine: string, valeur: string) =>
+  callSkillupProxy<SkillupBilanTexte>('bilanSemaineEcrire', { membreDiscordId, vague, semaine, valeur });
+
+/** Bilan de synthèse de vague rédigé à la main par l'admin pour un membre. */
+export const getSkillupBilanVague = (membreDiscordId: string, vague: string) =>
+  callSkillupProxy<SkillupBilanTexte | null>('bilanVagueLire', { membreDiscordId, vague });
+
+export const setSkillupBilanVague = (membreDiscordId: string, vague: string, valeur: string) =>
+  callSkillupProxy<SkillupBilanTexte>('bilanVagueEcrire', { membreDiscordId, vague, valeur });
 
 export const getSkillupMembers = (vague?: string) =>
   callSkillupProxy('members', { vague });
