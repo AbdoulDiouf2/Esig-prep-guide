@@ -38,6 +38,7 @@ export type SkillupAction =
   | 'sessionCreer'
   | 'bilanTexteSemaineSelf'
   | 'bilanInfoAdmin'
+  | 'bilanVagueInfoAdmin'
   | 'bilansSemaineListerAdmin'
   | 'bilansVagueListerAdmin'
   | 'bilanSemaineLire'
@@ -225,6 +226,11 @@ export interface SkillupBilanInfo {
  * pré-rempli automatiquement dans le champ libre. */
 export const getSkillupBilanInfoAdmin = (membreDiscordId: string, vague?: string, semaine?: string) =>
   callSkillupProxy<SkillupBilanInfo>('bilanInfoAdmin', { membreDiscordId, vague, semaine });
+
+/** Résumé informatif agrégé sur TOUTE la vague (toutes semaines) — à ne pas confondre
+ * avec getSkillupBilanInfoAdmin sans semaine, qui retombe sur la semaine courante. */
+export const getSkillupBilanVagueInfoAdmin = (membreDiscordId: string, vague: string) =>
+  callSkillupProxy<SkillupBilanInfo>('bilanVagueInfoAdmin', { membreDiscordId, vague });
 
 export interface SkillupBilanTexte {
   texte: string;

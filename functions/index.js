@@ -210,6 +210,9 @@ const SKILLUP_ACTIONS = {
   // car l'appelant est admin, même si la cible n'est pas lui). Sert à alimenter le
   // panneau "à copier" du bilan hebdo/vague admin, pas à pré-remplir automatiquement.
   bilanInfoAdmin: { method: 'GET', path: (discordId, p) => `/members/${p.membreDiscordId}/bilan` },
+  // Résumé informatif agrégé sur TOUTE la vague (toutes semaines) — distinct de
+  // bilanInfoAdmin sans semaine, qui retombe sur la semaine courante seulement.
+  bilanVagueInfoAdmin: { method: 'GET', path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-vague-info` },
   bilansSemaineListerAdmin: { method: 'GET', path: () => '/bilans-semaine' },
   bilansVagueListerAdmin: { method: 'GET', path: () => '/bilans-vague' },
   bilanSemaineLire: {

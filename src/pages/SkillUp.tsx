@@ -40,6 +40,7 @@ import {
   getSkillupBilansSemaineAdmin,
   getSkillupBilansVagueAdmin,
   getSkillupBilanInfoAdmin,
+  getSkillupBilanVagueInfoAdmin,
   getSkillupBilanSemaine,
   setSkillupBilanSemaine,
   getSkillupBilanVague,
@@ -1138,7 +1139,7 @@ const SkillUp: React.FC = () => {
       setBilanVagueError('');
       try {
         const [info, texte] = await Promise.all([
-          getSkillupBilanInfoAdmin(discordId, String(bilanEffectiveVagueId)),
+          getSkillupBilanVagueInfoAdmin(discordId, String(bilanEffectiveVagueId)),
           getSkillupBilanVague(discordId, String(bilanEffectiveVagueId)),
         ]);
         setBilanInfoVague(info ?? null);
