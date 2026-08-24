@@ -228,6 +228,7 @@ const SKILLUP_ACTIONS = {
     path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-vague/suggerer`,
   },
   aiSettingsLire: { method: 'GET', path: () => '/ai-settings' },
+  aiModelsLister: { method: 'GET', path: () => '/ai-settings/models' },
   aiSettingsEcrire: {
     method: 'PUT',
     path: () => '/ai-settings',
@@ -493,6 +494,7 @@ exports.skillupProxy = onRequest(
         if (vagueId) query.set('vague_id', vagueId);
         if (canalId) query.set('canal_id', canalId);
         if (actif) query.set('actif', actif);
+        if (provider) query.set('provider', provider);
         const queryString = query.toString();
 
         const actionParams = {

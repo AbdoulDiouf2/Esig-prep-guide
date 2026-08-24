@@ -41,6 +41,7 @@ import {
   getSkillupBilanVagueSuggestion,
   getSkillupAiSettings,
   setSkillupAiSettings,
+  getSkillupAiModels,
   getSkillupBilansSemaineAdmin,
   getSkillupBilansVagueAdmin,
   getSkillupBilanInfoAdmin,
@@ -91,19 +92,6 @@ interface SkillupMember {
 
 const SKILLUP_PROFILS: SkillupProfil[] = ['étudiant', "demandeur d'emploi", 'cadre', 'alternant', 'autre'];
 
-// Listes indicatives (pas exhaustives — les catalogues des providers évoluent) : la
-// valeur "custom" en modèle libre couvre le cas où le modèle voulu n'y figure pas.
-const AI_MODELS_BY_PROVIDER: Record<SkillupAiProvider, { value: string; label: string }[]> = {
-  anthropic: [
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (rapide, pas cher)' },
-    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 (qualité supérieure)' },
-  ],
-  groq: [
-    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' },
-    { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' },
-    { value: 'gemma2-9b-it', label: 'Gemma2 9B IT' },
-  ],
-};
 const SKILLUP_CRENEAUX = ['5h-7h', '19h-21h', '21h-23h'];
 // Tri numérique par heure de début — un tri alphabétique classerait "19h-21h" avant
 // "5h-7h" (comparaison de chaînes), ce qui n'a aucun sens pour des horaires.
@@ -1776,9 +1764,30 @@ const SkillUp: React.FC = () => {
   const [aiSettingsForm, setAiSettingsForm] = useState<{ enabled: boolean; provider: SkillupAiProvider; model: string; customModel: boolean }>({
     enabled: true,
     provider: 'anthropic',
-    model: AI_MODELS_BY_PROVIDER.anthropic[0].value,
+    model: '',
     customModel: false,
   });
+
+  // Liste des modèles interrogée en direct sur le provider (clé du serveur) — pas de
+  // liste figée côté code, qui devient vite obsolète (dépréciations Groq fréquentes).
+  const [aiModels, setAiModels] = useState<string[]>([]);
+  const [aiModelsLoading, setAiModelsLoading] = useState(false);
+  const [aiModelsError, setAiModelsError] = useState('');
+
+  const loadAiModels = useCallback(async (provider: SkillupAiProvider, currentModel: string) => {
+    setAiModelsLoading(true);
+    setAiModelsError('');
+    try {
+      const res = await getSkillupAiModels(provider);
+      setAiModels(res.models);
+      setAiSettingsForm((f) => ({ ...f, customModel: !res.models.includes(currentModel) }));
+    } catch (err) {
+      setAiModels([]);
+      setAiModelsError(errorMessage(err));
+    } finally {
+      setAiModelsLoading(false);
+    }
+  }, []);
 
   const loadAiSettings = useCallback(async () => {
     setAiSettingsLoading(true);
@@ -1786,23 +1795,19 @@ const SkillUp: React.FC = () => {
     try {
       const res = await getSkillupAiSettings();
       setAiSettingsState(res);
-      const knownModels = AI_MODELS_BY_PROVIDER[res.provider].map((m) => m.value);
-      setAiSettingsForm({
-        enabled: res.enabled,
-        provider: res.provider,
-        model: res.model,
-        customModel: !knownModels.includes(res.model),
-      });
+      setAiSettingsForm({ enabled: res.enabled, provider: res.provider, model: res.model, customModel: false });
+      loadAiModels(res.provider, res.model);
     } catch (err) {
       setAiSettingsError(errorMessage(err));
     } finally {
       setAiSettingsLoading(false);
     }
-  }, []);
+  }, [loadAiModels]);
 
   useEffect(() => {
     loadAiSettings();
-  }, [loadAiSettings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveAiSettings = useCallback(async () => {
     setAiSettingsSaving(true);
@@ -3529,12 +3534,8 @@ const SkillUp: React.FC = () => {
                                   value={aiSettingsForm.provider}
                                   onChange={(e) => {
                                     const provider = e.target.value as SkillupAiProvider;
-                                    setAiSettingsForm((f) => ({
-                                      ...f,
-                                      provider,
-                                      model: AI_MODELS_BY_PROVIDER[provider][0].value,
-                                      customModel: false,
-                                    }));
+                                    setAiSettingsForm((f) => ({ ...f, provider, model: '', customModel: false }));
+                                    loadAiModels(provider, '');
                                   }}
                                   disabled={!aiSettingsForm.enabled}
                                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -3562,7 +3563,22 @@ const SkillUp: React.FC = () => {
                               </div>
 
                               <div>
-                                <label className="block text-sm font-medium text-zinc-700 mb-1">Modèle</label>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-sm font-medium text-zinc-700">Modèle</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => loadAiModels(aiSettingsForm.provider, aiSettingsForm.model)}
+                                    disabled={aiModelsLoading || !aiSettingsForm.enabled}
+                                    className="text-xs text-blue-700 hover:text-blue-900 disabled:opacity-50"
+                                  >
+                                    {aiModelsLoading ? 'Chargement…' : 'Actualiser la liste'}
+                                  </button>
+                                </div>
+                                {aiModelsError && (
+                                  <p className="mb-1 text-xs text-red-600">
+                                    Impossible de récupérer les modèles ({aiModelsError}) — utilise le champ personnalisé ci-dessous.
+                                  </p>
+                                )}
                                 <select
                                   value={aiSettingsForm.customModel ? '__custom__' : aiSettingsForm.model}
                                   onChange={(e) => {
@@ -3572,11 +3588,12 @@ const SkillUp: React.FC = () => {
                                       setAiSettingsForm((f) => ({ ...f, customModel: false, model: e.target.value }));
                                     }
                                   }}
-                                  disabled={!aiSettingsForm.enabled}
+                                  disabled={!aiSettingsForm.enabled || aiModelsLoading}
                                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                                 >
-                                  {AI_MODELS_BY_PROVIDER[aiSettingsForm.provider].map((m) => (
-                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                  {!aiSettingsForm.model && !aiSettingsForm.customModel && <option value="">Choisir un modèle…</option>}
+                                  {aiModels.map((m) => (
+                                    <option key={m} value={m}>{m}</option>
                                   ))}
                                   <option value="__custom__">Autre (identifiant personnalisé)</option>
                                 </select>
@@ -3600,7 +3617,7 @@ const SkillUp: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={handleSaveAiSettings}
-                                  disabled={aiSettingsSaving || (aiSettingsForm.customModel && !aiSettingsForm.model.trim())}
+                                  disabled={aiSettingsSaving || !aiSettingsForm.model.trim()}
                                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
                                 >
                                   {aiSettingsSaving ? 'Enregistrement…' : 'Enregistrer'}

@@ -46,6 +46,7 @@ export type SkillupAction =
   | 'bilanVagueSuggerer'
   | 'aiSettingsLire'
   | 'aiSettingsEcrire'
+  | 'aiModelsLister'
   | 'bilanSemaineEcrire'
   | 'bilanVagueLire'
   | 'bilanVagueEcrire';
@@ -313,6 +314,11 @@ export const getSkillupAiSettings = () => callSkillupProxy<SkillupAiSettings>('a
 
 export const setSkillupAiSettings = (enabled: boolean, provider: SkillupAiProvider, model: string) =>
   callSkillupProxy<SkillupAiSettings>('aiSettingsEcrire', { enabled: String(enabled), provider, model });
+
+/** Modèles réellement disponibles pour ce provider (interroge l'API du provider avec
+ * la clé du serveur) — pas de liste figée côté frontend. */
+export const getSkillupAiModels = (provider: SkillupAiProvider) =>
+  callSkillupProxy<{ provider: string; models: string[] }>('aiModelsLister', { provider });
 
 export const getSkillupMembers = (vague?: string) =>
   callSkillupProxy('members', { vague });
