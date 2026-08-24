@@ -2561,18 +2561,6 @@ const SkillUp: React.FC = () => {
                             >
                               Ajouter un membre
                             </button>
-                            {membersViewMode === 'vague' && (
-                              <button
-                                type="button"
-                                onClick={handleBulkSyncObjectifs}
-                                disabled={bulkSyncingObjectifs}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-zinc-200 rounded-md hover:bg-zinc-50 disabled:opacity-50 transition-colors"
-                                title="Récupère le contenu des posts objectifs Discord déjà rattachés"
-                              >
-                                <RefreshCw className={`w-3.5 h-3.5 ${bulkSyncingObjectifs ? 'animate-spin' : ''}`} />
-                                Synchroniser les objectifs
-                              </button>
-                            )}
                             <ExportButtons
                               tables={
                                 membersViewMode === 'vague'
@@ -2600,37 +2588,6 @@ const SkillUp: React.FC = () => {
 
                         {syncObjectifError && (
                           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{syncObjectifError}</div>
-                        )}
-                        {bulkSyncError && (
-                          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bulkSyncError}</div>
-                        )}
-                        {bulkSyncResults && (
-                          <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="font-medium text-zinc-700">
-                                {bulkSyncResults.filter((r) => r.ok).length}/{bulkSyncResults.length} objectif(s) synchronisé(s)
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setBulkSyncResults(null)}
-                                className="text-zinc-400 hover:text-zinc-600"
-                                aria-label="Fermer"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            {bulkSyncResults.length === 0 ? (
-                              <p className="text-zinc-500">Aucun membre avec un post objectif rattaché.</p>
-                            ) : (
-                              <ul className="space-y-1">
-                                {bulkSyncResults.map((r) => (
-                                  <li key={r.discord_id} className={r.ok ? 'text-zinc-700' : 'text-red-700'}>
-                                    {r.ok ? '✓' : '✗'} {r.nom} — {r.message}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
                         )}
 
                         {membersViewMode === 'vague' ? (
@@ -2666,8 +2623,8 @@ const SkillUp: React.FC = () => {
                                         </span>
                                       </td>
                                       <td className="px-4 py-3 text-sm text-zinc-700">{member.certif_ou_projet || '—'}</td>
-                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-sm whitespace-pre-line">
-                                        {member.objectif_vague ? member.objectif_vague : <span className="text-zinc-400 italic">Non défini</span>}
+                                      <td className="px-4 py-3 text-sm text-zinc-700">
+                                        <TruncatedText value={member.objectif_vague ?? null} />
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap">
                                         {member.thread_objectif_id ? (
@@ -3339,6 +3296,63 @@ const SkillUp: React.FC = () => {
                                   ))}
                                 </tbody>
                               </table>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'parametres',
+                    label: 'Paramètres',
+                    children: (
+                      <div className="pt-2 space-y-4">
+                        <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
+                          <h3 className="font-semibold text-blue-900 mb-1">Synchroniser les objectifs de vague</h3>
+                          <p className="text-sm text-zinc-500 mb-3">
+                            Récupère le contenu des posts objectifs Discord déjà rattachés (thread_objectif_id) et
+                            l'écrit dans l'objectif de vague de chaque membre concerné. Action ponctuelle — utile
+                            surtout après un rattachement manuel en masse (import ancien, migration...).
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleBulkSyncObjectifs}
+                            disabled={bulkSyncingObjectifs}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-zinc-200 rounded-md hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${bulkSyncingObjectifs ? 'animate-spin' : ''}`} />
+                            Synchroniser les objectifs
+                          </button>
+
+                          {bulkSyncError && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bulkSyncError}</div>
+                          )}
+                          {bulkSyncResults && (
+                            <div className="mt-3 bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="font-medium text-zinc-700">
+                                  {bulkSyncResults.filter((r) => r.ok).length}/{bulkSyncResults.length} objectif(s) synchronisé(s)
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setBulkSyncResults(null)}
+                                  className="text-zinc-400 hover:text-zinc-600"
+                                  aria-label="Fermer"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              {bulkSyncResults.length === 0 ? (
+                                <p className="text-zinc-500">Aucun membre avec un post objectif rattaché.</p>
+                              ) : (
+                                <ul className="space-y-1">
+                                  {bulkSyncResults.map((r) => (
+                                    <li key={r.discord_id} className={r.ok ? 'text-zinc-700' : 'text-red-700'}>
+                                      {r.ok ? '✓' : '✗'} {r.nom} — {r.message}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                           )}
                         </div>
