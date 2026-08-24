@@ -3586,8 +3586,8 @@ const SkillUp: React.FC = () => {
                                   {bilansSemaineAll.map((b) => (
                                     <tr key={b.discord_id} className={`hover:bg-zinc-50 ${b.discord_id === bilanMembreDiscordId ? 'bg-blue-50/50' : ''}`}>
                                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-zinc-900">{b.nom}</td>
-                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-md whitespace-pre-line">
-                                        {b.texte ? b.texte : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
+                                      <td className="px-4 py-3 text-sm text-zinc-700">
+                                        {b.texte ? <TruncatedText value={b.texte} /> : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
                                         <button
@@ -3630,8 +3630,8 @@ const SkillUp: React.FC = () => {
                                   {bilansVagueAll.map((b) => (
                                     <tr key={b.discord_id} className={`hover:bg-zinc-50 ${b.discord_id === bilanMembreDiscordId ? 'bg-blue-50/50' : ''}`}>
                                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-zinc-900">{b.nom}</td>
-                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-md whitespace-pre-line">
-                                        {b.texte ? b.texte : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
+                                      <td className="px-4 py-3 text-sm text-zinc-700">
+                                        {b.texte ? <TruncatedText value={b.texte} /> : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
                                         <button
