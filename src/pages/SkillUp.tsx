@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { Column, Bar, Pie } from '@ant-design/plots';
-import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download, Link2, Clock } from 'lucide-react';
+import { RefreshCw, Zap, Users, AlertCircle, ChevronLeft, ChevronRight, Pencil, Trash2, X, Download, Link2, Clock, Copy, Check } from 'lucide-react';
 import { exportTablesToCSV, exportTablesToPDF, type ExportTable } from '../utils/tableExport';
 import {
   getSkillupAccess,
@@ -223,6 +223,33 @@ const TruncatedText: React.FC<{ value: string | null }> = ({ value }) => {
 const EmptyState: React.FC<{ label: string }> = ({ label }) => (
   <div className="text-center py-10 text-sm text-zinc-500">{label}</div>
 );
+
+const bilanInfoToText = (info: SkillupBilanInfo): string => {
+  const lignes = [
+    `${info.nb_sessions} session(s) — ${info.nb_completes} complète(s), ${info.nb_incompletes} incomplète(s) — durée totale ${info.duree_totale}`,
+  ];
+  if (info.blocages.length > 0) lignes.push(`Blocages : ${info.blocages.join(' ; ')}`);
+  return lignes.join('\n');
+};
+
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="p-1 rounded text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700 transition-colors"
+      aria-label="Copier"
+      title="Copier"
+    >
+      {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+};
 
 const SessionsTable: React.FC<{
   sessions: SkillupSession[];
@@ -3191,9 +3218,12 @@ const SkillUp: React.FC = () => {
                 <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
-                  <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
-                    Résumé informatif — à copier/adapter, non enregistré ici
-                  </p>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                      Résumé informatif — à copier/adapter, non enregistré ici
+                    </p>
+                    {bilanInfoSemaine && <CopyButton text={bilanInfoToText(bilanInfoSemaine)} />}
+                  </div>
                   {bilanInfoSemaineLoading ? (
                     <p className="text-zinc-400">Chargement…</p>
                   ) : bilanInfoSemaine ? (
@@ -3235,9 +3265,12 @@ const SkillUp: React.FC = () => {
                 <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
-                  <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
-                    Résumé informatif — à copier/adapter, non enregistré ici
-                  </p>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                      Résumé informatif — à copier/adapter, non enregistré ici
+                    </p>
+                    {bilanInfoVague && <CopyButton text={bilanInfoToText(bilanInfoVague)} />}
+                  </div>
                   {bilanInfoVagueLoading ? (
                     <p className="text-zinc-400">Chargement…</p>
                   ) : bilanInfoVague ? (
