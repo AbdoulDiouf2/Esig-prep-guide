@@ -37,6 +37,8 @@ import {
   syncSkillupMemberObjectif,
   syncSkillupMembersObjectifAll,
   getSkillupBilanTexteSemaine,
+  getSkillupBilanSemaineSuggestion,
+  getSkillupBilanVagueSuggestion,
   getSkillupBilansSemaineAdmin,
   getSkillupBilansVagueAdmin,
   getSkillupBilanInfoAdmin,
@@ -1211,6 +1213,42 @@ const SkillUp: React.FC = () => {
       setBilanVagueSaving(false);
     }
   }, [bilanMembreDiscordId, bilanVagueTexte, bilanEffectiveVagueId, loadBilansVagueAll]);
+
+  // Suggestion IA — brouillon généré à partir des vraies données (sessions, bilans
+  // hebdo déjà écrits), jamais sauvegardé automatiquement. Si le textarea contient déjà
+  // du texte, demande confirmation avant d'écraser.
+  const [bilanSemaineSuggesting, setBilanSemaineSuggesting] = useState(false);
+  const [bilanVagueSuggesting, setBilanVagueSuggesting] = useState(false);
+
+  const handleSuggestBilanSemaine = useCallback(async () => {
+    if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
+    if (bilanSemaineTexte.trim() && !window.confirm('Remplacer le texte existant par la suggestion IA ?')) return;
+    setBilanSemaineSuggesting(true);
+    setBilanSemaineError('');
+    try {
+      const res = await getSkillupBilanSemaineSuggestion(bilanMembreDiscordId, String(bilanEffectiveVagueId), String(bilanSemaineNum));
+      setBilanSemaineTexte(res.suggestion);
+    } catch (err) {
+      setBilanSemaineError(errorMessage(err));
+    } finally {
+      setBilanSemaineSuggesting(false);
+    }
+  }, [bilanMembreDiscordId, bilanSemaineNum, bilanEffectiveVagueId, bilanSemaineTexte]);
+
+  const handleSuggestBilanVague = useCallback(async () => {
+    if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
+    if (bilanVagueTexte.trim() && !window.confirm('Remplacer le texte existant par la suggestion IA ?')) return;
+    setBilanVagueSuggesting(true);
+    setBilanVagueError('');
+    try {
+      const res = await getSkillupBilanVagueSuggestion(bilanMembreDiscordId, String(bilanEffectiveVagueId));
+      setBilanVagueTexte(res.suggestion);
+    } catch (err) {
+      setBilanVagueError(errorMessage(err));
+    } finally {
+      setBilanVagueSuggesting(false);
+    }
+  }, [bilanMembreDiscordId, bilanEffectiveVagueId, bilanVagueTexte]);
 
   const [creatingVague, setCreatingVague] = useState(false);
   const [createVagueNom, setCreateVagueNom] = useState('');
@@ -3476,7 +3514,18 @@ const SkillUp: React.FC = () => {
             <div className="px-6 py-5 space-y-6">
               {bilanModalSection === 'semaine' && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
+                  <button
+                    type="button"
+                    onClick={handleSuggestBilanSemaine}
+                    disabled={bilanSemaineSuggesting}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${bilanSemaineSuggesting ? 'animate-spin' : ''}`} />
+                    {bilanSemaineSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
+                  </button>
+                </div>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -3545,7 +3594,18 @@ const SkillUp: React.FC = () => {
 
               {bilanModalSection === 'vague' && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
+                  <button
+                    type="button"
+                    onClick={handleSuggestBilanVague}
+                    disabled={bilanVagueSuggesting}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${bilanVagueSuggesting ? 'animate-spin' : ''}`} />
+                    {bilanVagueSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
+                  </button>
+                </div>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
                   <div className="flex items-center justify-between gap-2 mb-2">

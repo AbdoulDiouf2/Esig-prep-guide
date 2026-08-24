@@ -42,6 +42,8 @@ export type SkillupAction =
   | 'bilansSemaineListerAdmin'
   | 'bilansVagueListerAdmin'
   | 'bilanSemaineLire'
+  | 'bilanSemaineSuggerer'
+  | 'bilanVagueSuggerer'
   | 'bilanSemaineEcrire'
   | 'bilanVagueLire'
   | 'bilanVagueEcrire';
@@ -279,6 +281,16 @@ export const getSkillupBilanVague = (membreDiscordId: string, vague: string) =>
 
 export const setSkillupBilanVague = (membreDiscordId: string, vague: string, valeur: string) =>
   callSkillupProxy<SkillupBilanTexte>('bilanVagueEcrire', { membreDiscordId, vague, valeur });
+
+/** Génère un brouillon de bilan hebdomadaire via l'IA, à partir des sessions réelles
+ * de la semaine — jamais sauvegardé automatiquement. */
+export const getSkillupBilanSemaineSuggestion = (membreDiscordId: string, vague: string, semaine: string) =>
+  callSkillupProxy<{ suggestion: string }>('bilanSemaineSuggerer', { membreDiscordId, vague, semaine });
+
+/** Génère un brouillon de bilan de vague via l'IA, à partir des bilans hebdo déjà
+ * rédigés et des sessions de toute la vague. */
+export const getSkillupBilanVagueSuggestion = (membreDiscordId: string, vague: string) =>
+  callSkillupProxy<{ suggestion: string }>('bilanVagueSuggerer', { membreDiscordId, vague });
 
 export const getSkillupMembers = (vague?: string) =>
   callSkillupProxy('members', { vague });

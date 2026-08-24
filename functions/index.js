@@ -219,6 +219,14 @@ const SKILLUP_ACTIONS = {
     method: 'GET',
     path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,
   },
+  bilanSemaineSuggerer: {
+    method: 'POST',
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine/suggerer`,
+  },
+  bilanVagueSuggerer: {
+    method: 'POST',
+    path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-vague/suggerer`,
+  },
   bilanSemaineEcrire: {
     method: 'PUT',
     path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,
