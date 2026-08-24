@@ -98,12 +98,6 @@ const STATUT_COLORS: Record<string, string> = {
   'ouverte': '#94a3b8',
 };
 
-const MEMBRE_CHAMPS: { value: SkillupMembreChamp; label: string }[] = [
-  { value: 'nom', label: 'Nom' },
-  { value: 'profil', label: 'Profil' },
-  { value: 'certif_ou_projet', label: 'Certification / Projet' },
-  { value: 'objectif_vague', label: 'Objectif de vague' },
-];
 
 interface SkillupBinome {
   membre_a: number;
@@ -380,13 +374,6 @@ const ExportButtons: React.FC<{
   );
 };
 
-const SESSION_CHAMPS: { value: SkillupSessionChamp; label: string }[] = [
-  { value: 'objectif', label: 'Objectif' },
-  { value: 'bilan', label: 'Bilan' },
-  { value: 'blocages', label: 'Blocages' },
-  { value: 'creneau', label: 'Créneau' },
-];
-
 const SkillUp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'participant' | 'admin'>('participant');
   const [loading, setLoading] = useState(true);
@@ -458,8 +445,7 @@ const SkillUp: React.FC = () => {
   const [binomesSemaine, setBinomesSemaine] = useState<number | null>(null);
 
   const [editingSession, setEditingSession] = useState<SkillupSession | null>(null);
-  const [editChamp, setEditChamp] = useState<SkillupSessionChamp>('objectif');
-  const [editValeur, setEditValeur] = useState('');
+  const [editSessionForm, setEditSessionForm] = useState({ objectif: '', bilan: '', blocages: '', creneau: '' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   // 'admin' = onglet Sessions (Vue admin, aucune vérif de propriétaire) ; 'self' = carte
@@ -519,8 +505,12 @@ const SkillUp: React.FC = () => {
   const openEdit = useCallback((session: SkillupSession, scope: 'admin' | 'self' = 'admin') => {
     setEditingSession(session);
     setEditSessionScope(scope);
-    setEditChamp('objectif');
-    setEditValeur(session.objectif || '');
+    setEditSessionForm({
+      objectif: session.objectif || '',
+      bilan: session.bilan || '',
+      blocages: session.blocages || '',
+      creneau: session.creneau || '',
+    });
     setEditError('');
   }, []);
 
@@ -530,37 +520,43 @@ const SkillUp: React.FC = () => {
     setDeleteError('');
   }, []);
 
-  const handleEditChampChange = useCallback(
-    (champ: SkillupSessionChamp) => {
-      setEditChamp(champ);
-      setEditValeur((editingSession?.[champ] as string | null) || '');
-    },
-    [editingSession]
-  );
-
   const handleSaveEdit = useCallback(async () => {
     if (!editingSession) return;
+    const champs: SkillupSessionChamp[] = ['objectif', 'bilan', 'blocages', 'creneau'];
+    const changed = champs.filter((c) => editSessionForm[c] !== (editingSession[c] || ''));
+    if (changed.length === 0) {
+      setEditingSession(null);
+      return;
+    }
     setEditSaving(true);
     setEditError('');
     try {
-      if (editSessionScope === 'self') {
-        await patchSkillupMySession(editingSession.id, editChamp, editValeur);
-        setJournal((prev) =>
-          prev.map((s) => (s.id === editingSession.id ? { ...s, [editChamp]: editValeur } : s))
-        );
-      } else {
-        await patchSkillupSession(editingSession.id, editChamp, editValeur);
-        setSessions((prev) =>
-          prev.map((s) => (s.id === editingSession.id ? { ...s, [editChamp]: editValeur } : s))
-        );
+      for (const champ of changed) {
+        if (editSessionScope === 'self') {
+          await patchSkillupMySession(editingSession.id, champ, editSessionForm[champ]);
+        } else {
+          await patchSkillupSession(editingSession.id, champ, editSessionForm[champ]);
+        }
       }
+      const updater = (s: SkillupSession) => (s.id === editingSession.id ? { ...s, ...editSessionForm } : s);
+      if (editSessionScope === 'self') setJournal((prev) => prev.map(updater));
+      else setSessions((prev) => prev.map(updater));
       setEditingSession(null);
     } catch (err) {
       setEditError(errorMessage(err));
     } finally {
       setEditSaving(false);
     }
-  }, [editingSession, editChamp, editValeur, editSessionScope]);
+  }, [editingSession, editSessionForm, editSessionScope]);
+
+  useEffect(() => {
+    if (!editingSession) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEditingSession(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editingSession]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deletingSession) return;
@@ -1539,47 +1535,44 @@ const SkillUp: React.FC = () => {
   ]);
 
   const [editingMember, setEditingMember] = useState<SkillupMember | null>(null);
-  const [editMemberChamp, setEditMemberChamp] = useState<SkillupMembreChamp>('profil');
-  const [editMemberValeur, setEditMemberValeur] = useState('');
+  const [editMemberForm, setEditMemberForm] = useState({ nom: '', profil: '', certif_ou_projet: '', objectif_vague: '' });
   const [editMemberSaving, setEditMemberSaving] = useState(false);
   const [editMemberError, setEditMemberError] = useState('');
 
   const openEditMember = useCallback((member: SkillupMember) => {
     setEditingMember(member);
-    setEditMemberChamp('profil');
-    setEditMemberValeur(member.profil);
+    setEditMemberForm({
+      nom: member.nom,
+      profil: member.profil,
+      certif_ou_projet: member.certif_ou_projet || '',
+      objectif_vague: member.objectif_vague || '',
+    });
     setEditMemberError('');
   }, []);
 
-  const handleEditMemberChampChange = useCallback(
-    (champ: SkillupMembreChamp) => {
-      setEditMemberChamp(champ);
-      if (!editingMember) return;
-      if (champ === 'nom') setEditMemberValeur(editingMember.nom);
-      else if (champ === 'profil') setEditMemberValeur(editingMember.profil);
-      else if (champ === 'certif_ou_projet') setEditMemberValeur(editingMember.certif_ou_projet || '');
-      else setEditMemberValeur('');
-    },
-    [editingMember]
-  );
-
   const handleSaveEditMember = useCallback(async () => {
     if (!editingMember) return;
+    const champs: SkillupMembreChamp[] = ['nom', 'profil', 'certif_ou_projet', 'objectif_vague'];
+    const original: Record<SkillupMembreChamp, string> = {
+      nom: editingMember.nom,
+      profil: editingMember.profil,
+      certif_ou_projet: editingMember.certif_ou_projet || '',
+      objectif_vague: editingMember.objectif_vague || '',
+    };
+    const changed = champs.filter((c) => editMemberForm[c] !== original[c]);
+    if (changed.length === 0) {
+      setEditingMember(null);
+      return;
+    }
     setEditMemberSaving(true);
     setEditMemberError('');
+    const vagueArg = vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined;
     try {
-      await editSkillupMember(
-        editingMember.discord_id,
-        editMemberChamp,
-        editMemberValeur,
-        vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
-      );
+      for (const champ of changed) {
+        await editSkillupMember(editingMember.discord_id, champ, editMemberForm[champ], vagueArg);
+      }
       setMembers((prev) =>
-        prev.map((m) =>
-          m.id === editingMember.id && (editMemberChamp === 'nom' || editMemberChamp === 'profil' || editMemberChamp === 'certif_ou_projet')
-            ? { ...m, [editMemberChamp]: editMemberValeur }
-            : m
-        )
+        prev.map((m) => (m.id === editingMember.id ? { ...m, ...editMemberForm } : m))
       );
       setEditingMember(null);
     } catch (err) {
@@ -1587,7 +1580,16 @@ const SkillUp: React.FC = () => {
     } finally {
       setEditMemberSaving(false);
     }
-  }, [editingMember, editMemberChamp, editMemberValeur, adminSelectedVague, vagueParamFor]);
+  }, [editingMember, editMemberForm, adminSelectedVague, vagueParamFor]);
+
+  useEffect(() => {
+    if (!editingMember) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEditingMember(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editingMember]);
 
   const [linkingThreadMember, setLinkingThreadMember] = useState<SkillupMember | null>(null);
   const [linkThreadValeur, setLinkThreadValeur] = useState('');
@@ -3452,9 +3454,15 @@ const SkillUp: React.FC = () => {
       )}
 
       {editingSession && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => setEditingSession(null)}
+        >
+          <div
+            className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-white">
               <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
                 <Pencil className="w-4 h-4" /> Corriger la session #{editingSession.id}
               </h2>
@@ -3472,35 +3480,41 @@ const SkillUp: React.FC = () => {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Champ à corriger</label>
-                <select
-                  value={editChamp}
-                  onChange={(e) => handleEditChampChange(e.target.value as SkillupSessionChamp)}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Créneau</label>
+                <input
+                  type="text"
+                  value={editSessionForm.creneau}
+                  onChange={(e) => setEditSessionForm((f) => ({ ...f, creneau: e.target.value }))}
+                  placeholder="Ex: 19h-21h"
                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {SESSION_CHAMPS.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Nouvelle valeur</label>
-                {editChamp === 'creneau' ? (
-                  <input
-                    type="text"
-                    value={editValeur}
-                    onChange={(e) => setEditValeur(e.target.value)}
-                    placeholder="Ex: 19h-21h"
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <textarea
-                    value={editValeur}
-                    onChange={(e) => setEditValeur(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                )}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Objectif</label>
+                <textarea
+                  value={editSessionForm.objectif}
+                  onChange={(e) => setEditSessionForm((f) => ({ ...f, objectif: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Bilan</label>
+                <textarea
+                  value={editSessionForm.bilan}
+                  onChange={(e) => setEditSessionForm((f) => ({ ...f, bilan: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Blocages</label>
+                <textarea
+                  value={editSessionForm.blocages}
+                  onChange={(e) => setEditSessionForm((f) => ({ ...f, blocages: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -4027,9 +4041,15 @@ const SkillUp: React.FC = () => {
       )}
 
       {editingMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => setEditingMember(null)}
+        >
+          <div
+            className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-white">
               <h2 className="text-base font-semibold text-blue-900 flex items-center gap-2">
                 <Pencil className="w-4 h-4" /> Éditer {editingMember.nom}
               </h2>
@@ -4044,37 +4064,43 @@ const SkillUp: React.FC = () => {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Champ à corriger</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Nom</label>
+                <input
+                  type="text"
+                  value={editMemberForm.nom}
+                  onChange={(e) => setEditMemberForm((f) => ({ ...f, nom: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Profil</label>
                 <select
-                  value={editMemberChamp}
-                  onChange={(e) => handleEditMemberChampChange(e.target.value as SkillupMembreChamp)}
+                  value={editMemberForm.profil}
+                  onChange={(e) => setEditMemberForm((f) => ({ ...f, profil: e.target.value }))}
                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {MEMBRE_CHAMPS.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
+                  {SKILLUP_PROFILS.map((p) => (
+                    <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Nouvelle valeur</label>
-                {editMemberChamp === 'profil' ? (
-                  <select
-                    value={editMemberValeur}
-                    onChange={(e) => setEditMemberValeur(e.target.value)}
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {SKILLUP_PROFILS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={editMemberValeur}
-                    onChange={(e) => setEditMemberValeur(e.target.value)}
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                )}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Certification / Projet</label>
+                <input
+                  type="text"
+                  value={editMemberForm.certif_ou_projet}
+                  onChange={(e) => setEditMemberForm((f) => ({ ...f, certif_ou_projet: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Objectif de vague</label>
+                <textarea
+                  value={editMemberForm.objectif_vague}
+                  onChange={(e) => setEditMemberForm((f) => ({ ...f, objectif_vague: e.target.value }))}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
