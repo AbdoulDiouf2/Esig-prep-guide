@@ -39,6 +39,7 @@ export type SkillupAction =
   | 'bilanTexteSemaineSelf'
   | 'bilanInfoAdmin'
   | 'bilansSemaineListerAdmin'
+  | 'bilansVagueListerAdmin'
   | 'bilanSemaineLire'
   | 'bilanSemaineEcrire'
   | 'bilanVagueLire'
@@ -247,6 +248,11 @@ export const getSkillupBilansSemaineAdmin = (semaine: string, vague?: string) =>
     'bilansSemaineListerAdmin',
     { semaine, vague }
   );
+
+/** Vue d'ensemble admin : bilan de vague de tous les membres (texte à null si pas
+ * encore rédigé). */
+export const getSkillupBilansVagueAdmin = (vague?: string) =>
+  callSkillupProxy<{ wave_nom: string; bilans: SkillupBilanMembre[] }>('bilansVagueListerAdmin', { vague });
 
 /** Bilan hebdomadaire rédigé à la main par l'admin pour un membre — distinct du
  * résumé informatif ci-dessus (non stocké, calculé à la volée). */

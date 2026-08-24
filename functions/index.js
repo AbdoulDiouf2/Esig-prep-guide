@@ -211,6 +211,7 @@ const SKILLUP_ACTIONS = {
   // panneau "à copier" du bilan hebdo/vague admin, pas à pré-remplir automatiquement.
   bilanInfoAdmin: { method: 'GET', path: (discordId, p) => `/members/${p.membreDiscordId}/bilan` },
   bilansSemaineListerAdmin: { method: 'GET', path: () => '/bilans-semaine' },
+  bilansVagueListerAdmin: { method: 'GET', path: () => '/bilans-vague' },
   bilanSemaineLire: {
     method: 'GET',
     path: (discordId, p) => `/members/${p.membreDiscordId}/bilan-semaine`,

@@ -38,6 +38,7 @@ import {
   syncSkillupMembersObjectifAll,
   getSkillupBilanTexteSemaine,
   getSkillupBilansSemaineAdmin,
+  getSkillupBilansVagueAdmin,
   getSkillupBilanInfoAdmin,
   getSkillupBilanSemaine,
   setSkillupBilanSemaine,
@@ -1012,6 +1013,9 @@ const SkillUp: React.FC = () => {
   // durée, blocages) est purement informatif — jamais copié automatiquement dans le
   // texte libre, l'admin rédige lui-même.
   const [bilanMembreDiscordId, setBilanMembreDiscordId] = useState('');
+  // Quelle section afficher dans le modal — ouvert depuis la liste hebdo ou la liste
+  // vague, seule la section correspondante doit apparaître (pas les deux mélangées).
+  const [bilanModalSection, setBilanModalSection] = useState<'semaine' | 'vague'>('semaine');
   const [bilanSemaineNum, setBilanSemaineNum] = useState(1);
   // Se cale une seule fois sur la semaine courante de la vague dès qu'elle est connue
   // (même pattern que dashboardSemaineDefaulted) — évite d'afficher "semaine 1" par
@@ -1075,6 +1079,31 @@ const SkillUp: React.FC = () => {
     },
     [bilanEffectiveVagueId]
   );
+
+  // Vue d'ensemble : bilan de vague de TOUS les membres — même logique que
+  // bilansSemaineAll, sans filtre semaine.
+  const [bilansVagueAll, setBilansVagueAll] = useState<SkillupBilanMembre[]>([]);
+  const [bilansVagueAllLoading, setBilansVagueAllLoading] = useState(false);
+  const [bilansVagueAllError, setBilansVagueAllError] = useState('');
+
+  const loadBilansVagueAll = useCallback(async () => {
+    if (bilanEffectiveVagueId === null) return;
+    setBilansVagueAllLoading(true);
+    setBilansVagueAllError('');
+    try {
+      const res = await getSkillupBilansVagueAdmin(String(bilanEffectiveVagueId));
+      setBilansVagueAll('bilans' in res ? res.bilans : []);
+    } catch (err) {
+      setBilansVagueAll([]);
+      setBilansVagueAllError(errorMessage(err));
+    } finally {
+      setBilansVagueAllLoading(false);
+    }
+  }, [bilanEffectiveVagueId]);
+
+  useEffect(() => {
+    loadBilansVagueAll();
+  }, [loadBilansVagueAll]);
 
   const loadBilanSemaineData = useCallback(
     async (discordId: string, semaine: number) => {
@@ -1174,12 +1203,13 @@ const SkillUp: React.FC = () => {
     setBilanVagueError('');
     try {
       await setSkillupBilanVague(bilanMembreDiscordId, String(bilanEffectiveVagueId), bilanVagueTexte);
+      loadBilansVagueAll();
     } catch (err) {
       setBilanVagueError(errorMessage(err));
     } finally {
       setBilanVagueSaving(false);
     }
-  }, [bilanMembreDiscordId, bilanVagueTexte, bilanEffectiveVagueId]);
+  }, [bilanMembreDiscordId, bilanVagueTexte, bilanEffectiveVagueId, loadBilansVagueAll]);
 
   const [creatingVague, setCreatingVague] = useState(false);
   const [createVagueNom, setCreateVagueNom] = useState('');
@@ -3297,7 +3327,51 @@ const SkillUp: React.FC = () => {
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
                                         <button
                                           type="button"
-                                          onClick={() => setBilanMembreDiscordId(b.discord_id)}
+                                          onClick={() => { setBilanMembreDiscordId(b.discord_id); setBilanModalSection('semaine'); }}
+                                          className="px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors"
+                                        >
+                                          {b.texte ? 'Éditer' : 'Rédiger'}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
+                          <h3 className="font-semibold text-blue-900 mb-3">Bilans de vague — tous les membres</h3>
+                          {bilansVagueAllLoading ? (
+                            <div className="py-8 flex justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
+                            </div>
+                          ) : bilansVagueAllError ? (
+                            <p className="text-sm text-zinc-600">{bilansVagueAllError}</p>
+                          ) : bilansVagueAll.length === 0 ? (
+                            <EmptyState label="Aucun membre" />
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-zinc-200">
+                                <thead className="bg-zinc-50">
+                                  <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Membre</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Bilan</th>
+                                    <th className="px-4 py-2 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-zinc-200">
+                                  {bilansVagueAll.map((b) => (
+                                    <tr key={b.discord_id} className={`hover:bg-zinc-50 ${b.discord_id === bilanMembreDiscordId ? 'bg-blue-50/50' : ''}`}>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-zinc-900">{b.nom}</td>
+                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-md whitespace-pre-line">
+                                        {b.texte ? b.texte : <span className="text-zinc-400 italic">Pas encore rédigé</span>}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                                        <button
+                                          type="button"
+                                          onClick={() => { setBilanMembreDiscordId(b.discord_id); setBilanModalSection('vague'); }}
                                           className="px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors"
                                         >
                                           {b.texte ? 'Éditer' : 'Rédiger'}
@@ -3388,6 +3462,7 @@ const SkillUp: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-white">
               <h2 className="text-base font-semibold text-blue-900">
                 {members.find((m) => m.discord_id === bilanMembreDiscordId)?.nom ?? 'Membre'}
+                <span className="text-zinc-400 font-normal"> — {bilanModalSection === 'semaine' ? 'bilan hebdomadaire' : 'bilan de vague'}</span>
               </h2>
               <button
                 onClick={() => setBilanMembreDiscordId('')}
@@ -3398,6 +3473,7 @@ const SkillUp: React.FC = () => {
               </button>
             </div>
             <div className="px-6 py-5 space-y-6">
+              {bilanModalSection === 'semaine' && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
 
@@ -3464,8 +3540,10 @@ const SkillUp: React.FC = () => {
                   </button>
                 </div>
               </div>
+              )}
 
-              <div className="space-y-3 pt-2 border-t border-zinc-100">
+              {bilanModalSection === 'vague' && (
+              <div className="space-y-3">
                 <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
@@ -3511,6 +3589,7 @@ const SkillUp: React.FC = () => {
                   </button>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
