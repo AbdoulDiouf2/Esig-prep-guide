@@ -260,6 +260,14 @@ const SKILLUP_ACTIONS = {
       ...(params.vague ? { vague: Number(params.vague) } : {}),
     }),
   },
+  membreObjectifSync: {
+    method: 'POST',
+    path: (_discordId, params) => `/members/${params.membreDiscordId}/objectif-vague/sync`,
+  },
+  membresObjectifSyncAll: {
+    method: 'POST',
+    path: () => '/objectifs-vague/sync',
+  },
   sessionCorriger: {
     method: 'PATCH',
     path: (_discordId, params) => `/sessions/${params.sessionId}`,

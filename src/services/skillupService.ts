@@ -33,6 +33,8 @@ export type SkillupAction =
   | 'sessionCorrigerSelf'
   | 'sessionSupprimerSelf'
   | 'membreLierThread'
+  | 'membreObjectifSync'
+  | 'membresObjectifSyncAll'
   | 'sessionCreer'
   | 'bilanTexteSemaineSelf'
   | 'bilanInfoAdmin'
@@ -94,6 +96,7 @@ export interface SkillupMemberEditResult {
   profil: string;
   certif_ou_projet: string | null;
   objectif_vague?: string | null;
+  thread_objectif_id?: string | null;
 }
 
 export interface SkillupDiscordMember {
@@ -430,6 +433,23 @@ export const deleteSkillupMySession = (sessionId: number) =>
 /** Rattache manuellement le post objectif existant d'un membre (admin uniquement). */
 export const linkSkillupMemberThread = (discordId: string, lienOuId: string, vague?: string) =>
   callSkillupProxy<SkillupMemberEditResult>('membreLierThread', { membreDiscordId: discordId, lienOuId, vague });
+
+/** Récupère le contenu réel du post objectif Discord déjà rattaché et l'écrit dans
+ * objectif_vague — pour les membres dont le post existait avant l'automatisation. */
+export const syncSkillupMemberObjectif = (discordId: string, vague?: string) =>
+  callSkillupProxy<SkillupMemberEditResult>('membreObjectifSync', { membreDiscordId: discordId, vague });
+
+export interface SkillupObjectifSyncResult {
+  discord_id: string;
+  nom: string;
+  ok: boolean;
+  message: string;
+}
+
+/** Synchronise en masse l'objectif de vague de tous les membres ayant un post
+ * objectif rattaché — un échec individuel n'interrompt pas les suivants. */
+export const syncSkillupMembersObjectifAll = (vague?: string) =>
+  callSkillupProxy<{ resultats: SkillupObjectifSyncResult[] }>('membresObjectifSyncAll', { vague });
 
 /** Désactive un salon de coworking (soft-delete, pas une suppression). */
 export const removeSkillupSalon = (canalId: string, vague?: string) =>

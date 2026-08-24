@@ -34,6 +34,8 @@ import {
   patchSkillupMySession,
   deleteSkillupMySession,
   linkSkillupMemberThread,
+  syncSkillupMemberObjectif,
+  syncSkillupMembersObjectifAll,
   getSkillupBilanTexteSemaine,
   getSkillupBilansSemaineAdmin,
   getSkillupBilanInfoAdmin,
@@ -52,6 +54,7 @@ import {
   type SkillupBilanInfo,
   type SkillupBilanTexte,
   type SkillupBilanMembre,
+  type SkillupObjectifSyncResult,
 } from '../services/skillupService';
 
 interface SkillupSession {
@@ -74,6 +77,8 @@ interface SkillupMember {
   nom: string;
   profil: string;
   certif_ou_projet: string | null;
+  objectif_vague?: string | null;
+  thread_objectif_id?: string | null;
 }
 
 const SKILLUP_PROFILS: SkillupProfil[] = ['étudiant', "demandeur d'emploi", 'cadre', 'alternant', 'autre'];
@@ -1615,6 +1620,52 @@ const SkillUp: React.FC = () => {
     }
   }, [linkingThreadMember, linkThreadValeur, adminSelectedVague, vagueParamFor]);
 
+  // Synchro objectif de vague — récupère le contenu réel du post objectif Discord déjà
+  // rattaché (thread_objectif_id) et l'écrit dans objectif_vague. Utile pour les membres
+  // dont le post existait avant l'automatisation /objectif-vague, ou rattaché après coup.
+  const [syncingObjectifDiscordId, setSyncingObjectifDiscordId] = useState<string | null>(null);
+  const [syncObjectifError, setSyncObjectifError] = useState('');
+
+  const handleSyncMemberObjectif = useCallback(
+    async (member: SkillupMember) => {
+      setSyncingObjectifDiscordId(member.discord_id);
+      setSyncObjectifError('');
+      try {
+        await syncSkillupMemberObjectif(
+          member.discord_id,
+          vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
+        );
+        await loadMembers(vagueParamFor(adminSelectedVague));
+      } catch (err) {
+        setSyncObjectifError(errorMessage(err));
+      } finally {
+        setSyncingObjectifDiscordId(null);
+      }
+    },
+    [adminSelectedVague, vagueParamFor, loadMembers]
+  );
+
+  const [bulkSyncingObjectifs, setBulkSyncingObjectifs] = useState(false);
+  const [bulkSyncResults, setBulkSyncResults] = useState<SkillupObjectifSyncResult[] | null>(null);
+  const [bulkSyncError, setBulkSyncError] = useState('');
+
+  const handleBulkSyncObjectifs = useCallback(async () => {
+    setBulkSyncingObjectifs(true);
+    setBulkSyncError('');
+    setBulkSyncResults(null);
+    try {
+      const res = await syncSkillupMembersObjectifAll(
+        vagueParamFor(adminSelectedVague) !== undefined ? String(vagueParamFor(adminSelectedVague)) : undefined
+      );
+      setBulkSyncResults('resultats' in res ? res.resultats : []);
+      await loadMembers(vagueParamFor(adminSelectedVague));
+    } catch (err) {
+      setBulkSyncError(errorMessage(err));
+    } finally {
+      setBulkSyncingObjectifs(false);
+    }
+  }, [adminSelectedVague, vagueParamFor, loadMembers]);
+
   // Sélecteur de portée du Dashboard — un vrai menu déroulant, entièrement indépendant du
   // sélecteur de vague partagé par Membres/Sessions/Binômes : n'importe quelle vague non-
   // brouillon directement, ou "Toutes les vagues". Une seule source de données pour les
@@ -2508,13 +2559,25 @@ const SkillUp: React.FC = () => {
                             >
                               Ajouter un membre
                             </button>
+                            {membersViewMode === 'vague' && (
+                              <button
+                                type="button"
+                                onClick={handleBulkSyncObjectifs}
+                                disabled={bulkSyncingObjectifs}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-zinc-200 rounded-md hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                                title="Récupère le contenu des posts objectifs Discord déjà rattachés"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${bulkSyncingObjectifs ? 'animate-spin' : ''}`} />
+                                Synchroniser les objectifs
+                              </button>
+                            )}
                             <ExportButtons
                               tables={
                                 membersViewMode === 'vague'
                                   ? [{
                                       title: 'Membres de la vague',
-                                      headers: ['Nom', 'Profil', 'Certification / Projet', 'ID Discord'],
-                                      rows: members.map((m) => [m.nom, m.profil, m.certif_ou_projet ?? '', m.discord_id]),
+                                      headers: ['Nom', 'Profil', 'Certification / Projet', 'Objectif de vague', 'ID Discord'],
+                                      rows: members.map((m) => [m.nom, m.profil, m.certif_ou_projet ?? '', m.objectif_vague ?? '', m.discord_id]),
                                     }]
                                   : [{
                                       title: 'Membres du serveur Discord',
@@ -2529,6 +2592,41 @@ const SkillUp: React.FC = () => {
                             />
                           </div>
                         </div>
+
+                        {syncObjectifError && (
+                          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{syncObjectifError}</div>
+                        )}
+                        {bulkSyncError && (
+                          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bulkSyncError}</div>
+                        )}
+                        {bulkSyncResults && (
+                          <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium text-zinc-700">
+                                {bulkSyncResults.filter((r) => r.ok).length}/{bulkSyncResults.length} objectif(s) synchronisé(s)
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setBulkSyncResults(null)}
+                                className="text-zinc-400 hover:text-zinc-600"
+                                aria-label="Fermer"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            {bulkSyncResults.length === 0 ? (
+                              <p className="text-zinc-500">Aucun membre avec un post objectif rattaché.</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {bulkSyncResults.map((r) => (
+                                  <li key={r.discord_id} className={r.ok ? 'text-zinc-700' : 'text-red-700'}>
+                                    {r.ok ? '✓' : '✗'} {r.nom} — {r.message}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
 
                         {membersViewMode === 'vague' ? (
                           membersLoading ? (
@@ -2547,6 +2645,7 @@ const SkillUp: React.FC = () => {
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Nom</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Profil</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Certification / Projet</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Objectif de vague</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">ID Discord</th>
                                     <th className="px-4 py-2 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
                                   </tr>
@@ -2561,6 +2660,9 @@ const SkillUp: React.FC = () => {
                                         </span>
                                       </td>
                                       <td className="px-4 py-3 text-sm text-zinc-700">{member.certif_ou_projet || '—'}</td>
+                                      <td className="px-4 py-3 text-sm text-zinc-700 max-w-sm whitespace-pre-line">
+                                        {member.objectif_vague ? member.objectif_vague : <span className="text-zinc-400 italic">Non défini</span>}
+                                      </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-xs font-mono text-zinc-400">{member.discord_id}</td>
                                       <td className="px-4 py-3 whitespace-nowrap text-right">
                                         <button
@@ -2579,6 +2681,18 @@ const SkillUp: React.FC = () => {
                                         >
                                           <Link2 className="w-4 h-4" />
                                         </button>
+                                        {member.thread_objectif_id && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSyncMemberObjectif(member)}
+                                            disabled={syncingObjectifDiscordId === member.discord_id}
+                                            className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                                            aria-label={`Synchroniser l'objectif de ${member.nom} depuis Discord`}
+                                            title="Synchroniser l'objectif depuis le post Discord"
+                                          >
+                                            <RefreshCw className={`w-4 h-4 ${syncingObjectifDiscordId === member.discord_id ? 'animate-spin' : ''}`} />
+                                          </button>
+                                        )}
                                       </td>
                                     </tr>
                                   ))}
