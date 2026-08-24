@@ -3143,18 +3143,28 @@ const SkillUp: React.FC = () => {
                         <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
                             <h3 className="font-semibold text-blue-900">Bilans hebdomadaires — tous les membres</h3>
-                            <div className="flex items-center gap-2">
-                              <label htmlFor="bilan-semaine-select-all" className="text-sm text-zinc-500">Semaine</label>
-                              <select
-                                id="bilan-semaine-select-all"
-                                value={bilanSemaineNum}
-                                onChange={(e) => setBilanSemaineNum(Number(e.target.value))}
-                                className="px-3 py-1.5 border border-zinc-300 rounded-md text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            <div className="flex items-center gap-1 bg-zinc-50 border border-zinc-200 rounded-md px-1">
+                              <button
+                                type="button"
+                                onClick={() => setBilanSemaineNum((s) => Math.max(1, s - 1))}
+                                disabled={bilanSemaineNum <= 1}
+                                className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                aria-label="Semaine précédente"
                               >
-                                {Array.from({ length: Math.max(adminCurrentSemaineNumber ?? 1, bilanSemaineNum) }, (_, i) => i + 1).map((s) => (
-                                  <option key={s} value={s}>{s}</option>
-                                ))}
-                              </select>
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <span className="text-sm font-medium text-zinc-900 min-w-[9rem] text-center">
+                                Semaine {bilanSemaineNum}
+                                {adminCurrentSemaineNumber === bilanSemaineNum ? ' (actuelle)' : ''}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setBilanSemaineNum((s) => s + 1)}
+                                className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                                aria-label="Semaine suivante"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
                           {bilansSemaineAllLoading ? (
