@@ -995,6 +995,18 @@ const SkillUp: React.FC = () => {
     setBilanSemaineNum(adminCurrentSemaineNumber);
   }, [adminCurrentSemaineNumber]);
 
+  // ID de vague toujours explicite (jamais omis) pour les bilans — contrairement à
+  // vagueParamFor (qui omet le paramètre quand c'est la vague active, pour coller au
+  // comportement historique de /bilan côté Discord), on a besoin ici de forcer la vague
+  // filtrée à chaque appel : le résumé informatif passe par resolve_member_sessions, qui
+  // sans vague ET avec semaine agrège TOUTES les vagues du membre (pas seulement la vague
+  // affichée) — sinon le résumé ne correspond plus à ce que montre /bilan-semaine avec la
+  // vague précisée.
+  const bilanEffectiveVagueId = useMemo(() => {
+    if (adminSelectedVague !== null) return adminSelectedVague;
+    return vaguesAdminList.find((v) => v.statut === 'active')?.id ?? null;
+  }, [adminSelectedVague, vaguesAdminList]);
+
   const [bilanInfoSemaine, setBilanInfoSemaine] = useState<SkillupBilanInfo | null>(null);
   const [bilanInfoSemaineLoading, setBilanInfoSemaineLoading] = useState(false);
   const [bilanInfoVague, setBilanInfoVague] = useState<SkillupBilanInfo | null>(null);
@@ -1019,11 +1031,10 @@ const SkillUp: React.FC = () => {
 
   const loadBilansSemaineAll = useCallback(
     async (semaine: number) => {
-      const vagueArg = vagueParamFor(adminSelectedVague);
       setBilansSemaineAllLoading(true);
       setBilansSemaineAllError('');
       try {
-        const res = await getSkillupBilansSemaineAdmin(String(semaine), vagueArg !== undefined ? String(vagueArg) : undefined);
+        const res = await getSkillupBilansSemaineAdmin(String(semaine), bilanEffectiveVagueId !== null ? String(bilanEffectiveVagueId) : undefined);
         setBilansSemaineAll('bilans' in res ? res.bilans : []);
       } catch (err) {
         setBilansSemaineAll([]);
@@ -1032,20 +1043,19 @@ const SkillUp: React.FC = () => {
         setBilansSemaineAllLoading(false);
       }
     },
-    [adminSelectedVague, vagueParamFor]
+    [bilanEffectiveVagueId]
   );
 
   const loadBilanSemaineData = useCallback(
     async (discordId: string, semaine: number) => {
-      if (!discordId) return;
-      const vagueArg = vagueParamFor(adminSelectedVague);
+      if (!discordId || bilanEffectiveVagueId === null) return;
       setBilanInfoSemaineLoading(true);
       setBilanSemaineLoading(true);
       setBilanSemaineError('');
       try {
         const [info, texte] = await Promise.all([
-          getSkillupBilanInfoAdmin(discordId, vagueArg !== undefined ? String(vagueArg) : undefined, String(semaine)),
-          getSkillupBilanSemaine(discordId, vagueArg !== undefined ? String(vagueArg) : '', String(semaine)),
+          getSkillupBilanInfoAdmin(discordId, String(bilanEffectiveVagueId), String(semaine)),
+          getSkillupBilanSemaine(discordId, String(bilanEffectiveVagueId), String(semaine)),
         ]);
         setBilanInfoSemaine(info ?? null);
         setBilanSemaineTexte(texte?.texte ?? '');
@@ -1057,20 +1067,19 @@ const SkillUp: React.FC = () => {
         setBilanSemaineLoading(false);
       }
     },
-    [adminSelectedVague, vagueParamFor]
+    [bilanEffectiveVagueId]
   );
 
   const loadBilanVagueData = useCallback(
     async (discordId: string) => {
-      if (!discordId) return;
-      const vagueArg = vagueParamFor(adminSelectedVague);
+      if (!discordId || bilanEffectiveVagueId === null) return;
       setBilanInfoVagueLoading(true);
       setBilanVagueLoading(true);
       setBilanVagueError('');
       try {
         const [info, texte] = await Promise.all([
-          getSkillupBilanInfoAdmin(discordId, vagueArg !== undefined ? String(vagueArg) : undefined),
-          getSkillupBilanVague(discordId, vagueArg !== undefined ? String(vagueArg) : ''),
+          getSkillupBilanInfoAdmin(discordId, String(bilanEffectiveVagueId)),
+          getSkillupBilanVague(discordId, String(bilanEffectiveVagueId)),
         ]);
         setBilanInfoVague(info ?? null);
         setBilanVagueTexte(texte?.texte ?? '');
@@ -1082,7 +1091,7 @@ const SkillUp: React.FC = () => {
         setBilanVagueLoading(false);
       }
     },
-    [adminSelectedVague, vagueParamFor]
+    [bilanEffectiveVagueId]
   );
 
   useEffect(() => {
@@ -1090,46 +1099,39 @@ const SkillUp: React.FC = () => {
     loadBilanSemaineData(bilanMembreDiscordId, bilanSemaineNum);
     loadBilanVagueData(bilanMembreDiscordId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bilanMembreDiscordId, bilanSemaineNum]);
+  }, [bilanMembreDiscordId, bilanSemaineNum, bilanEffectiveVagueId]);
 
   useEffect(() => {
     loadBilansSemaineAll(bilanSemaineNum);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bilanSemaineNum, adminSelectedVague]);
+  }, [bilanSemaineNum, bilanEffectiveVagueId]);
 
   const handleSaveBilanSemaine = useCallback(async () => {
-    if (!bilanMembreDiscordId) return;
-    const vagueArg = vagueParamFor(adminSelectedVague);
+    if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
     setBilanSemaineSaving(true);
     setBilanSemaineError('');
     try {
-      await setSkillupBilanSemaine(
-        bilanMembreDiscordId,
-        vagueArg !== undefined ? String(vagueArg) : '',
-        String(bilanSemaineNum),
-        bilanSemaineTexte
-      );
+      await setSkillupBilanSemaine(bilanMembreDiscordId, String(bilanEffectiveVagueId), String(bilanSemaineNum), bilanSemaineTexte);
       loadBilansSemaineAll(bilanSemaineNum);
     } catch (err) {
       setBilanSemaineError(errorMessage(err));
     } finally {
       setBilanSemaineSaving(false);
     }
-  }, [bilanMembreDiscordId, bilanSemaineNum, bilanSemaineTexte, adminSelectedVague, vagueParamFor, loadBilansSemaineAll]);
+  }, [bilanMembreDiscordId, bilanSemaineNum, bilanSemaineTexte, bilanEffectiveVagueId, loadBilansSemaineAll]);
 
   const handleSaveBilanVague = useCallback(async () => {
-    if (!bilanMembreDiscordId) return;
-    const vagueArg = vagueParamFor(adminSelectedVague);
+    if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
     setBilanVagueSaving(true);
     setBilanVagueError('');
     try {
-      await setSkillupBilanVague(bilanMembreDiscordId, vagueArg !== undefined ? String(vagueArg) : '', bilanVagueTexte);
+      await setSkillupBilanVague(bilanMembreDiscordId, String(bilanEffectiveVagueId), bilanVagueTexte);
     } catch (err) {
       setBilanVagueError(errorMessage(err));
     } finally {
       setBilanVagueSaving(false);
     }
-  }, [bilanMembreDiscordId, bilanVagueTexte, adminSelectedVague, vagueParamFor]);
+  }, [bilanMembreDiscordId, bilanVagueTexte, bilanEffectiveVagueId]);
 
   const [creatingVague, setCreatingVague] = useState(false);
   const [createVagueNom, setCreateVagueNom] = useState('');
@@ -3160,111 +3162,6 @@ const SkillUp: React.FC = () => {
                             </div>
                           )}
                         </div>
-
-                        {bilanMembreDiscordId && (
-                          <>
-                            <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4 space-y-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <h3 className="font-semibold text-blue-900">
-                                  {members.find((m) => m.discord_id === bilanMembreDiscordId)?.nom ?? 'Membre'}
-                                  <span className="text-zinc-400 font-normal"> — bilan hebdomadaire, semaine {bilanSemaineNum}</span>
-                                </h3>
-                                <button
-                                  type="button"
-                                  onClick={() => setBilanMembreDiscordId('')}
-                                  className="p-1.5 rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
-                                  aria-label="Fermer"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-
-                              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
-                                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
-                                  Résumé informatif — à copier/adapter, non enregistré ici
-                                </p>
-                                {bilanInfoSemaineLoading ? (
-                                  <p className="text-zinc-400">Chargement…</p>
-                                ) : bilanInfoSemaine ? (
-                                  <div className="space-y-1">
-                                    <p>{bilanInfoSemaine.nb_sessions} session(s) — {bilanInfoSemaine.nb_completes} complète(s), {bilanInfoSemaine.nb_incompletes} incomplète(s) — durée totale {bilanInfoSemaine.duree_totale}</p>
-                                    {bilanInfoSemaine.blocages.length > 0 && (
-                                      <p>Blocages : {bilanInfoSemaine.blocages.join(' ; ')}</p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <p className="text-zinc-400">Aucune session pour cette semaine.</p>
-                                )}
-                              </div>
-
-                              {bilanSemaineError && (
-                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanSemaineError}</div>
-                              )}
-                              <textarea
-                                value={bilanSemaineTexte}
-                                onChange={(e) => setBilanSemaineTexte(e.target.value)}
-                                disabled={bilanSemaineLoading}
-                                rows={5}
-                                placeholder="Bilan de la semaine — rédigé à la main par l'admin."
-                                className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                              <div className="flex justify-end">
-                                <button
-                                  type="button"
-                                  onClick={handleSaveBilanSemaine}
-                                  disabled={bilanSemaineSaving || bilanSemaineLoading}
-                                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
-                                >
-                                  {bilanSemaineSaving ? 'Enregistrement…' : 'Enregistrer'}
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="bg-white border border-zinc-200 shadow-sm rounded-xl p-4 space-y-3">
-                              <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
-
-                              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
-                                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
-                                  Résumé informatif — à copier/adapter, non enregistré ici
-                                </p>
-                                {bilanInfoVagueLoading ? (
-                                  <p className="text-zinc-400">Chargement…</p>
-                                ) : bilanInfoVague ? (
-                                  <div className="space-y-1">
-                                    <p>{bilanInfoVague.nb_sessions} session(s) — {bilanInfoVague.nb_completes} complète(s), {bilanInfoVague.nb_incompletes} incomplète(s) — durée totale {bilanInfoVague.duree_totale}</p>
-                                    {bilanInfoVague.blocages.length > 0 && (
-                                      <p>Blocages : {bilanInfoVague.blocages.join(' ; ')}</p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <p className="text-zinc-400">Aucune session pour cette vague.</p>
-                                )}
-                              </div>
-
-                              {bilanVagueError && (
-                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanVagueError}</div>
-                              )}
-                              <textarea
-                                value={bilanVagueTexte}
-                                onChange={(e) => setBilanVagueTexte(e.target.value)}
-                                disabled={bilanVagueLoading}
-                                rows={6}
-                                placeholder="Bilan de synthèse de la vague — rédigé à la main par l'admin."
-                                className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                              <div className="flex justify-end">
-                                <button
-                                  type="button"
-                                  onClick={handleSaveBilanVague}
-                                  disabled={bilanVagueSaving || bilanVagueLoading}
-                                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
-                                >
-                                  {bilanVagueSaving ? 'Enregistrement…' : 'Enregistrer'}
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
                       </div>
                     ),
                   },
@@ -3273,6 +3170,114 @@ const SkillUp: React.FC = () => {
           </div>
         )}
       </div>
+
+      {bilanMembreDiscordId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-white">
+              <h2 className="text-base font-semibold text-blue-900">
+                {members.find((m) => m.discord_id === bilanMembreDiscordId)?.nom ?? 'Membre'}
+              </h2>
+              <button
+                onClick={() => setBilanMembreDiscordId('')}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-blue-900">Bilan hebdomadaire — semaine {bilanSemaineNum}</h3>
+
+                <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
+                  <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
+                    Résumé informatif — à copier/adapter, non enregistré ici
+                  </p>
+                  {bilanInfoSemaineLoading ? (
+                    <p className="text-zinc-400">Chargement…</p>
+                  ) : bilanInfoSemaine ? (
+                    <div className="space-y-1">
+                      <p>{bilanInfoSemaine.nb_sessions} session(s) — {bilanInfoSemaine.nb_completes} complète(s), {bilanInfoSemaine.nb_incompletes} incomplète(s) — durée totale {bilanInfoSemaine.duree_totale}</p>
+                      {bilanInfoSemaine.blocages.length > 0 && (
+                        <p>Blocages : {bilanInfoSemaine.blocages.join(' ; ')}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-zinc-400">Aucune session pour cette semaine.</p>
+                  )}
+                </div>
+
+                {bilanSemaineError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanSemaineError}</div>
+                )}
+                <textarea
+                  value={bilanSemaineTexte}
+                  onChange={(e) => setBilanSemaineTexte(e.target.value)}
+                  disabled={bilanSemaineLoading}
+                  rows={5}
+                  placeholder="Bilan de la semaine — rédigé à la main par l'admin."
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveBilanSemaine}
+                    disabled={bilanSemaineSaving || bilanSemaineLoading}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
+                  >
+                    {bilanSemaineSaving ? 'Enregistrement…' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t border-zinc-100">
+                <h3 className="font-semibold text-blue-900">Bilan de vague</h3>
+
+                <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm text-zinc-700">
+                  <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
+                    Résumé informatif — à copier/adapter, non enregistré ici
+                  </p>
+                  {bilanInfoVagueLoading ? (
+                    <p className="text-zinc-400">Chargement…</p>
+                  ) : bilanInfoVague ? (
+                    <div className="space-y-1">
+                      <p>{bilanInfoVague.nb_sessions} session(s) — {bilanInfoVague.nb_completes} complète(s), {bilanInfoVague.nb_incompletes} incomplète(s) — durée totale {bilanInfoVague.duree_totale}</p>
+                      {bilanInfoVague.blocages.length > 0 && (
+                        <p>Blocages : {bilanInfoVague.blocages.join(' ; ')}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-zinc-400">Aucune session pour cette vague.</p>
+                  )}
+                </div>
+
+                {bilanVagueError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{bilanVagueError}</div>
+                )}
+                <textarea
+                  value={bilanVagueTexte}
+                  onChange={(e) => setBilanVagueTexte(e.target.value)}
+                  disabled={bilanVagueLoading}
+                  rows={6}
+                  placeholder="Bilan de synthèse de la vague — rédigé à la main par l'admin."
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveBilanVague}
+                    disabled={bilanVagueSaving || bilanVagueLoading}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
+                  >
+                    {bilanVagueSaving ? 'Enregistrement…' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
