@@ -37,7 +37,6 @@ import {
   syncSkillupMemberObjectif,
   syncSkillupMembersObjectifAll,
   getSkillupBilanTexteSemaine,
-  getSkillupBilanSemaineSuggestion,
   getSkillupBilanVagueSuggestion,
   getSkillupAiSettings,
   linkSkillupVagueThreadBilanCollectif,
@@ -1272,26 +1271,10 @@ const SkillUp: React.FC = () => {
     }
   }, [bilanMembreDiscordId, bilanVagueTexte, bilanEffectiveVagueId, loadBilansVagueAll]);
 
-  // Suggestion IA — brouillon généré à partir des vraies données (sessions, bilans
-  // hebdo déjà écrits), jamais sauvegardé automatiquement. Si le textarea contient déjà
-  // du texte, demande confirmation avant d'écraser.
-  const [bilanSemaineSuggesting, setBilanSemaineSuggesting] = useState(false);
+  // Suggestion IA — brouillon généré à partir des vraies données (bilans hebdo déjà
+  // écrits, sessions de toute la vague), jamais sauvegardé automatiquement. Réservée
+  // au bilan de vague — pas assez de matière pour un bilan hebdo individuel fiable.
   const [bilanVagueSuggesting, setBilanVagueSuggesting] = useState(false);
-
-  const handleSuggestBilanSemaine = useCallback(async () => {
-    if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
-    if (bilanSemaineTexte.trim() && !window.confirm('Remplacer le texte existant par la suggestion IA ?')) return;
-    setBilanSemaineSuggesting(true);
-    setBilanSemaineError('');
-    try {
-      const res = await getSkillupBilanSemaineSuggestion(bilanMembreDiscordId, String(bilanEffectiveVagueId), String(bilanSemaineNum));
-      setBilanSemaineTexte(res.suggestion);
-    } catch (err) {
-      setBilanSemaineError(errorMessage(err));
-    } finally {
-      setBilanSemaineSuggesting(false);
-    }
-  }, [bilanMembreDiscordId, bilanSemaineNum, bilanEffectiveVagueId, bilanSemaineTexte]);
 
   const handleSuggestBilanVague = useCallback(async () => {
     if (!bilanMembreDiscordId || bilanEffectiveVagueId === null) return;
@@ -3872,12 +3855,12 @@ const SkillUp: React.FC = () => {
                   {aiSettings?.enabled !== false && (
                     <button
                       type="button"
-                      onClick={handleSuggestBilanSemaine}
-                      disabled={bilanSemaineSuggesting}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                      disabled
+                      title="Suggestion IA disponible uniquement pour le bilan de vague"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md opacity-40 cursor-not-allowed"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${bilanSemaineSuggesting ? 'animate-spin' : ''}`} />
-                      {bilanSemaineSuggesting ? 'Génération…' : 'Générer une suggestion (IA)'}
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Générer une suggestion (IA)
                     </button>
                   )}
                 </div>
