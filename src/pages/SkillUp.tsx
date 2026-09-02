@@ -3275,6 +3275,11 @@ const SkillUp: React.FC = () => {
                                         >
                                           {v.statut}
                                         </span>
+                                        {v.statut === 'cloturee' && v.date_cloture && (
+                                          <div className="text-xs text-zinc-400 mt-1">
+                                            {new Date(v.date_cloture).toLocaleDateString('fr-FR')}
+                                          </div>
+                                        )}
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap">
                                         <button

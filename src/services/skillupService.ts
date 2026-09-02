@@ -125,6 +125,7 @@ export interface SkillupVagueAdmin {
   date_debut: string;
   date_fin: string;
   statut: 'brouillon' | 'active' | 'cloturee' | string;
+  date_cloture: string | null;
   thread_bilan_collectif_id: string | null;
 }
 
